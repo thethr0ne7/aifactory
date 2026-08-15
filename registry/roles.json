@@ -1,11 +1,18 @@
 {
-  "schemaVersion": "1.0.0",
-  "policy": "Roles are bounded execution responsibilities, not permanent personas or a default multi-agent council.",
+  "schemaVersion": "1.1.0",
+  "policy": "Roles are bounded execution responsibilities. Executive roles are active decision programs with explicit skills and decision rights, not fictional personas or a default multi-agent council.",
+  "executiveRegistry": "registry/executive-agents.json",
   "roles": [
-    {"id":"architect","purpose":"define boundaries, interfaces, trade-offs and migration path","defaultSkills":["task-qualifier","repo-intake","spec-lock","code-navigation","engineering-kernel"]},
-    {"id":"engineer","purpose":"implement and repair scoped behavior","defaultSkills":["repo-intake","engineering-kernel","repair-loop","quality-gates"]},
-    {"id":"reviewer","purpose":"independent review against spec, evidence and ship gates","defaultSkills":["spec-lock","quality-gates","destructive-review","deterministic-release-claims"]},
-    {"id":"researcher","purpose":"retrieve, compare and synthesize traceable evidence","defaultSkills":["task-qualifier","research-truth","research-toolbelt","claim-checker","verified-provenance-gate"]},
-    {"id":"validator","purpose":"test claims/artifacts against explicit acceptance criteria","defaultSkills":["quality-gates","verified-provenance-gate","scientific-benchmark","visual-fidelity"]}
+    {"id":"ceo","class":"executive","purpose":"own objective, priority, scope and final kill/ship decision","profile":"agents/executive/CEO.md","defaultSkills":["task-qualifier","spec-lock","executive-router","research-truth","honest-capability-ledger","destructive-review","quality-gates"]},
+    {"id":"cfo","class":"executive","purpose":"own economics, budget, funding logic and downside","profile":"agents/executive/CFO.md","defaultSkills":["research-truth","data-validation","spreadsheet-adapter","grant-analysis","claim-checker","verified-provenance-gate","quality-gates"]},
+    {"id":"coo","class":"executive","purpose":"turn direction into sequenced, owned and observable execution","profile":"agents/executive/COO.md","defaultSkills":["stateful-control","repo-intake","spec-lock","quality-gates","repair-loop","recent-signal-radar","deterministic-release-claims"]},
+    {"id":"cio","class":"executive","purpose":"own architecture, technical strategy, data, security and reliability","profile":"agents/executive/CIO.md","defaultSkills":["architecture-review","engineering-kernel","code-navigation","codebase-knowledge-graph","defensive-security","third-party-security","scope-provenance-gate","https-autopilot"]},
+    {"id":"cmo","class":"executive","purpose":"own audience, positioning, brand promise and acquisition quality","profile":"agents/executive/CMO.md","defaultSkills":["marketing-growth","research-toolbelt","design-dna","frontend-design","brand-theme","ui-taste-gate","visual-fidelity","writing-quality-gate"]},
+    {"id":"cro","class":"executive","purpose":"own pricing, funnel, conversion, sales motion and revenue","profile":"agents/executive/CRO.md","defaultSkills":["marketing-growth","seo-geo","data-validation","research-truth","claim-checker","spreadsheet-adapter","quality-gates"]},
+    {"id":"architect","class":"delivery","purpose":"define boundaries, interfaces, trade-offs and migration path","defaultSkills":["task-qualifier","repo-intake","spec-lock","code-navigation","engineering-kernel"]},
+    {"id":"engineer","class":"delivery","purpose":"implement and repair scoped behavior","defaultSkills":["repo-intake","engineering-kernel","repair-loop","quality-gates"]},
+    {"id":"reviewer","class":"assurance","purpose":"independent review against spec, evidence and ship gates","defaultSkills":["spec-lock","quality-gates","destructive-review","deterministic-release-claims"]},
+    {"id":"researcher","class":"evidence","purpose":"retrieve, compare and synthesize traceable evidence","defaultSkills":["task-qualifier","research-truth","research-toolbelt","claim-checker","verified-provenance-gate"]},
+    {"id":"validator","class":"assurance","purpose":"test claims/artifacts against explicit acceptance criteria","defaultSkills":["quality-gates","verified-provenance-gate","scientific-benchmark","visual-fidelity"]}
   ]
 }
