@@ -4,6 +4,7 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "npm:jose@6";
 
 type Action =
   | "enqueue" | "claim" | "heartbeat" | "learning_context" | "event" | "checkpoint" | "incident" | "lesson" | "finish" | "recover"
+  | "tool_request" | "tool_context" | "await_tools" | "tool_recover" | "tool_claim" | "tool_finish"
   | "seed_regression_evals" | "improvement_claim" | "improvement_record" | "improvement_promote"
   | "promotion_context" | "promotion_observe" | "promotion_retain" | "promotion_rollback";
 
@@ -34,6 +35,7 @@ type Body = {
   candidate_change?: Record<string, unknown>;
   status?: string;
   result?: Record<string, unknown>;
+  error?: Record<string, unknown> | null;
   activated_agents?: string[];
   selected_skills?: string[];
   stale_minutes?: number;
@@ -55,6 +57,11 @@ type Body = {
   outcome?: string;
   regression_detected?: boolean;
   reason?: string;
+  request_id?: string;
+  tool_id?: string;
+  request_key?: string;
+  arguments?: Record<string, unknown>;
+  required_autonomy?: string;
 };
 
 type GitHubClaims = JWTPayload & {
@@ -82,7 +89,8 @@ const EXPECTED_REPOSITORY_ID = "1334997374";
 const EXPECTED_REF = "refs/heads/main";
 const AUTONOMOUS_WORKFLOW = "thethr0ne7/aifactory/.github/workflows/factory-autonomous-worker.yml@refs/heads/main";
 const SELF_IMPROVEMENT_WORKFLOW = "thethr0ne7/aifactory/.github/workflows/factory-self-improvement.yml@refs/heads/main";
-const ALLOWED_WORKFLOWS = new Set([AUTONOMOUS_WORKFLOW, SELF_IMPROVEMENT_WORKFLOW]);
+const TOOL_EXECUTOR_WORKFLOW = "thethr0ne7/aifactory/.github/workflows/factory-tool-executor.yml@refs/heads/main";
+const ALLOWED_WORKFLOWS = new Set([AUTONOMOUS_WORKFLOW, SELF_IMPROVEMENT_WORKFLOW, TOOL_EXECUTOR_WORKFLOW]);
 const JWKS = createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks`));
 const EVIDENCE_CLASSES = new Set(["MEASURED","OBSERVED","CONFIRMED","DERIVED","INFERRED","ASSUMPTION","UNKNOWN","BLOCKER"]);
 const SEVERITIES = new Set(["UNDESIRABLE","FORBIDDEN","CATASTROPHIC"]);
@@ -91,6 +99,13 @@ const SELF_ACTIONS = new Set<Action>([
   "seed_regression_evals","improvement_claim","improvement_record","improvement_promote",
   "promotion_context","promotion_observe","promotion_retain","promotion_rollback",
 ]);
+const TOOL_EXECUTOR_ACTIONS = new Set<Action>(["tool_recover","tool_claim","tool_finish"]);
+const TOOL_SPECS: Record<string,{required_autonomy:string;risk_class:string}> = {
+  "factory.repo.read_file": { required_autonomy: "A3", risk_class: "LOW" },
+  "factory.repo.list_files": { required_autonomy: "A3", risk_class: "LOW" },
+  "factory.repo.run_validation": { required_autonomy: "A3", risk_class: "LOW" },
+  "factory.repo.candidate_write": { required_autonomy: "A3", risk_class: "LOW" },
+};
 
 Deno.serve(async (request: Request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -103,6 +118,7 @@ Deno.serve(async (request: Request) => {
     const kind = workflowKind(claims);
 
     if (SELF_ACTIONS.has(action)) requireWorkflowKind(kind, "self-improvement");
+    else if (TOOL_EXECUTOR_ACTIONS.has(action)) requireWorkflowKind(kind, "tool-executor");
     else if (action !== "learning_context") requireWorkflowKind(kind, "autonomous");
 
     if (action === "enqueue") {
@@ -156,6 +172,84 @@ Deno.serve(async (request: Request) => {
         incidents: incidentResult.data ?? [],
         memory_policy: { candidate_non_binding: true, superseded_inactive: true, current_evidence_wins: true, root_of_trust_override: false },
       });
+    }
+
+    if (action === "tool_context") {
+      const runId = uuid(body.run_id, "run_id");
+      const limit = Math.max(1, Math.min(Number(body.limit) || 40, 60));
+      const { data: requests, error: qError } = await db.from("af_tool_requests")
+        .select("id,run_id,task_id,tool_id,request_key,arguments,status,risk_class,requested_autonomy,required_autonomy,created_at,completed_at")
+        .eq("run_id", runId).order("created_at", { ascending: true }).limit(limit);
+      if (qError) throw qError;
+      const ids = (requests ?? []).map((x) => x.id);
+      let results: any[] = [];
+      if (ids.length) {
+        const { data: rData, error: rError } = await db.from("af_tool_results")
+          .select("request_id,outcome,result,error,evidence_class,created_at").in("request_id", ids);
+        if (rError) throw rError;
+        results = rData ?? [];
+      }
+      const resultByRequest = new Map(results.map((x) => [x.request_id, x]));
+      return json({ requests: (requests ?? []).map((q) => {
+        const r = resultByRequest.get(q.id);
+        return { ...q, result: r?.result ?? null, error: r?.error ?? null, evidence_class: r?.evidence_class ?? null, result_created_at: r?.created_at ?? null };
+      }) });
+    }
+
+    if (action === "tool_request") {
+      const runId = uuid(body.run_id, "run_id");
+      const taskId = uuid(body.task_id, "task_id");
+      const toolId = clean(body.tool_id, 120);
+      const spec = TOOL_SPECS[toolId];
+      if (!spec) return json({ error: "tool_not_allowlisted" }, 400);
+      const requestKey = clean(body.request_key, 120).toLowerCase();
+      if (!/^[a-z0-9][a-z0-9._:-]{2,119}$/.test(requestKey)) return json({ error: "invalid_request_key" }, 400);
+      const requiredAutonomy = clean(body.required_autonomy, 2);
+      const riskClass = clean(body.risk_class, 32);
+      if (requiredAutonomy !== spec.required_autonomy || riskClass !== spec.risk_class) return json({ error: "tool_policy_mismatch" }, 400);
+      const args = objectOrEmpty(body.arguments);
+      if (JSON.stringify(args).length > 120000) return json({ error: "tool_arguments_too_large" }, 400);
+      const { data, error } = await db.rpc("af_request_tool", {
+        p_run_id: runId, p_task_id: taskId, p_tool_id: toolId, p_request_key: requestKey,
+        p_arguments: args, p_required_autonomy: requiredAutonomy, p_risk_class: riskClass, p_provenance: provenance,
+      });
+      if (error) throw error;
+      return json({ request_id: data, status: "PENDING" });
+    }
+
+    if (action === "await_tools") {
+      const { data, error } = await db.rpc("af_wait_for_tools", { p_task_id: uuid(body.task_id, "task_id") });
+      if (error) throw error;
+      return json({ run_id: data, status: "WAITING_TOOLS" });
+    }
+
+    if (action === "tool_recover") {
+      const minutes = Math.max(5, Math.min(Number(body.stale_minutes) || 20, 1440));
+      const { data, error } = await db.rpc("af_recover_stale_tools", { p_stale_minutes: minutes });
+      if (error) throw error;
+      return json({ recovery: data });
+    }
+
+    if (action === "tool_claim") {
+      const workerId = clean(body.worker_id || `tool:${claims.run_id ?? "unknown"}`, 200);
+      const { data, error } = await db.rpc("af_claim_tool_request", { p_worker_id: workerId });
+      if (error) throw error;
+      const requestRow = Array.isArray(data) ? data[0] ?? null : data ?? null;
+      return json({ request: requestRow });
+    }
+
+    if (action === "tool_finish") {
+      const status = clean(body.status, 16);
+      if (!new Set(["EXECUTED","DENIED","FAILED"]).has(status)) return json({ error: "invalid_tool_terminal_status" }, 400);
+      const evidenceClass = clean(body.evidence_class || (status === "EXECUTED" ? "CONFIRMED" : "BLOCKER"), 32);
+      if (!EVIDENCE_CLASSES.has(evidenceClass)) return json({ error: "invalid_evidence_class" }, 400);
+      const { data, error } = await db.rpc("af_finish_tool_request", {
+        p_request_id: uuid(body.request_id, "request_id"), p_status: status,
+        p_result: objectOrEmpty(body.result), p_error: body.error ?? null,
+        p_evidence_class: evidenceClass, p_provenance: provenance,
+      });
+      if (error) throw error;
+      return json({ run_id: data, status });
     }
 
     if (action === "event") {
@@ -374,7 +468,9 @@ async function authenticate(request: Request): Promise<GitHubClaims> {
 
 function workflowKind(claims: GitHubClaims) {
   const workflow = String(claims.job_workflow_ref ?? claims.workflow_ref ?? "");
-  return workflow === SELF_IMPROVEMENT_WORKFLOW ? "self-improvement" : "autonomous";
+  if (workflow === SELF_IMPROVEMENT_WORKFLOW) return "self-improvement";
+  if (workflow === TOOL_EXECUTOR_WORKFLOW) return "tool-executor";
+  return "autonomous";
 }
 function requireWorkflowKind(actual: string, expected: string) { if (actual !== expected) throw new Error("oidc_workflow_action_mismatch"); }
 function runnerMetadata(claims: GitHubClaims, supplied?: Record<string, unknown>) {
