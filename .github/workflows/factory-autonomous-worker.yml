@@ -27,7 +27,7 @@ on:
       - 'runtime/**'
       - 'registry/**'
       - 'skills/**'
-      - 'scripts/autonomous-worker.mjs'
+      - 'scripts/copilot-autonomous-worker.mjs'
       - 'supabase/functions/ai-factory-broker/**'
       - 'infra/supabase/migrations/**'
       - '.github/workflows/factory-autonomous-worker.yml'
@@ -35,7 +35,7 @@ on:
 permissions:
   contents: read
   id-token: write
-  models: read
+  copilot-requests: write
 
 concurrency:
   group: ai-factory-autonomous-worker
@@ -47,7 +47,6 @@ jobs:
     timeout-minutes: 12
     env:
       FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
-      FACTORY_MODEL: openai/gpt-4.1
       FACTORY_OBJECTIVE: ${{ inputs.objective || '' }}
       FACTORY_KIND: ${{ inputs.kind || 'general' }}
       FACTORY_AUTONOMY_LEVEL: ${{ inputs.autonomy_level || 'A3' }}
@@ -61,6 +60,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Install GitHub Copilot CLI
+        run: npm install -g @github/copilot
+
       - name: Validate factory contracts
         run: |
           node scripts/validate-factory.js
@@ -69,4 +71,4 @@ jobs:
       - name: Run autonomous worker
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/autonomous-worker.mjs
+        run: node scripts/copilot-autonomous-worker.mjs

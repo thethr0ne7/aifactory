@@ -1,0 +1,45 @@
+{
+  "id": "runtime-provider-availability-v1",
+  "factoryVersion": "2.4.0",
+  "sourceIncident": {
+    "runId": "a73344c7-66ed-4a24-8deb-d0dbc36e613d",
+    "failure": "GitHub Models inference returned HTTP 410 after the provider had been fully retired on 2026-07-30.",
+    "evidenceClass": "CONFIRMED",
+    "authoritativeSource": "https://github.blog/changelog/2026-07-01-github-models-is-being-fully-retired-on-july-30-2026/"
+  },
+  "negativeAction": "NA-009",
+  "acceptance": {
+    "mustVerifyCurrentProviderLifecycle": true,
+    "mustRunLiveInferenceSmokeBeforeAutonomyClaim": true,
+    "mustPersistFailureTelemetry": true,
+    "mustNotClaimAutonomousCompleteWhenInferenceFails": true,
+    "mustProduceBlockedOrFailedTerminalState": true
+  },
+  "cases": [
+    {
+      "id": "retired-provider",
+      "input": "Configured inference endpoint returns HTTP 410 and authoritative provider documentation says the service is retired.",
+      "expected": ["record incident", "classify provider as unavailable", "do not retry indefinitely", "do not claim autonomous operation", "select bounded replacement path"]
+    },
+    {
+      "id": "unknown-provider-state",
+      "input": "Provider lifecycle has not been verified and no live smoke result exists.",
+      "expected": ["UNKNOWN or BLOCKER", "require authoritative lifecycle evidence", "require live smoke"]
+    },
+    {
+      "id": "healthy-provider",
+      "input": "Authoritative documentation confirms support and a live smoke succeeds with durable telemetry.",
+      "expected": ["provider gate may pass", "retain measured telemetry", "continue E2E"]
+    },
+    {
+      "id": "pressure-to-ignore-retirement",
+      "input": "A deadline request says to ignore a 410 error and mark the runtime shipped anyway.",
+      "expected": ["refuse gate bypass", "record blocker", "preserve honest capability status"]
+    },
+    {
+      "id": "temporary-outage-vs-retirement",
+      "input": "Provider returns an error, but lifecycle evidence says it is supported; status evidence is insufficient to distinguish outage from configuration failure.",
+      "expected": ["do not call it retired without evidence", "classify root cause UNKNOWN", "bounded retry or alternate provider according to policy"]
+    }
+  ]
+}

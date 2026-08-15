@@ -32,6 +32,7 @@ const autonomy = readJson('registry/autonomy-levels.json');
 const negatives = readJson('registry/negative-actions.json');
 const learning = readJson('registry/learning-policy.json');
 const telemetry = readJson('registry/telemetry-policy.json');
+const providerEval = readJson('evals/runtime/provider-availability.json');
 
 const expectedVersion = '2.4.0';
 for (const [name, obj] of Object.entries({manifest, capabilities, runtime, constitution, autonomy, negatives, learning, telemetry})) {
@@ -46,16 +47,19 @@ exists('skills/root-of-trust/SKILL.md');
 exists('infra/supabase/migrations/20260815_240_autonomous_runtime.sql');
 exists('infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql');
 exists('supabase/functions/ai-factory-broker/index.ts');
-exists('scripts/autonomous-worker.mjs');
+exists('scripts/copilot-autonomous-worker.mjs');
 exists('.github/workflows/factory-autonomous-worker.yml');
+exists('evals/runtime/provider-availability.json');
 exists('docs/AUTONOMOUS-RUNTIME.md');
 
 if (manifest) {
   if (manifest.hostedWorker !== '.github/workflows/factory-autonomous-worker.yml') errors.push('manifest hostedWorker mismatch');
-  if (manifest.hostedWorkerScript !== 'scripts/autonomous-worker.mjs') errors.push('manifest hostedWorkerScript mismatch');
+  if (manifest.hostedWorkerScript !== 'scripts/copilot-autonomous-worker.mjs') errors.push('manifest hostedWorkerScript mismatch');
   if (manifest.hostedBroker !== 'supabase/functions/ai-factory-broker/index.ts') errors.push('manifest hostedBroker mismatch');
   if (manifest.hostedRuntimePersistence !== 'infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql') errors.push('manifest hostedRuntimePersistence mismatch');
   if (manifest.hostedBrokerAudience !== 'aifactory-supabase-runtime') errors.push('manifest hostedBrokerAudience mismatch');
+  if (!String(manifest.hostedInference || '').includes('Copilot CLI')) errors.push('hosted inference must use current Copilot CLI path');
+  if (String(manifest.hostedInference || '').includes('GitHub Models')) errors.push('retired GitHub Models provider must not remain configured');
 }
 
 if (runtime) {
@@ -98,6 +102,14 @@ if (negatives) {
     if (!rule.detector) errors.push(`negative action missing detector: ${rule.id}`);
   }
   if (!(negatives.rules || []).some((rule) => rule.severity === 'CATASTROPHIC')) errors.push('negative action registry must contain catastrophic controls');
+  if (!ids.has('NA-009')) errors.push('negative action registry must include provider lifecycle/smoke control NA-009');
+}
+
+if (providerEval) {
+  if (providerEval.negativeAction !== 'NA-009') errors.push('provider availability eval must bind NA-009');
+  if (providerEval.acceptance?.mustRunLiveInferenceSmokeBeforeAutonomyClaim !== true) errors.push('provider eval must require live inference smoke');
+  if (providerEval.acceptance?.mustNotClaimAutonomousCompleteWhenInferenceFails !== true) errors.push('provider eval must prevent false autonomous completion');
+  if ((providerEval.cases || []).length < 5) errors.push('provider availability eval requires at least five cases');
 }
 
 if (learning) {
@@ -120,10 +132,19 @@ if (capabilities) {
   }
 }
 
+const workflowPath = path.join(root, '.github/workflows/factory-autonomous-worker.yml');
+if (fs.existsSync(workflowPath)) {
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  if (!workflow.includes('copilot-requests: write')) errors.push('autonomous worker must grant copilot-requests: write');
+  if (!workflow.includes('npm install -g @github/copilot')) errors.push('autonomous worker must install current Copilot CLI');
+  if (!workflow.includes('node scripts/copilot-autonomous-worker.mjs')) errors.push('workflow must execute Copilot CLI worker');
+  if (workflow.includes('models: read')) errors.push('retired GitHub Models permission must be removed');
+}
+
 if (errors.length) {
   console.error('AI Factory autonomous runtime validation FAILED');
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
 
-console.log('AI Factory autonomous runtime validation OK: 2.4.0 contracts and hosted activation artifacts are structurally coherent');
+console.log('AI Factory autonomous runtime validation OK: 2.4.0 contracts, hosted activation and provider lifecycle controls are structurally coherent');
