@@ -36,6 +36,13 @@ const protectedRisk = classifyImprovementRisk({
 assert.equal(protectedRisk.risk_class, 'ROOT_OR_CATASTROPHIC');
 assert.equal(decidePromotion({ risk: protectedRisk, evaluation: evalResult, policy }).action, 'REVIEW_REQUIRED');
 
+const autonomyRoutingRisk = classifyImprovementRisk({
+  ...lowCandidate,
+  statement: 'Activation smoke tests require A4+ autonomy before routing to lower autonomy levels.',
+});
+assert.equal(autonomyRoutingRisk.risk_class, 'ROOT_OR_CATASTROPHIC');
+assert.equal(decidePromotion({ risk: autonomyRoutingRisk, evaluation: evalResult, policy }).action, 'REVIEW_REQUIRED');
+
 const patch = buildMemoryPatch(lowCandidate);
 assert.equal(patch.target_type, 'MEMORY_GUIDANCE');
 assert.match(patch.rollback_ref, /PROMOTED->SUPERSEDED/);
