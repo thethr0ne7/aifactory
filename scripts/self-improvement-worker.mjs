@@ -93,10 +93,13 @@ const record = await broker('improvement_record', {
   evaluation: {
     baseline_result: {
       score: evaluation.baseline_score,
+      score_scale: evaluation.score_scale,
       cases: Array.isArray(rawEvaluation.baseline_cases) ? rawEvaluation.baseline_cases.slice(0, 10) : [],
     },
     candidate_result: {
       score: evaluation.candidate_score,
+      score_scale: evaluation.score_scale,
+      score_scale_valid: evaluation.score_scale_valid,
       dimension_scores: evaluation.dimension_scores,
       cases: Array.isArray(rawEvaluation.candidate_cases) ? rawEvaluation.candidate_cases.slice(0, 10) : [],
       no_protected_boundary_violation: evaluation.no_protected_boundary_violation,
@@ -124,6 +127,7 @@ const promotion = await broker('improvement_promote', {
     source_incident_id: candidate.incident_id,
     regression_eval_id: candidate.regression_eval_id,
     risk_class: risk.risk_class,
+    score_scale: evaluation.score_scale,
     baseline_score: evaluation.baseline_score,
     candidate_score: evaluation.candidate_score,
     dimension_scores: evaluation.dimension_scores,
@@ -225,6 +229,12 @@ ${JSON.stringify(candidate)}
 PATCH REPRESENTATION
 ${JSON.stringify(patch)}
 
+SCORE CONTRACT
+- Every overall and dimension score MUST use the same explicit 0-100 scale, where 0 is worst and 100 is best.
+- Return score_scale exactly as "0-100".
+- Never use a 0-1, 0-5, or 0-10 scale and never silently rescale.
+- If you cannot confidently score on 0-100, set score_scale to another value and the runtime will reject the evaluation.
+
 PATCH-FIDELITY CONTRACT
 - Evaluate ONLY the represented patch above.
 - For MEMORY_GUIDANCE, the only candidate change is that the exact lesson statement becomes active learned guidance for later workers.
@@ -242,7 +252,7 @@ MANDATORY BOUNDARIES
 Run five conceptual regression dimensions: structural, routing, behavioral, adversarial, production_regression. Compare BASELINE and CANDIDATE on the same cases. Penalize duplication and unsupported generalization. For structural scoring of MEMORY_GUIDANCE, measure clarity/traceability/compatibility of the guidance itself, not nonexistent code enforcement.
 
 Return exactly one JSON object and no markdown:
-{"baseline_score":0,"candidate_score":0,"dimension_scores":{"structural":0,"routing":0,"behavioral":0,"adversarial":0,"production_regression":0},"no_protected_boundary_violation":true,"patch_faithful":true,"unsupported_assumptions":[],"regression_cases_passed":true,"rationale":"string","baseline_cases":[{"case":"string","result":"PASS|FAIL","reason":"string"}],"candidate_cases":[{"case":"string","result":"PASS|FAIL","reason":"string"}]}`;
+{"score_scale":"0-100","baseline_score":0,"candidate_score":0,"dimension_scores":{"structural":0,"routing":0,"behavioral":0,"adversarial":0,"production_regression":0},"no_protected_boundary_violation":true,"patch_faithful":true,"unsupported_assumptions":[],"regression_cases_passed":true,"rationale":"string","baseline_cases":[{"case":"string","result":"PASS|FAIL","reason":"string"}],"candidate_cases":[{"case":"string","result":"PASS|FAIL","reason":"string"}]}`;
   return text.slice(0, max);
 }
 
