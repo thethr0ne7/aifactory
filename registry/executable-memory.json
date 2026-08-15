@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "mode": "executable-read-only",
+  "purpose": "Make durable incidents and lessons influence future runtime decisions without allowing memory to override Root of Trust, evidence rules, or current task evidence.",
+  "sources": {
+    "lessons": "public.af_lessons",
+    "incidents": "public.af_incidents"
+  },
+  "authority": {
+    "PROMOTED": "active learned guidance; may influence routing and decisions but never overrides Constitution, negative actions, security boundaries, or stronger current evidence",
+    "CANDIDATE": "hypothesis only; may be considered and tested but must never be represented as established policy or fact",
+    "SUPERSEDED": "historical anti-regression context only; must not be reactivated without a new evaluated proposal",
+    "INCIDENT": "historical observed failure evidence; may increase caution and trigger regression checks but is not itself a policy"
+  },
+  "selection": {
+    "serverFetchMaxLessons": 40,
+    "serverFetchMaxIncidents": 30,
+    "workerMaxLessons": 8,
+    "workerMaxIncidents": 6,
+    "maxSerializedCharacters": 18000,
+    "ranking": [
+      "objective token overlap",
+      "PROMOTED status boost",
+      "incident severity boost",
+      "recency tie-break"
+    ],
+    "excludeResolvedNoise": false,
+    "deduplicateByStatement": true
+  },
+  "executionRules": [
+    "Load memory after a durable task is claimed and before model inference.",
+    "Record exactly which lesson and incident IDs were injected into the run.",
+    "Current evidence outranks historical memory when they conflict.",
+    "Candidate lessons must be explicitly labeled CANDIDATE in model context.",
+    "Superseded lessons are warnings against accidental reintroduction, not active instructions.",
+    "Memory may never authorize repository mutation, production writes, security weakening, Root of Trust mutation, or autonomy escalation.",
+    "If relevant memory conflicts with current evidence, return the contradiction in evidence/risks rather than silently choosing one.",
+    "A run with no relevant memory must continue normally and record an empty memory selection."
+  ],
+  "telemetry": {
+    "loadEvent": "LEARNING_CONTEXT_LOADED",
+    "evidenceClass": "OBSERVED",
+    "requiredPayload": [
+      "lesson_ids",
+      "incident_ids",
+      "lesson_count",
+      "incident_count"
+    ]
+  },
+  "promotionBoundary": {
+    "runtimeMayRead": true,
+    "runtimeMayCreateCandidates": true,
+    "runtimeMayPromoteAtA3": false,
+    "rootOfTrustAutoPromotion": false,
+    "catastrophicControlAutoPromotion": false
+  }
+}
