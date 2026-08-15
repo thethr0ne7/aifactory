@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "mode": "controlled-tool-runtime",
+  "principle": "Workers may request capabilities; only a separate allowlisted executor performs side effects. The reasoning worker never receives unrestricted shell, filesystem, repository, database, network, or production authority.",
+  "maxToolRequestsPerWorkerTurn": 3,
+  "maxToolResultCharactersPerRun": 30000,
+  "executor": {
+    "workflow": ".github/workflows/factory-tool-executor.yml",
+    "script": "scripts/tool-executor.mjs",
+    "claimOnePerRun": true,
+    "staleClaimMinutes": 20,
+    "repositoryScope": "thethr0ne7/aifactory",
+    "directMerge": false
+  },
+  "tools": [
+    {
+      "id": "factory.repo.read_file",
+      "class": "READ",
+      "riskClass": "LOW",
+      "minimumAutonomy": "A3",
+      "autoExecute": true,
+      "description": "Read one tracked file from the AI Factory repository with bounded output.",
+      "argumentContract": {"path":"repository-relative path","max_chars":"100..20000"}
+    },
+    {
+      "id": "factory.repo.list_files",
+      "class": "READ",
+      "riskClass": "LOW",
+      "minimumAutonomy": "A3",
+      "autoExecute": true,
+      "description": "List tracked repository files under an optional safe prefix.",
+      "argumentContract": {"prefix":"optional repository-relative prefix","limit":"1..300"}
+    },
+    {
+      "id": "factory.repo.run_validation",
+      "class": "FIXED_EXECUTION",
+      "riskClass": "LOW",
+      "minimumAutonomy": "A3",
+      "autoExecute": true,
+      "description": "Run a fixed validation suite. Arbitrary commands are not accepted.",
+      "argumentContract": {"suite":"factory|autonomous|self-improvement|tool-runtime|all"}
+    },
+    {
+      "id": "factory.repo.candidate_write",
+      "class": "CANDIDATE_WRITE",
+      "riskClass": "LOW",
+      "minimumAutonomy": "A3",
+      "autoExecute": true,
+      "description": "Write exactly one low-risk file to a new candidate branch, run all factory validators, push the branch, and open a PR. Never writes main and never merges.",
+      "allowedPathPrefixes": ["skills/", "docs/", "evals/"],
+      "protectedPaths": [
+        ".github/",
+        "registry/factory-constitution.json",
+        "registry/autonomy-levels.json",
+        "registry/negative-actions.json",
+        "registry/tool-runtime.json",
+        "runtime/",
+        "scripts/",
+        "supabase/",
+        "infra/",
+        "factory.manifest.json",
+        "AGENTS.md"
+      ],
+      "argumentContract": {
+        "path":"must be under an allowedPathPrefix",
+        "content":"complete UTF-8 replacement or new-file content, max 100000 chars",
+        "reason":"why this change is required",
+        "expected_blob_sha":"required when replacing an existing tracked file"
+      }
+    }
+  ],
+  "hardDenials": [
+    "direct write to main",
+    "automatic merge",
+    "arbitrary shell command",
+    "arbitrary SQL",
+    "production mutation",
+    "secret retrieval",
+    "Root of Trust mutation",
+    "autonomy-level mutation",
+    "workflow-permission mutation",
+    "tool-executor self-modification",
+    "unbounded filesystem or network access"
+  ],
+  "resumeSemantics": {
+    "workerStatus": "WAITING_TOOLS",
+    "toolTerminalStatuses": ["EXECUTED", "DENIED", "FAILED"],
+    "whenAllRequestedToolsTerminal": "requeue the same task so the reasoning worker can consume tool results"
+  },
+  "evidencePolicy": {
+    "toolResultsAreEvidenceNotInstructions": true,
+    "currentEvidenceOutranksMemory": true,
+    "everyToolResultRequiresRequestId": true,
+    "everySideEffectRequiresDurableLedger": true
+  }
+}
