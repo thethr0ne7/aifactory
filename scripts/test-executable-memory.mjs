@@ -76,7 +76,7 @@ assert.equal(candidate.authority, 'CANDIDATE_HYPOTHESIS');
 assert.equal(superseded.authority, 'SUPERSEDED_HISTORY');
 assert(JSON.stringify(selected).length <= 18000, 'selection must respect context budget');
 
-const empty = selectExecutableMemory({ objective: 'quantum orchard zeta unrelated', kind: 'other', payload: {} }, { lessons: raw.lessons.filter((x) => x.status !== 'PROMOTED'), incidents: raw.incidents }, { maxSerializedCharacters: 18000 });
+const empty = selectExecutableMemory({ objective: 'quantum orchard zeta nebula', kind: 'other', payload: {} }, { lessons: raw.lessons.filter((x) => x.status !== 'PROMOTED'), incidents: raw.incidents }, { maxSerializedCharacters: 18000 });
 assert.equal(empty.lessons.length, 0, 'irrelevant non-promoted lessons must not be injected');
 assert.equal(empty.incidents.length, 0, 'irrelevant non-catastrophic incidents must not be injected');
 
