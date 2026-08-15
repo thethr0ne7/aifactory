@@ -40,8 +40,14 @@ try {
     error = { code: decision.code, tool_id: request.tool_id };
   } else {
     result = await executeTool(request, decision.spec);
-    status = 'EXECUTED';
-    evidenceClass = 'CONFIRMED';
+    if (result?.denied === true) {
+      status = 'DENIED';
+      evidenceClass = 'BLOCKER';
+      error = { code: String(result.code || 'TOOL_POLICY_DENIED'), tool_id: request.tool_id };
+    } else {
+      status = 'EXECUTED';
+      evidenceClass = 'CONFIRMED';
+    }
   }
 } catch (err) {
   status = 'FAILED';
