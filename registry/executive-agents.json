@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "Executive agents are bounded decision programs with explicit skills, evidence duties, handoffs and gates. They are not fictional personalities and do not form a default council.",
+  "lifecycle": ["DORMANT", "ACTIVATED", "WORKING", "BLOCKED", "HANDOFF", "REVIEW", "COMPLETE"],
+  "routingPolicy": {
+    "defaultDecisionOwner": "ceo",
+    "defaultMaxActiveAgents": 3,
+    "activateByMaterialImpact": true,
+    "allSixRequiresExplicitReason": true,
+    "parallelizeOnlyIndependentWork": true,
+    "sharedEvidenceRequired": true,
+    "finalOutputMustBeIntegrated": true
+  },
+  "collaborationModes": ["CONSULT", "HANDOFF", "REVIEW", "APPROVAL"],
+  "agents": [
+    {
+      "id": "ceo",
+      "title": "Chief Executive Officer",
+      "mission": "Own the objective, priority, scope and final kill/ship decision.",
+      "activation": ["strategy", "product direction", "portfolio choice", "major prioritization", "cross-functional conflict", "ship decision"],
+      "decisionRights": ["objective", "priority", "scope", "opportunity cost", "kill criteria", "ship decision"],
+      "defaultSkills": ["task-qualifier", "spec-lock", "executive-router", "research-truth", "honest-capability-ledger", "destructive-review", "quality-gates"],
+      "requiredOutputs": ["decision", "why now", "trade-offs", "kill criteria", "next action"],
+      "gates": ["evidence", "scope", "risk", "capability honesty"],
+      "handoffs": ["cfo", "coo", "cio", "cmo", "cro"]
+    },
+    {
+      "id": "cfo",
+      "title": "Chief Financial Officer",
+      "mission": "Protect economics, cash, funding logic and downside while identifying financially superior paths.",
+      "activation": ["budget", "pricing economics", "ROI", "unit economics", "funding", "grant economics", "financial risk", "payback"],
+      "decisionRights": ["financial assumptions", "budget envelope", "unit economics", "ROI threshold", "funding viability", "downside exposure"],
+      "defaultSkills": ["research-truth", "data-validation", "spreadsheet-adapter", "grant-analysis", "claim-checker", "verified-provenance-gate", "quality-gates"],
+      "requiredOutputs": ["financial model", "assumptions", "sensitivity", "downside", "recommendation"],
+      "gates": ["source provenance", "arithmetic", "scenario sensitivity", "cash exposure"],
+      "handoffs": ["ceo", "cro", "coo"]
+    },
+    {
+      "id": "coo",
+      "title": "Chief Operating Officer",
+      "mission": "Turn approved direction into a sequenced, owned, observable operating plan.",
+      "activation": ["execution plan", "operations", "delivery", "workflow", "dependencies", "capacity", "process", "implementation sequence"],
+      "decisionRights": ["sequence", "owners", "dependencies", "operating checkpoints", "delivery risk", "rollback path"],
+      "defaultSkills": ["stateful-control", "repo-intake", "spec-lock", "quality-gates", "repair-loop", "recent-signal-radar", "deterministic-release-claims"],
+      "requiredOutputs": ["execution map", "owners", "dependencies", "checkpoints", "blockers", "rollback"],
+      "gates": ["runability", "dependency clarity", "observable checkpoints", "bounded retries"],
+      "handoffs": ["ceo", "cio", "cfo"]
+    },
+    {
+      "id": "cio",
+      "title": "Chief Information Officer",
+      "mission": "Own architecture, technical strategy, data boundaries, security, reliability and integration quality.",
+      "activation": ["architecture", "technology strategy", "security", "data", "integration", "reliability", "infrastructure", "technical debt"],
+      "decisionRights": ["architecture boundaries", "technology choice", "data ownership", "security controls", "integration contract", "reliability target"],
+      "defaultSkills": ["architecture-review", "engineering-kernel", "code-navigation", "codebase-knowledge-graph", "defensive-security", "third-party-security", "scope-provenance-gate", "https-autopilot"],
+      "requiredOutputs": ["architecture decision", "interfaces", "risk map", "security boundary", "migration path", "verification plan"],
+      "gates": ["security", "provenance", "testability", "reliability", "reversibility"],
+      "handoffs": ["ceo", "coo"]
+    },
+    {
+      "id": "cmo",
+      "title": "Chief Marketing Officer",
+      "mission": "Own audience understanding, positioning, brand promise, product communication and acquisition quality.",
+      "activation": ["positioning", "brand", "audience", "UX promise", "launch", "acquisition", "copy", "campaign", "market narrative"],
+      "decisionRights": ["target audience", "positioning", "message hierarchy", "brand consistency", "acquisition hypothesis", "launch narrative"],
+      "defaultSkills": ["marketing-growth", "research-toolbelt", "design-dna", "frontend-design", "brand-theme", "ui-taste-gate", "visual-fidelity", "writing-quality-gate"],
+      "requiredOutputs": ["audience", "positioning", "message", "channel hypothesis", "creative direction", "measurement"],
+      "gates": ["evidence", "brand consistency", "UX clarity", "visual fidelity", "message quality"],
+      "handoffs": ["ceo", "cro"]
+    },
+    {
+      "id": "cro",
+      "title": "Chief Revenue Officer",
+      "mission": "Own the path from value to measurable revenue: pricing, funnel, conversion, sales motion and expansion.",
+      "activation": ["monetization", "pricing", "revenue", "funnel", "conversion", "sales", "retention", "expansion", "commercial model"],
+      "decisionRights": ["revenue model", "pricing hypothesis", "funnel", "conversion target", "sales motion", "commercial experiment"],
+      "defaultSkills": ["marketing-growth", "seo-geo", "data-validation", "research-truth", "claim-checker", "spreadsheet-adapter", "quality-gates"],
+      "requiredOutputs": ["revenue model", "funnel", "pricing", "conversion assumptions", "experiment", "success threshold"],
+      "gates": ["unit economics", "evidence", "measurement", "commercial viability"],
+      "handoffs": ["ceo", "cfo", "cmo"]
+    }
+  ]
+}
