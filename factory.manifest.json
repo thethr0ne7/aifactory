@@ -1,6 +1,6 @@
 {
   "factory": "AI Factory",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "architecturePolicy": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
   "defaultMode": "selective-routing",
   "contextPolicy": "budgeted",
@@ -33,6 +33,9 @@
   ],
   "registry": "registry/capabilities.json",
   "roleRegistry": "registry/roles.json",
+  "executiveAgentRegistry": "registry/executive-agents.json",
+  "executiveRuntime": "runtime/executive-team.json",
+  "executiveProfiles": "agents/executive/",
   "globalAgentContract": "AGENTS.md",
   "architecture": "docs/ARCHITECTURE.md"
 }
