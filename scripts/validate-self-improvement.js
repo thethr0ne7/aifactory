@@ -99,6 +99,8 @@ if (fs.existsSync(linkagePath)) {
   }
   if (!sql.includes('join public.af_incidents')) errors.push('improvement claim must use a traceable incident join');
   if (!sql.includes('join public.af_regression_evals')) errors.push('improvement claim must use a traceable regression eval join');
+  if (!sql.includes('a[0-7]\\+ autonomy')) errors.push('database promotion gate must protect A4+/autonomy routing statements');
+  if (!sql.includes('autonomy level|lower autonomy|higher autonomy')) errors.push('database promotion gate must protect autonomy-level routing statements');
 }
 
 const workflowPath = path.join(root, '.github/workflows/factory-self-improvement.yml');
