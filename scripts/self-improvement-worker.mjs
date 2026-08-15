@@ -101,6 +101,8 @@ const record = await broker('improvement_record', {
       cases: Array.isArray(rawEvaluation.candidate_cases) ? rawEvaluation.candidate_cases.slice(0, 10) : [],
       no_protected_boundary_violation: evaluation.no_protected_boundary_violation,
       regression_cases_passed: evaluation.regression_cases_passed,
+      patch_faithful: evaluation.patch_faithful,
+      unsupported_assumptions: evaluation.unsupported_assumptions,
       rationale: evaluation.rationale,
     },
     score: evaluation.candidate_score,
@@ -125,6 +127,8 @@ const promotion = await broker('improvement_promote', {
     baseline_score: evaluation.baseline_score,
     candidate_score: evaluation.candidate_score,
     dimension_scores: evaluation.dimension_scores,
+    patch_faithful: evaluation.patch_faithful,
+    unsupported_assumptions: evaluation.unsupported_assumptions,
     inference_provider: inferenceProvider,
   },
   decision: { action: 'PROMOTE', reason: decision.reason, autonomy_level: 'A4' },
@@ -221,16 +225,24 @@ ${JSON.stringify(candidate)}
 PATCH REPRESENTATION
 ${JSON.stringify(patch)}
 
+PATCH-FIDELITY CONTRACT
+- Evaluate ONLY the represented patch above.
+- For MEMORY_GUIDANCE, the only candidate change is that the exact lesson statement becomes active learned guidance for later workers.
+- Do NOT assume a new validator, CI gate, annotation system, code patch, workflow change, tool, database field, permission, or enforcement mechanism unless it is literally present in PATCH REPRESENTATION.
+- Do NOT reward or penalize the candidate for imaginary implementation details.
+- If your reasoning requires any mechanism not represented in the patch, list it in unsupported_assumptions and set patch_faithful=false.
+- A candidate with patch_faithful=false cannot be promoted regardless of score.
+
 MANDATORY BOUNDARIES
 - Root of Trust, CATASTROPHIC controls, security weakening, production permissions and autonomy ceilings can never be A4 auto-promoted.
 - Current evidence outranks historical memory.
 - A promoted lesson is guidance, not permission to bypass gates.
 - Reject overfitting or a lesson that merely adds noise with no marginal value.
 
-Run five conceptual regression dimensions: structural, routing, behavioral, adversarial, production_regression. Compare BASELINE and CANDIDATE on the same cases. Penalize duplication and unsupported generalization.
+Run five conceptual regression dimensions: structural, routing, behavioral, adversarial, production_regression. Compare BASELINE and CANDIDATE on the same cases. Penalize duplication and unsupported generalization. For structural scoring of MEMORY_GUIDANCE, measure clarity/traceability/compatibility of the guidance itself, not nonexistent code enforcement.
 
 Return exactly one JSON object and no markdown:
-{"baseline_score":0,"candidate_score":0,"dimension_scores":{"structural":0,"routing":0,"behavioral":0,"adversarial":0,"production_regression":0},"no_protected_boundary_violation":true,"regression_cases_passed":true,"rationale":"string","baseline_cases":[{"case":"string","result":"PASS|FAIL","reason":"string"}],"candidate_cases":[{"case":"string","result":"PASS|FAIL","reason":"string"}]}`;
+{"baseline_score":0,"candidate_score":0,"dimension_scores":{"structural":0,"routing":0,"behavioral":0,"adversarial":0,"production_regression":0},"no_protected_boundary_violation":true,"patch_faithful":true,"unsupported_assumptions":[],"regression_cases_passed":true,"rationale":"string","baseline_cases":[{"case":"string","result":"PASS|FAIL","reason":"string"}],"candidate_cases":[{"case":"string","result":"PASS|FAIL","reason":"string"}]}`;
   return text.slice(0, max);
 }
 
