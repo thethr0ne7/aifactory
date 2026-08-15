@@ -18,6 +18,8 @@
     "requiredRiskClass": "LOW",
     "requiresRegressionEvalPass": true,
     "requiresBaselineImprovement": true,
+    "requiresPatchFaithfulEvaluation": true,
+    "requiresNoUnsupportedAssumptions": true,
     "requiresRollbackRef": true,
     "requiresProductionDerivedSource": true,
     "requiresProvenance": true

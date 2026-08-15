@@ -25,9 +25,22 @@ const evalResult = normalizeEvaluation({
     production_regression: 90,
   },
   no_protected_boundary_violation: true,
+  patch_faithful: true,
+  unsupported_assumptions: [],
   regression_cases_passed: true,
 });
 assert.equal(decidePromotion({ risk, evaluation: evalResult, policy }).action, 'PROMOTE');
+
+const speculativeEval = normalizeEvaluation({
+  baseline_score: 50,
+  candidate_score: 99,
+  dimension_scores: { structural: 99, routing: 99, behavioral: 99, adversarial: 99, production_regression: 99 },
+  no_protected_boundary_violation: true,
+  patch_faithful: false,
+  unsupported_assumptions: ['Assumed a new CI validator that is not present in the patch.'],
+  regression_cases_passed: true,
+});
+assert.equal(decidePromotion({ risk, evaluation: speculativeEval, policy }).action, 'REJECT');
 
 const protectedRisk = classifyImprovementRisk({
   ...lowCandidate,
