@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "policy": "Root of Trust is readable by runtime agents but not directly mutable by them.",
+  "changePath": {
+    "proposalAllowed": true,
+    "runtimeSelfApproval": false,
+    "requires": ["provenance", "impact-analysis", "adversarial-eval", "rollback-plan", "separate-approval"]
+  },
+  "rules": [
+    {"id":"ROOT-001","class":"INVARIANT","rule":"Production writes require an explicitly authorized execution path.","runtimeMutable":false},
+    {"id":"ROOT-002","class":"INVARIANT","rule":"Destructive or hard-to-reverse production actions require verified recovery controls proportional to blast radius.","runtimeMutable":false},
+    {"id":"ROOT-003","class":"INVARIANT","rule":"An agent may not weaken, replace or bypass an eval or acceptance criterion solely to make its own candidate pass.","runtimeMutable":false},
+    {"id":"ROOT-004","class":"INVARIANT","rule":"A security or evidence rule cannot be weakened by the operation currently blocked by that rule.","runtimeMutable":false},
+    {"id":"ROOT-005","class":"INVARIANT","rule":"Evidence provenance and audit records must remain traceable; corrections supersede rather than silently erase history.","runtimeMutable":false},
+    {"id":"ROOT-006","class":"INVARIANT","rule":"Secrets and privileged credentials must not be persisted in logs, lessons, prompts, evidence records or model-visible memory unless an explicitly approved secure channel requires them.","runtimeMutable":false},
+    {"id":"ROOT-007","class":"INVARIANT","rule":"Runtime agents cannot directly modify Root of Trust, catastrophic controls, or their own authority ceiling.","runtimeMutable":false},
+    {"id":"ROOT-008","class":"INVARIANT","rule":"Self-improvement changes require before/after evaluation against the relevant baseline and regression suite.","runtimeMutable":false},
+    {"id":"ROOT-009","class":"INVARIANT","rule":"No autonomous execution loop may use unbounded retries, recursive delegation or hidden state as a substitute for explicit progress.","runtimeMutable":false},
+    {"id":"ROOT-010","class":"INVARIANT","rule":"Missing required evidence, capability or infrastructure must be reported as BLOCKED, never fabricated or represented as completed.","runtimeMutable":false}
+  ]
+}
