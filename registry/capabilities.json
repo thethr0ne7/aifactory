@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.1.0",
+  "factoryVersion": "3.0.0",
+  "policy": {
+    "defaultMode": "selective-routing",
+    "thirdPartyDefault": "pattern-only-until-audited",
+    "multiAgentDefault": "off",
+    "contextPolicy": "budgeted",
+    "truthPolicy": "evidence-first",
+    "shipPolicy": "gated"
+  },
+  "capabilities": [
+    {"id":"executive-router","status":"core","localSkill":"skills/executive-router/SKILL.md","activation":["strategy","product","finance","operations","technology","marketing","revenue"],"implements":["CEO","CFO","COO","CIO","CMO","CRO"]},
+    {"id":"context-governor","status":"core-adapted","localSkill":"skills/context-governor/SKILL.md","source":"https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering","adoption":["context budgeting","compression","degradation detection","tool-output masking","state handoff","tool design"]},
+    {"id":"engineering-kernel","status":"core-adapted","localSkill":"skills/engineering-kernel/SKILL.md","source":"https://github.com/obra/superpowers","adoption":["planning","test-backed work","systematic debugging","root-cause analysis","regression checks"]},
+    {"id":"skill-foundry","status":"core-adapted","localSkill":"skills/skill-foundry/SKILL.md","source":"https://github.com/anthropics/skills/tree/main/skills/skill-creator","adoption":["skill creation","skill editing","eval design","comparison","trigger optimization"]},
+    {"id":"research-truth","status":"core","localSkill":"skills/research-truth/SKILL.md","activation":["research","law","grants","funding","policy","technical audit","high-cost decision"]},
+    {"id":"claim-checker","status":"core-selective","localSkill":"skills/claim-checker/SKILL.md","activation":["viral claim","scientific claim","causal claim","numerology","high-impact factual assertion"]},
+    {"id":"design-dna","status":"core-adapted","localSkill":"skills/design-dna/SKILL.md","source":"https://github.com/zanwei/design-dna","adoption":["reference reverse engineering","tokens","layout","typography","effects"]},
+    {"id":"frontend-design","status":"core-adapted","localSkill":"skills/frontend-design/SKILL.md","source":"https://github.com/anthropics/skills/tree/main/skills/frontend-design"},
+    {"id":"brand-theme","status":"core-adapted","localSkill":"skills/brand-theme/SKILL.md","sources":["https://github.com/anthropics/skills/tree/main/skills/brand-guidelines","https://github.com/anthropics/skills/tree/main/skills/theme-factory"]},
+    {"id":"web-artifacts","status":"core-adapted","localSkill":"skills/web-artifacts/SKILL.md","source":"https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder"},
+    {"id":"motion-director","status":"core-adapted","localSkill":"skills/motion-director/SKILL.md","source":"https://github.com/LottieFiles/motion-design-skill"},
+    {"id":"web-animation","status":"core-selective","localSkill":"skills/web-animation/SKILL.md","source":"https://github.com/greensock/gsap-skills"},
+    {"id":"media-video","status":"core-selective","localSkill":"skills/media-video/SKILL.md","source":"https://github.com/remotion-dev/remotion"},
+    {"id":"web-3d","status":"controlled","localSkill":"skills/web-3d/SKILL.md","source":"https://github.com/CloudAI-X/threejs-skills"},
+    {"id":"algorithmic-art","status":"specialist","localSkill":"skills/algorithmic-art/SKILL.md","source":"https://github.com/anthropics/skills/tree/main/skills/algorithmic-art"},
+    {"id":"creative-pattern-lab","status":"pattern-only","localSkill":"skills/creative-pattern-lab/SKILL.md","source":"https://github.com/AThevon/genjutsu"},
+    {"id":"marketing-growth","status":"core-selective","localSkill":"skills/marketing-growth/SKILL.md","source":"https://github.com/coreyhaines31/marketingskills"},
+    {"id":"seo-geo","status":"core-selective","localSkill":"skills/seo-geo/SKILL.md","source":"https://github.com/aaron-he-zhu/aaron-marketing-skills","replaces":"https://github.com/aaron-he-zhu/seo-geo-claude-skills"},
+    {"id":"seo-audit-patterns","status":"pattern-only","localSkill":"skills/seo-audit-patterns/SKILL.md","source":"https://github.com/AgriciDaniel/claude-seo"},
+    {"id":"knowledge-os","status":"optional-core","localSkill":"skills/knowledge-os/SKILL.md","source":"https://github.com/kepano/obsidian-skills"},
+    {"id":"source-grounded-notebook","status":"idea-extract","localSkill":"skills/source-grounded-notebook/SKILL.md","source":"https://github.com/PleasePrompto/notebooklm-skill"},
+    {"id":"spreadsheet-adapter","status":"controlled","localSkill":"skills/spreadsheet-adapter/SKILL.md","source":"https://github.com/haris-musa/excel-mcp-server"},
+    {"id":"code-navigation","status":"core-pattern","localSkill":"skills/code-navigation/SKILL.md","source":"https://github.com/massgen/massgen"},
+    {"id":"research-toolbelt","status":"core-selective","localSkill":"skills/research-toolbelt/SKILL.md","tools":["official web sources","Elicit","Consensus","Connected Papers","Semantic Scholar","SciSpace","archive snapshots","reverse image search","technical validators"]},
+    {"id":"visual-fidelity","status":"core","localSkill":"skills/visual-fidelity/SKILL.md"},
+    {"id":"third-party-security","status":"core","localSkill":"skills/third-party-security/SKILL.md"}
+  ],
+  "explicitlyRejectedAsCore": [
+    "unbounded multi-agent swarms",
+    "role-play councils",
+    "recursive autonomous delegation",
+    "blind skill installers",
+    "unrestricted MCP filesystem access",
+    "temporary-email or disposable-file services as production dependencies",
+    "paywall-bypass/piracy sources as evidence infrastructure",
+    "duplicate skills that only increase prompt/context noise"
+  ]
+}
