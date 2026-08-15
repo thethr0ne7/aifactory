@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "purpose": "Historical and current upstream pattern catalogue for AI Factory 2.x. Entries are not executable trust declarations.",
+  "activePatterns": [
+    {"name":"Leantime","adoption":"project/operational planning patterns"},
+    {"name":"LangGraph","adoption":"bounded state-machine/orchestration patterns"},
+    {"name":"LangExtract","adoption":"evidence-linked extraction patterns"},
+    {"name":"Keystone","adoption":"admin/content/data management patterns"},
+    {"name":"Gitleaks","adoption":"secret scanning in defensive security"},
+    {"name":"DeepEval","adoption":"evaluation/benchmark patterns"},
+    {"name":"codegraph","adoption":"codebase knowledge graph patterns"},
+    {"name":"MOSS-TTS-Nano","adoption":"local/efficient media AI research pattern"}
+  ],
+  "amplifiers": [
+    {"name":"acme.sh","adoption":"HTTPS/ACME automation reference"},
+    {"name":"Langfuse","adoption":"observability/tracing patterns"},
+    {"name":"Promptflow","adoption":"workflow/evaluation patterns"},
+    {"name":"Guardrails","adoption":"structured validation/gating patterns"},
+    {"name":"Basic Memory","adoption":"portable memory patterns"},
+    {"name":"Local AI Runtime","adoption":"local execution fallback/amplifier"}
+  ],
+  "parkedOrFallback": [
+    {"name":"Supermemory","reason":"fallback/optional memory approach"},
+    {"name":"MarkItDown","reason":"optional conversion utility"},
+    {"name":"the_well","reason":"research/benchmark reference, not core"},
+    {"name":"Google Maps Scrapper","reason":"not core; use official/authorized data paths"},
+    {"name":"social-media-scraping-apis","reason":"not core; platform terms/provenance risk"}
+  ],
+  "defensiveStudyOnly": [
+    {"name":"T3MP3ST","rule":"defensive study only; never convert into an attack toolkit"}
+  ]
+}
