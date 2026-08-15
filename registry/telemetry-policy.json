@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "eventTypes": [
+    "RUN_CREATED",
+    "TASK_QUEUED",
+    "TASK_CLAIMED",
+    "AGENT_ACTIVATED",
+    "SKILL_SELECTED",
+    "TOOL_CALLED",
+    "EVIDENCE_RECORDED",
+    "CHECKPOINT_SAVED",
+    "GATE_PASSED",
+    "GATE_FAILED",
+    "INCIDENT_OPENED",
+    "REPAIR_STARTED",
+    "REPAIR_COMPLETED",
+    "LESSON_CANDIDATE_CREATED",
+    "REGRESSION_EVAL_CREATED",
+    "CANDIDATE_PROMOTED",
+    "CANDIDATE_REJECTED",
+    "RUN_BLOCKED",
+    "RUN_FAILED",
+    "RUN_COMPLETED",
+    "WATCHDOG_RECOVERY"
+  ],
+  "requiredFields": ["event_id", "run_id", "event_type", "occurred_at", "source", "evidence_class"],
+  "recommendedFields": ["task_id", "agent_id", "skill_id", "tool", "duration_ms", "cost", "gate", "status", "payload", "provenance"],
+  "rules": {
+    "appendOnlyMeaning": true,
+    "secretRedactionRequired": true,
+    "privateChainOfThoughtForbidden": true,
+    "productionFailuresFeedRegressionCandidates": true,
+    "telemetryMayNotUpgradeEvidenceClass": true
+  }
+}
