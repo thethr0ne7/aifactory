@@ -1,0 +1,51 @@
+name: AI Factory tool executor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/10 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'registry/tool-runtime.json'
+      - 'runtime/tool-runtime.mjs'
+      - 'scripts/tool-executor.mjs'
+      - 'scripts/test-tool-runtime.mjs'
+      - 'scripts/validate-tool-runtime.js'
+      - 'supabase/functions/ai-factory-broker/**'
+      - 'infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql'
+      - '.github/workflows/factory-tool-executor.yml'
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: ai-factory-tool-executor
+  cancel-in-progress: false
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
+    steps:
+      - name: Checkout factory
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate controlled tool runtime
+        run: node scripts/validate-tool-runtime.js
+
+      - name: Execute one allowlisted tool request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/tool-executor.mjs
