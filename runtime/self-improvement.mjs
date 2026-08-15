@@ -62,10 +62,13 @@ export function normalizeEvaluation(raw = {}) {
   const unsupported_assumptions = Array.isArray(raw.unsupported_assumptions)
     ? [...new Set(raw.unsupported_assumptions.map((x) => String(x || '').trim()).filter(Boolean))].slice(0, 10)
     : [];
+  const score_scale = String(raw.score_scale || '').trim();
   return {
     baseline_score: baseline,
     candidate_score: candidate,
     dimension_scores: scores,
+    score_scale,
+    score_scale_valid: score_scale === '0-100',
     no_protected_boundary_violation: raw.no_protected_boundary_violation === true,
     regression_cases_passed: raw.regression_cases_passed === true,
     patch_faithful: raw.patch_faithful === true,
@@ -80,6 +83,7 @@ export function decidePromotion({ risk, evaluation, policy }) {
   if (!evaluation?.no_protected_boundary_violation) return { action: 'REJECT', reason: 'protected boundary violation' };
   if (!evaluation?.patch_faithful) return { action: 'REJECT', reason: 'evaluation is not faithful to represented patch' };
   if ((evaluation?.unsupported_assumptions || []).length) return { action: 'REJECT', reason: 'evaluation relies on unsupported candidate changes' };
+  if (!evaluation?.score_scale_valid) return { action: 'REJECT', reason: 'evaluation score scale is missing or not 0-100' };
   if (!evaluation?.regression_cases_passed) return { action: 'REJECT', reason: 'regression cases failed' };
 
   const minCandidate = Number(cfg.minimumCandidateScore ?? 80);

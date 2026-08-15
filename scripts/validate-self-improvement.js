@@ -46,6 +46,10 @@ if (policy) {
   if (policy.automaticPromotion?.maxAutonomyLevel !== 'A4') errors.push('auto-promotion must stop at A4');
   if (JSON.stringify(policy.automaticPromotion?.allowedTargetTypes || []) !== JSON.stringify(['MEMORY_GUIDANCE'])) errors.push('A4 automatic promotion target allowlist must be MEMORY_GUIDANCE only');
   if (policy.automaticPromotion?.requiredRiskClass !== 'LOW') errors.push('A4 automatic promotion must require LOW risk');
+  if (policy.automaticPromotion?.requiresPatchFaithfulEvaluation !== true) errors.push('A4 promotion must require patch-faithful evaluation');
+  if (policy.automaticPromotion?.requiresNoUnsupportedAssumptions !== true) errors.push('A4 promotion must reject unsupported assumptions');
+  if (policy.automaticPromotion?.requiresExplicitScoreScale !== '0-100') errors.push('A4 promotion must require explicit 0-100 score scale');
+  if (policy.evaluation?.scoreScale !== '0-100') errors.push('A4 evaluation scoreScale must be 0-100');
   if (policy.automaticPromotion?.requiresRollbackRef !== true) errors.push('promotion must require rollback ref');
   if ((policy.neverAutoPromote || []).length < 6) errors.push('protected self-improvement boundary is unexpectedly small');
   if (Number(policy.evaluation?.maxCandidatesPerRun) !== 1) errors.push('self-improvement must evaluate at most one candidate per run');
@@ -69,16 +73,16 @@ if (fs.existsSync(runtimePath)) {
   for (const token of ['A[0-7]\\+\\s+autonomy','autonomy level','lower autonomy','higher autonomy']) {
     if (!runtime.includes(token)) errors.push(`risk classifier missing protected autonomy-routing pattern: ${token}`);
   }
-  for (const token of ['patch_faithful','unsupported_assumptions','evaluation is not faithful to represented patch','evaluation relies on unsupported candidate changes']) {
-    if (!runtime.includes(token)) errors.push(`A4 decision kernel missing patch-fidelity gate: ${token}`);
+  for (const token of ['patch_faithful','unsupported_assumptions','evaluation is not faithful to represented patch','evaluation relies on unsupported candidate changes','score_scale_valid','evaluation score scale is missing or not 0-100']) {
+    if (!runtime.includes(token)) errors.push(`A4 decision kernel missing evaluation-honesty gate: ${token}`);
   }
 }
 
 const workerPath = path.join(root, 'scripts/self-improvement-worker.mjs');
 if (fs.existsSync(workerPath)) {
   const worker = fs.readFileSync(workerPath, 'utf8');
-  for (const token of ['PATCH-FIDELITY CONTRACT','Do NOT assume a new validator','unsupported_assumptions','patch_faithful']) {
-    if (!worker.includes(token)) errors.push(`A4 evaluator missing patch-fidelity contract: ${token}`);
+  for (const token of ['PATCH-FIDELITY CONTRACT','Do NOT assume a new validator','unsupported_assumptions','patch_faithful','SCORE CONTRACT','score_scale','0-100']) {
+    if (!worker.includes(token)) errors.push(`A4 evaluator missing evaluation-honesty contract: ${token}`);
   }
 }
 
@@ -132,4 +136,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.log('AI Factory controlled self-improvement validation OK: A4 patch fidelity, promotion, incident linkage, autonomy boundary, observation and rollback are coherent');
+console.log('AI Factory controlled self-improvement validation OK: A4 score scale, patch fidelity, promotion, incident linkage, autonomy boundary, observation and rollback are coherent');

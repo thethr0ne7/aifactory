@@ -20,6 +20,7 @@
     "requiresBaselineImprovement": true,
     "requiresPatchFaithfulEvaluation": true,
     "requiresNoUnsupportedAssumptions": true,
+    "requiresExplicitScoreScale": "0-100",
     "requiresRollbackRef": true,
     "requiresProductionDerivedSource": true,
     "requiresProvenance": true
@@ -35,6 +36,7 @@
     "unbounded filesystem or network authority"
   ],
   "evaluation": {
+    "scoreScale": "0-100",
     "dimensions": ["structural", "routing", "behavioral", "adversarial", "production_regression"],
     "minimumCandidateScore": 80,
     "minimumDimensionScore": 75,

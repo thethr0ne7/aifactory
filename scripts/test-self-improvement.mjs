@@ -15,6 +15,7 @@ const risk = classifyImprovementRisk(lowCandidate);
 assert.equal(risk.risk_class, 'LOW');
 
 const evalResult = normalizeEvaluation({
+  score_scale: '0-100',
   baseline_score: 70,
   candidate_score: 90,
   dimension_scores: {
@@ -31,7 +32,21 @@ const evalResult = normalizeEvaluation({
 });
 assert.equal(decidePromotion({ risk, evaluation: evalResult, policy }).action, 'PROMOTE');
 
+const wrongScaleEval = normalizeEvaluation({
+  score_scale: '0-10',
+  baseline_score: 3.2,
+  candidate_score: 9.5,
+  dimension_scores: { structural: 9, routing: 9, behavioral: 9, adversarial: 9, production_regression: 9 },
+  no_protected_boundary_violation: true,
+  patch_faithful: true,
+  unsupported_assumptions: [],
+  regression_cases_passed: true,
+});
+assert.equal(wrongScaleEval.score_scale_valid, false);
+assert.equal(decidePromotion({ risk, evaluation: wrongScaleEval, policy }).action, 'REJECT');
+
 const speculativeEval = normalizeEvaluation({
+  score_scale: '0-100',
   baseline_score: 50,
   candidate_score: 99,
   dimension_scores: { structural: 99, routing: 99, behavioral: 99, adversarial: 99, production_regression: 99 },
