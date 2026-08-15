@@ -26,6 +26,7 @@ for (const rel of [
   'scripts/test-self-improvement.mjs',
   '.github/workflows/factory-self-improvement.yml',
   'infra/supabase/migrations/20260815_250_controlled_self_improvement.sql',
+  'infra/supabase/migrations/20260815_251_incident_lesson_linkage.sql',
   'supabase/functions/ai-factory-broker/index.ts',
 ]) exists(rel);
 
@@ -35,6 +36,7 @@ if (manifest) {
   if (manifest.selfImprovementWorkflow !== '.github/workflows/factory-self-improvement.yml') errors.push('manifest self-improvement workflow mismatch');
   if (manifest.selfImprovementWorker !== 'scripts/self-improvement-worker.mjs') errors.push('manifest self-improvement worker mismatch');
   if (manifest.selfImprovementPersistence !== 'infra/supabase/migrations/20260815_250_controlled_self_improvement.sql') errors.push('manifest self-improvement persistence mismatch');
+  if (manifest.incidentLessonLinkagePersistence !== 'infra/supabase/migrations/20260815_251_incident_lesson_linkage.sql') errors.push('manifest incident/lesson linkage persistence mismatch');
   const expectedLoop = ['INCIDENT','REGRESSION_EVAL','PATCH_CANDIDATE','BASELINE_VS_CANDIDATE','A4_LOW_RISK_PROMOTION','OBSERVE','ROLLBACK_OR_RETAIN'];
   if (JSON.stringify(manifest.executionLoops?.controlledSelfImprovement || []) !== JSON.stringify(expectedLoop)) errors.push('controlled self-improvement execution loop mismatch');
 }
@@ -61,6 +63,14 @@ if (learning) {
   if (learning.promotion?.rootOfTrustAutoPromotion !== false) errors.push('Root of Trust auto-promotion must remain false');
 }
 
+const runtimePath = path.join(root, 'runtime/self-improvement.mjs');
+if (fs.existsSync(runtimePath)) {
+  const runtime = fs.readFileSync(runtimePath, 'utf8');
+  for (const token of ['A[0-7]\\+\\s+autonomy','autonomy level','lower autonomy','higher autonomy']) {
+    if (!runtime.includes(token)) errors.push(`risk classifier missing protected autonomy-routing pattern: ${token}`);
+  }
+}
+
 const brokerPath = path.join(root, 'supabase/functions/ai-factory-broker/index.ts');
 if (fs.existsSync(brokerPath)) {
   const broker = fs.readFileSync(brokerPath, 'utf8');
@@ -81,6 +91,18 @@ if (fs.existsSync(migrationPath)) {
   if (!sql.includes('protected governance topic cannot be auto-promoted')) errors.push('database must block protected governance promotion');
 }
 
+const linkagePath = path.join(root, 'infra/supabase/migrations/20260815_251_incident_lesson_linkage.sql');
+if (fs.existsSync(linkagePath)) {
+  const sql = fs.readFileSync(linkagePath, 'utf8');
+  for (const token of ['af_link_lesson_to_single_incident','af_lessons_link_single_incident','v_count = 1','l.incident_id is not null','e.status=\'CANDIDATE\'']) {
+    if (!sql.includes(token)) errors.push(`incident/lesson linkage missing safety condition: ${token}`);
+  }
+  if (!sql.includes('join public.af_incidents')) errors.push('improvement claim must use a traceable incident join');
+  if (!sql.includes('join public.af_regression_evals')) errors.push('improvement claim must use a traceable regression eval join');
+  if (!sql.includes('a[0-7]\\+ autonomy')) errors.push('database promotion gate must protect A4+/autonomy routing statements');
+  if (!sql.includes('autonomy level|lower autonomy|higher autonomy')) errors.push('database promotion gate must protect autonomy-level routing statements');
+}
+
 const workflowPath = path.join(root, '.github/workflows/factory-self-improvement.yml');
 if (fs.existsSync(workflowPath)) {
   const workflow = fs.readFileSync(workflowPath, 'utf8');
@@ -99,4 +121,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.log('AI Factory controlled self-improvement validation OK: A4 promotion, observation and rollback boundaries are coherent');
+console.log('AI Factory controlled self-improvement validation OK: A4 promotion, incident linkage, autonomy boundary, observation and rollback are coherent');

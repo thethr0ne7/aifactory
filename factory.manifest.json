@@ -26,7 +26,8 @@
     "incident-learning-negative-actions",
     "root-of-trust",
     "executable-memory",
-    "controlled-self-improvement"
+    "controlled-self-improvement",
+    "incident-lesson-provenance-linkage"
   ],
   "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
   "capabilityFamilies": [
@@ -74,5 +75,6 @@
   "autonomousRuntimeArchitecture": "docs/AUTONOMOUS-RUNTIME.md",
   "runtimePersistenceReference": "infra/supabase/migrations/20260815_240_autonomous_runtime.sql",
   "hostedRuntimePersistence": "infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql",
-  "selfImprovementPersistence": "infra/supabase/migrations/20260815_250_controlled_self_improvement.sql"
+  "selfImprovementPersistence": "infra/supabase/migrations/20260815_250_controlled_self_improvement.sql",
+  "incidentLessonLinkagePersistence": "infra/supabase/migrations/20260815_251_incident_lesson_linkage.sql"
 }
