@@ -11,7 +11,7 @@
   "executionLoops": {
     "core": ["INPUT", "PLAN", "PRODUCE", "CHECK", "FIX", "SAVE", "SHIP"],
     "researchGrade": ["INPUT", "QUALIFY", "SPEC_LOCK", "STRATEGY_SEARCH", "CANDIDATE_GENERATION", "EVIDENCE_CHECK", "CONTRADICTION_SCAN", "RISK_MAP", "DRAFT", "REVIEW", "SHIP", "TRACEBACK"],
-    "autonomous": ["QUEUE", "QUALIFY", "ROUTE", "WORK", "VALIDATE", "REPAIR", "LEARN", "COMPLETE"]
+    "autonomous": ["QUEUE", "QUALIFY", "ROUTE", "WORK", "LOAD_MEMORY", "VALIDATE", "REPAIR", "LEARN", "COMPLETE"]
   },
   "coreContours": [
     "repo-intake-runability",
@@ -23,7 +23,8 @@
     "defensive-security-pre-ship",
     "durable-autonomous-runtime",
     "incident-learning-negative-actions",
-    "root-of-trust"
+    "root-of-trust",
+    "executable-memory"
   ],
   "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
   "capabilityFamilies": [
@@ -46,7 +47,8 @@
     "autonomyLevels": "registry/autonomy-levels.json",
     "negativeActions": "registry/negative-actions.json",
     "learningPolicy": "registry/learning-policy.json",
-    "telemetryPolicy": "registry/telemetry-policy.json"
+    "telemetryPolicy": "registry/telemetry-policy.json",
+    "executableMemory": "registry/executable-memory.json"
   },
   "registry": "registry/capabilities.json",
   "upstreamAuditRegistry": "registry/upstreams/addyosmani-agent-skills.json",
@@ -54,6 +56,7 @@
   "executiveAgentRegistry": "registry/executive-agents.json",
   "executiveRuntime": "runtime/executive-team.json",
   "autonomousRuntime": "runtime/autonomous-runtime.json",
+  "executableMemoryRuntime": "runtime/executable-memory.mjs",
   "hostedWorker": ".github/workflows/factory-autonomous-worker.yml",
   "hostedWorkerScript": "scripts/copilot-autonomous-worker.mjs",
   "hostedBroker": "supabase/functions/ai-factory-broker/index.ts",
