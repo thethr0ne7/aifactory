@@ -1,6 +1,7 @@
 {
   "factory": "AI Factory",
-  "version": "3.0.0",
+  "version": "2.1.0",
+  "architecturePolicy": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
   "defaultMode": "selective-routing",
   "contextPolicy": "budgeted",
   "truthPolicy": "evidence-first",
@@ -8,9 +9,19 @@
   "multiAgentDefault": "off",
   "thirdPartyDefault": "pattern-only-until-audited",
   "executionLoops": {
-    "consequential": ["INPUT", "QUALIFY", "SPEC_LOCK", "STRATEGY_SEARCH", "PRODUCE", "EVIDENCE_CHECK", "CONTRADICTION_SCAN", "RISK_MAP", "VALIDATE", "REPAIR", "SAVE", "SHIP", "TRACEBACK"],
-    "engineering": ["INPUT", "PLAN", "PRODUCE", "CHECK", "FIX", "SAVE", "SHIP"]
+    "core": ["INPUT", "PLAN", "PRODUCE", "CHECK", "FIX", "SAVE", "SHIP"],
+    "researchGrade": ["INPUT", "QUALIFY", "SPEC_LOCK", "STRATEGY_SEARCH", "CANDIDATE_GENERATION", "EVIDENCE_CHECK", "CONTRADICTION_SCAN", "RISK_MAP", "DRAFT", "REVIEW", "SHIP", "TRACEBACK"]
   },
+  "coreContours": [
+    "repo-intake-runability",
+    "evidence-locked-extraction",
+    "evaluation-quality-gates",
+    "agent-workflow-stateful-control",
+    "repair-self-healing",
+    "factory-memory-knowledge-graph",
+    "defensive-security-pre-ship"
+  ],
+  "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
   "capabilityFamilies": [
     "executive-and-context",
     "research-and-truth",
@@ -21,6 +32,7 @@
     "security-and-quality"
   ],
   "registry": "registry/capabilities.json",
+  "roleRegistry": "registry/roles.json",
   "globalAgentContract": "AGENTS.md",
   "architecture": "docs/ARCHITECTURE.md"
 }
