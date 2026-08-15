@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "registry": "registry/executive-agents.json",
+  "routerSkill": "skills/executive-router/SKILL.md",
+  "stateMachine": {
+    "initial": "DORMANT",
+    "terminal": ["COMPLETE"],
+    "transitions": {
+      "DORMANT": ["ACTIVATED"],
+      "ACTIVATED": ["WORKING", "BLOCKED"],
+      "WORKING": ["HANDOFF", "REVIEW", "BLOCKED", "COMPLETE"],
+      "BLOCKED": ["HANDOFF", "WORKING", "COMPLETE"],
+      "HANDOFF": ["WORKING", "REVIEW"],
+      "REVIEW": ["WORKING", "COMPLETE"]
+    }
+  },
+  "routing": {
+    "strategy": ["ceo"],
+    "budget": ["cfo"],
+    "funding": ["cfo"],
+    "operations": ["coo"],
+    "delivery": ["coo"],
+    "architecture": ["cio"],
+    "security": ["cio"],
+    "brand": ["cmo"],
+    "positioning": ["cmo"],
+    "acquisition": ["cmo", "cro"],
+    "pricing": ["cro", "cfo"],
+    "monetization": ["cro", "cfo"],
+    "ship": ["ceo"]
+  },
+  "executionRules": {
+    "maxActiveAgentsDefault": 3,
+    "allSixDisabledByDefault": true,
+    "sharedEvidenceLedger": true,
+    "agentOutputsMustBeStructured": true,
+    "noRoleplayDialogue": true,
+    "noMajorityVoting": true,
+    "conflictsResolvedByDecisionRights": true,
+    "missingEvidenceRoutesToResearchTruth": true,
+    "failedGateRoutesToRepair": true
+  },
+  "handoffEnvelope": [
+    "task",
+    "decision_context",
+    "verified_evidence",
+    "assumptions",
+    "constraints",
+    "current_state",
+    "open_questions",
+    "requested_decision",
+    "deadline_or_trigger"
+  ],
+  "finalEnvelope": [
+    "decision",
+    "activated_agents",
+    "evidence",
+    "assumptions",
+    "tradeoffs",
+    "risks",
+    "kill_criteria",
+    "next_action",
+    "status"
+  ]
+}
