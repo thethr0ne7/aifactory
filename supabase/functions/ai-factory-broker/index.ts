@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "npm:jose@6";
 
-type Action = "enqueue" | "claim" | "heartbeat" | "event" | "checkpoint" | "incident" | "lesson" | "finish" | "recover";
+type Action = "enqueue" | "claim" | "heartbeat" | "learning_context" | "event" | "checkpoint" | "incident" | "lesson" | "finish" | "recover";
 type Body = {
   action?: Action;
   objective?: string;
@@ -33,6 +33,7 @@ type Body = {
   activated_agents?: string[];
   selected_skills?: string[];
   stale_minutes?: number;
+  limit?: number;
   metadata?: Record<string, unknown>;
 };
 
@@ -103,6 +104,33 @@ Deno.serve(async (request: Request) => {
       const { error } = await db.rpc("af_touch_run", { p_run_id: runId });
       if (error) throw error;
       return json({ ok: true });
+    }
+
+    if (action === "learning_context") {
+      const limit = Math.max(1, Math.min(Number(body.limit) || 20, 30));
+      const [lessonResult, incidentResult] = await Promise.all([
+        db.from("af_lessons")
+          .select("id,run_id,incident_id,lesson_class,status,statement,generalization,regression_eval_ref,candidate_change,created_at,decided_at")
+          .in("status", ["CANDIDATE", "PROMOTED", "SUPERSEDED"])
+          .order("created_at", { ascending: false })
+          .limit(Math.min(limit * 2, 40)),
+        db.from("af_incidents")
+          .select("id,run_id,task_id,severity,status,summary,root_cause,affected_invariants,negative_action_id,regression_eval_ref,created_at,resolved_at")
+          .order("created_at", { ascending: false })
+          .limit(Math.min(limit, 30)),
+      ]);
+      if (lessonResult.error) throw lessonResult.error;
+      if (incidentResult.error) throw incidentResult.error;
+      return json({
+        lessons: lessonResult.data ?? [],
+        incidents: incidentResult.data ?? [],
+        memory_policy: {
+          candidate_non_binding: true,
+          superseded_inactive: true,
+          current_evidence_wins: true,
+          root_of_trust_override: false,
+        },
+      });
     }
 
     if (action === "event") {

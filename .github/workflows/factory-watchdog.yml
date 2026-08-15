@@ -12,8 +12,12 @@ on:
       - 'skills/incident-learning/**'
       - 'skills/root-of-trust/**'
       - 'scripts/validate-autonomous-runtime.js'
+      - 'scripts/test-executable-memory.mjs'
+      - 'scripts/copilot-autonomous-worker.mjs'
       - 'scripts/watchdog.mjs'
+      - 'supabase/functions/ai-factory-broker/**'
       - 'infra/supabase/**'
+      - 'docs/EXECUTABLE-MEMORY.md'
       - 'factory.manifest.json'
       - '.github/workflows/factory-watchdog.yml'
 
