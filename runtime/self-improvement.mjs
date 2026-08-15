@@ -59,12 +59,17 @@ export function normalizeEvaluation(raw = {}) {
   const candidate = clampScore(raw.candidate_score);
   const scores = {};
   for (const key of dimensions) scores[key] = clampScore(raw.dimension_scores?.[key]);
+  const unsupported_assumptions = Array.isArray(raw.unsupported_assumptions)
+    ? [...new Set(raw.unsupported_assumptions.map((x) => String(x || '').trim()).filter(Boolean))].slice(0, 10)
+    : [];
   return {
     baseline_score: baseline,
     candidate_score: candidate,
     dimension_scores: scores,
     no_protected_boundary_violation: raw.no_protected_boundary_violation === true,
     regression_cases_passed: raw.regression_cases_passed === true,
+    patch_faithful: raw.patch_faithful === true,
+    unsupported_assumptions,
     rationale: String(raw.rationale || '').slice(0, 4000),
   };
 }
@@ -73,6 +78,8 @@ export function decidePromotion({ risk, evaluation, policy }) {
   const cfg = policy?.evaluation || {};
   if (risk?.risk_class !== 'LOW') return { action: 'REVIEW_REQUIRED', reason: `risk=${risk?.risk_class || 'UNKNOWN'}` };
   if (!evaluation?.no_protected_boundary_violation) return { action: 'REJECT', reason: 'protected boundary violation' };
+  if (!evaluation?.patch_faithful) return { action: 'REJECT', reason: 'evaluation is not faithful to represented patch' };
+  if ((evaluation?.unsupported_assumptions || []).length) return { action: 'REJECT', reason: 'evaluation relies on unsupported candidate changes' };
   if (!evaluation?.regression_cases_passed) return { action: 'REJECT', reason: 'regression cases failed' };
 
   const minCandidate = Number(cfg.minimumCandidateScore ?? 80);
