@@ -13,12 +13,15 @@ declare
 begin
   if new.incident_id is not null then return new; end if;
 
-  select count(*), min(id)
-  into v_count, v_incident_id
+  select count(*) into v_count
   from public.af_incidents
   where run_id = new.run_id;
 
   if v_count = 1 then
+    select id into v_incident_id
+    from public.af_incidents
+    where run_id = new.run_id
+    limit 1;
     new.incident_id := v_incident_id;
   end if;
   return new;
@@ -90,6 +93,73 @@ begin
 end;
 $$;
 
+-- Defense in depth: A4 database promotion gate also blocks autonomy-routing guidance.
+create or replace function public.af_promote_low_risk_memory(
+  p_lesson_id uuid,
+  p_patch_candidate_id uuid,
+  p_regression_eval_id uuid,
+  p_evidence jsonb,
+  p_decision jsonb,
+  p_rollback_ref text
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_promotion_id uuid;
+  v_statement text;
+  v_class text;
+  v_patch_status text;
+  v_risk text;
+  v_target text;
+  v_eval_status text;
+begin
+  select statement, lesson_class into v_statement, v_class
+  from public.af_lessons where id=p_lesson_id and status='EVALUATING' for update;
+  if v_statement is null then raise exception 'lesson is not evaluable'; end if;
+
+  select status, risk_class, target_type into v_patch_status, v_risk, v_target
+  from public.af_patch_candidates
+  where id=p_patch_candidate_id and lesson_id=p_lesson_id for update;
+
+  select status into v_eval_status
+  from public.af_regression_evals
+  where id=p_regression_eval_id for update;
+
+  if v_patch_status <> 'READY' or v_risk <> 'LOW' or v_target <> 'MEMORY_GUIDANCE' then
+    raise exception 'patch candidate is not eligible for A4 promotion';
+  end if;
+  if v_eval_status <> 'PASS' then raise exception 'regression eval has not passed'; end if;
+  if v_class not in ('PATTERN','HEURISTIC','SUCCESS_PATTERN','EVIDENCE_GAP','SPEC_GAP','QUALITY_REGRESSION') then
+    raise exception 'lesson class is outside A4 auto-promotion allowlist';
+  end if;
+  if lower(v_statement) ~ '(root of trust|catastrophic|security weaken|weaken security|production permission|autonomy ceiling|raise autonomy|a[0-7]\+ autonomy|autonomy level|lower autonomy|higher autonomy|service[_ -]?role|secret handling|unrestricted filesystem|unbounded network)' then
+    raise exception 'protected governance topic cannot be auto-promoted';
+  end if;
+  if p_rollback_ref is null or length(trim(p_rollback_ref)) < 3 then raise exception 'rollback ref required'; end if;
+
+  update public.af_lessons
+  set status='PROMOTED', decided_at=now(),
+      regression_eval_ref=p_regression_eval_id::text,
+      baseline_result=(select baseline_result from public.af_regression_evals where id=p_regression_eval_id),
+      candidate_result=(select candidate_result from public.af_regression_evals where id=p_regression_eval_id)
+  where id=p_lesson_id;
+
+  update public.af_patch_candidates
+  set status='PROMOTED', decided_at=now()
+  where id=p_patch_candidate_id;
+
+  insert into public.af_promotions(lesson_id, patch_candidate_id, regression_eval_id, rollback_ref, evidence, decision)
+  values (p_lesson_id, p_patch_candidate_id, p_regression_eval_id, left(trim(p_rollback_ref),500), coalesce(p_evidence,'{}'::jsonb), coalesce(p_decision,'{}'::jsonb))
+  returning id into v_promotion_id;
+
+  return v_promotion_id;
+end;
+$$;
+
 revoke all on function public.af_link_lesson_to_single_incident() from public, anon, authenticated;
 revoke all on function public.af_claim_improvement_candidate(text) from public, anon, authenticated;
+revoke all on function public.af_promote_low_risk_memory(uuid,uuid,uuid,jsonb,jsonb,text) from public, anon, authenticated;
 grant execute on function public.af_claim_improvement_candidate(text) to service_role;
+grant execute on function public.af_promote_low_risk_memory(uuid,uuid,uuid,jsonb,jsonb,text) to service_role;
