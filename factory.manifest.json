@@ -84,5 +84,6 @@
   "hostedRuntimePersistence": "infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql",
   "selfImprovementPersistence": "infra/supabase/migrations/20260815_250_controlled_self_improvement.sql",
   "incidentLessonLinkagePersistence": "infra/supabase/migrations/20260815_251_incident_lesson_linkage.sql",
-  "toolRuntimePersistence": "infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql"
+  "toolRuntimePersistence": "infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql",
+  "toolRuntimeRepeatGuardPersistence": "infra/supabase/migrations/20260815_261_terminal_tool_repeat_guard.sql"
 }

@@ -25,6 +25,7 @@ for (const rel of [
   'scripts/test-tool-runtime.mjs',
   '.github/workflows/factory-tool-executor.yml',
   'infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql',
+  'infra/supabase/migrations/20260815_261_terminal_tool_repeat_guard.sql',
   'supabase/functions/ai-factory-broker/index.ts',
   'docs/TOOL-RUNTIME.md',
 ]) exists(rel);
@@ -35,6 +36,7 @@ if (manifest) {
   if (manifest.toolExecutor !== '.github/workflows/factory-tool-executor.yml') errors.push('manifest toolExecutor mismatch');
   if (manifest.toolExecutorScript !== 'scripts/tool-executor.mjs') errors.push('manifest toolExecutorScript mismatch');
   if (manifest.toolRuntimePersistence !== 'infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql') errors.push('manifest toolRuntimePersistence mismatch');
+  if (manifest.toolRuntimeRepeatGuardPersistence !== 'infra/supabase/migrations/20260815_261_terminal_tool_repeat_guard.sql') errors.push('manifest terminal tool repeat guard mismatch');
 }
 
 if (policy) {
@@ -87,6 +89,11 @@ for (const token of ["factory.repo.read_file","factory.repo.list_files","factory
   if (!migration.includes(token)) errors.push(`database allowlist missing ${token}`);
 }
 
+const repeatGuard = fs.existsSync(path.join(root,'infra/supabase/migrations/20260815_261_terminal_tool_repeat_guard.sql')) ? fs.readFileSync(path.join(root,'infra/supabase/migrations/20260815_261_terminal_tool_repeat_guard.sql'),'utf8') : '';
+for (const token of ['TERMINAL_TOOL_REQUEST_REPEATED','TOOL_WAIT_NO_PENDING_BLOCKED',"status='BLOCKED'","v_pending = 0"]) {
+  if (!repeatGuard.includes(token)) errors.push(`terminal tool repeat guard missing ${token}`);
+}
+
 const test = spawnSync(process.execPath, ['scripts/test-tool-runtime.mjs'], { cwd: root, encoding: 'utf8' });
 if (test.status !== 0) errors.push(`tool runtime tests failed: ${(test.stderr || test.stdout || '').trim()}`);
 
@@ -95,4 +102,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.log('AI Factory controlled tool runtime validation OK: durable tool requests, bounded executor, branch-first candidate writes, honest PR fallback and resume semantics are coherent');
+console.log('AI Factory controlled tool runtime validation OK: durable tool requests, bounded executor, branch-first candidate writes, honest PR fallback, terminal repeat guard and resume semantics are coherent');
