@@ -41,6 +41,8 @@ if (policy) {
   if (policy.mode !== 'controlled-tool-runtime') errors.push('tool runtime mode mismatch');
   if (Number(policy.maxToolRequestsPerWorkerTurn) > 3) errors.push('worker turn must be capped at three tool requests');
   if (policy.executor?.directMerge !== false) errors.push('tool executor must never direct-merge');
+  if (policy.executor?.candidateBranchIsPrimaryArtifact !== true) errors.push('candidate branch must remain the primary durable review artifact');
+  if (!String(policy.executor?.pullRequestCreation || '').includes('best-effort')) errors.push('PR creation must be explicitly best-effort under repository policy');
   const ids = (policy.tools || []).map((x) => x.id);
   const expected = ['factory.repo.read_file','factory.repo.list_files','factory.repo.run_validation','factory.repo.candidate_write'];
   if (JSON.stringify(ids) !== JSON.stringify(expected)) errors.push('v1 tool allowlist mismatch');
@@ -51,6 +53,7 @@ if (policy) {
   if (!(policy.hardDenials || []).includes('automatic merge')) errors.push('automatic merge must be explicitly denied');
   if (!(policy.hardDenials || []).includes('arbitrary shell command')) errors.push('arbitrary shell must be explicitly denied');
   if (!(policy.hardDenials || []).includes('arbitrary SQL')) errors.push('arbitrary SQL must be explicitly denied');
+  if (policy.evidencePolicy?.pullRequestBlockedMustBeReported !== true) errors.push('blocked PR creation must be reported as durable evidence');
 }
 
 if (autonomy) {
@@ -66,8 +69,8 @@ for (const token of ['contents: write','pull-requests: write','id-token: write',
 if (workflow.includes('copilot-requests: write')) errors.push('deterministic tool executor must not require Copilot permission');
 
 const executor = fs.existsSync(path.join(root,'scripts/tool-executor.mjs')) ? fs.readFileSync(path.join(root,'scripts/tool-executor.mjs'),'utf8') : '';
-for (const token of ['candidatePathDecision','expected_blob_sha','git_blob_sha','direct_merge: false','factory/tool-','VALIDATION_FAILED']) {
-  if (!executor.includes(token)) errors.push(`tool executor missing safety token ${token}`);
+for (const token of ['candidatePathDecision','expected_blob_sha','git_blob_sha','direct_merge: false','factory/tool-','VALIDATION_FAILED','candidate_branch_ready','BLOCKED_BY_REPOSITORY_POLICY','openPullRequestBestEffort']) {
+  if (!executor.includes(token)) errors.push(`tool executor missing safety/fallback token ${token}`);
 }
 if (executor.includes("spawnSync('sh'" ) || executor.includes('shell: true')) errors.push('tool executor must not expose a general shell');
 
@@ -92,4 +95,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.log('AI Factory controlled tool runtime validation OK: durable tool requests, bounded executor, candidate-only writes and resume semantics are coherent');
+console.log('AI Factory controlled tool runtime validation OK: durable tool requests, bounded executor, branch-first candidate writes, honest PR fallback and resume semantics are coherent');

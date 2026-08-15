@@ -177,19 +177,21 @@ async function candidateWriteTool(request, args, spec) {
   const commitSha = git(['rev-parse', 'HEAD']).stdout.trim();
   git(['push', '--set-upstream', 'origin', branch]);
 
-  const pr = await openPullRequest(branch, rel, reason, request.id);
+  const pr = await openPullRequestBestEffort(branch, rel, reason, request.id);
   return {
     path: rel,
     previous_blob_sha: currentBlob,
     branch,
     commit_sha: commitSha,
+    candidate_branch_ready: true,
+    review_artifact_status: pr.status === 'OPEN' ? 'PR_OPEN' : 'BRANCH_READY_PR_BLOCKED',
     pull_request: pr,
     validations,
     direct_merge: false,
   };
 }
 
-async function openPullRequest(branch, rel, reason, requestId) {
+async function openPullRequestBestEffort(branch, rel, reason, requestId) {
   const headers = {
     Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
     Accept: 'application/vnd.github+json',
@@ -202,7 +204,9 @@ async function openPullRequest(branch, rel, reason, requestId) {
   const existingResponse = await fetch(existingUrl, { headers });
   if (!existingResponse.ok) throw new Error(`GitHub PR lookup failed ${existingResponse.status}`);
   const existing = await existingResponse.json();
-  if (Array.isArray(existing) && existing[0]) return { number: existing[0].number, url: existing[0].html_url, reused: true };
+  if (Array.isArray(existing) && existing[0]) {
+    return { status: 'OPEN', number: existing[0].number, url: existing[0].html_url, reused: true };
+  }
 
   const response = await fetch(`https://api.github.com/repos/${repo}/pulls`, {
     method: 'POST', headers,
@@ -216,8 +220,18 @@ async function openPullRequest(branch, rel, reason, requestId) {
     }),
   });
   const body = await response.json();
-  if (!response.ok) throw new Error(`GitHub PR create failed ${response.status}: ${JSON.stringify(body).slice(0, 1000)}`);
-  return { number: body.number, url: body.html_url, reused: false };
+  if (response.ok) return { status: 'OPEN', number: body.number, url: body.html_url, reused: false };
+
+  const message = String(body?.message || '');
+  if (response.status === 403 && /GitHub Actions is not permitted to create or approve pull requests/i.test(message)) {
+    return {
+      status: 'BLOCKED_BY_REPOSITORY_POLICY',
+      http_status: 403,
+      message: 'GitHub Actions workflow token cannot create pull requests under the current repository setting.',
+      manual_or_app_pr_required: true,
+    };
+  }
+  throw new Error(`GitHub PR create failed ${response.status}: ${JSON.stringify(body).slice(0, 1000)}`);
 }
 
 function git(args, options = {}) {

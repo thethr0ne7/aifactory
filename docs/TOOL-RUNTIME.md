@@ -24,7 +24,7 @@ TASK
 - `factory.repo.read_file` — bounded read of one tracked file.
 - `factory.repo.list_files` — bounded list of tracked files.
 - `factory.repo.run_validation` — fixed validator suites only; no arbitrary command execution.
-- `factory.repo.candidate_write` — one file under `skills/`, `docs/`, or `evals/` only. It writes to a fresh `factory/tool-*` branch, runs all validators, pushes the branch, and opens a Draft PR. It cannot merge.
+- `factory.repo.candidate_write` — one file under `skills/`, `docs/`, or `evals/` only. It writes to a fresh `factory/tool-*` branch, runs all validators, and pushes that branch. It then attempts to open a Draft PR when GitHub repository policy allows the workflow token to do so. It cannot merge.
 
 ## Deliberate non-capabilities
 
@@ -36,7 +36,9 @@ The autonomous Copilot worker has reasoning authority but no repository write pe
 
 ## Candidate write safety
 
-Existing files require the exact `expected_blob_sha` returned by a prior `factory.repo.read_file` result. This prevents a stale worker from overwriting a newer version. Candidate writes are limited to one allowlisted file and all factory validators must pass before push. The resulting PR remains a reviewed artifact; the tool executor has no merge path.
+Existing files require the exact `expected_blob_sha` returned by a prior `factory.repo.read_file` result. This prevents a stale worker from overwriting a newer version. Candidate writes are limited to one allowlisted file and all factory validators must pass before push.
+
+The **candidate branch is the primary durable review artifact**. Draft PR creation is best-effort because GitHub can independently disable pull-request creation by the Actions workflow token. If GitHub returns that policy denial after the candidate branch has already been safely pushed, the tool result remains `EXECUTED`, reports `candidate_branch_ready: true`, and records `pull_request.status: BLOCKED_BY_REPOSITORY_POLICY`. The factory must never misreport that as an opened PR. A connected GitHub App or later reviewed PR-opener can turn the existing candidate branch into a PR without giving the reasoning worker merge authority.
 
 ## Evidence semantics
 

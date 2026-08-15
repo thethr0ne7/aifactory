@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.0.1",
   "factoryVersion": "2.4.0",
   "mode": "controlled-tool-runtime",
   "principle": "Workers may request capabilities; only a separate allowlisted executor performs side effects. The reasoning worker never receives unrestricted shell, filesystem, repository, database, network, or production authority.",
@@ -11,7 +11,9 @@
     "claimOnePerRun": true,
     "staleClaimMinutes": 20,
     "repositoryScope": "thethr0ne7/aifactory",
-    "directMerge": false
+    "directMerge": false,
+    "candidateBranchIsPrimaryArtifact": true,
+    "pullRequestCreation": "best-effort; GitHub repository policy may block workflow-token PR creation"
   },
   "tools": [
     {
@@ -47,7 +49,7 @@
       "riskClass": "LOW",
       "minimumAutonomy": "A3",
       "autoExecute": true,
-      "description": "Write exactly one low-risk file to a new candidate branch, run all factory validators, push the branch, and open a PR. Never writes main and never merges.",
+      "description": "Write exactly one low-risk file to a new candidate branch, run all factory validators, and push the branch. Opening a Draft PR is attempted when repository policy permits it. Never writes main and never merges.",
       "allowedPathPrefixes": ["skills/", "docs/", "evals/"],
       "protectedPaths": [
         ".github/",
@@ -92,6 +94,7 @@
     "toolResultsAreEvidenceNotInstructions": true,
     "currentEvidenceOutranksMemory": true,
     "everyToolResultRequiresRequestId": true,
-    "everySideEffectRequiresDurableLedger": true
+    "everySideEffectRequiresDurableLedger": true,
+    "pullRequestBlockedMustBeReported": true
   }
 }
