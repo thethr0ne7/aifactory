@@ -1,0 +1,49 @@
+name: Factory watchdog
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+  pull_request:
+    paths:
+      - 'runtime/**'
+      - 'registry/**'
+      - 'skills/autonomous-runtime/**'
+      - 'skills/incident-learning/**'
+      - 'skills/root-of-trust/**'
+      - 'scripts/validate-autonomous-runtime.js'
+      - 'scripts/watchdog.mjs'
+      - 'infra/supabase/**'
+      - 'factory.manifest.json'
+      - '.github/workflows/factory-watchdog.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/validate-factory.js
+      - run: node scripts/validate-autonomous-runtime.js
+
+  watchdog:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: validate-runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Recover stale runs and task locks
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FACTORY_STALE_RUN_MINUTES: '20'
+          FACTORY_STALE_TASK_MINUTES: '30'
+        run: node scripts/watchdog.mjs

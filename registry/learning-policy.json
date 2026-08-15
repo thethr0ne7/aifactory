@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "loop": ["OBSERVE", "CLASSIFY", "ROOT_CAUSE", "LESSON_CANDIDATE", "GENERALIZE", "REGRESSION_EVAL", "PATCH_CANDIDATE", "COMPARE", "PROMOTE_OR_REJECT"],
+  "promotion": {
+    "requiresOriginalFailureReproduction": true,
+    "requiresBaselineComparison": true,
+    "requiresRegressionSuite": true,
+    "requiresProvenance": true,
+    "autoPromotionMaxAutonomyLevel": "A4",
+    "rootOfTrustAutoPromotion": false,
+    "securityWeakeningAutoPromotion": false,
+    "productionPermissionAutoPromotion": false
+  },
+  "lessonClasses": ["FAILURE_PATTERN", "SUCCESS_PATTERN", "ROUTING_ERROR", "SKILL_GAP", "EVIDENCE_GAP", "SPEC_GAP", "ENVIRONMENT_FAILURE", "SECURITY_INCIDENT", "QUALITY_REGRESSION"],
+  "negativeActionPromotion": {
+    "UNDESIRABLE":"may auto-register after repeated evidence or strong single-case rationale plus eval",
+    "FORBIDDEN":"requires independent review unless directly implied by existing Root of Trust",
+    "CATASTROPHIC":"requires Root of Trust review and may never be self-approved by the triggering runtime task"
+  },
+  "supersession": {
+    "preserveHistory": true,
+    "allowRuleRefinement": true,
+    "requireCounterexamplesForRelaxation": true
+  }
+}

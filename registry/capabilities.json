@@ -1,6 +1,6 @@
 {
-  "schemaVersion": "1.3.0",
-  "factoryVersion": "2.3.0",
+  "schemaVersion": "1.4.0",
+  "factoryVersion": "2.4.0",
   "policy": {
     "architecture": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
     "defaultMode": "selective-routing",
@@ -10,13 +10,19 @@
     "truthPolicy": "evidence-first",
     "shipPolicy": "gated",
     "singleRouter": true,
-    "knowledgeNormalization": "classify imported guidance before promotion to Factory policy"
+    "knowledgeNormalization": "classify imported guidance before promotion to Factory policy",
+    "autonomousRuntime": "durable, bounded, observable and root-of-trust constrained"
   },
   "contracts": {
     "evidence": "registry/evidence-contract.json",
     "knowledgeClasses": "registry/knowledge-classes.json",
     "standards": "registry/standards.json",
-    "skillEvaluation": "evals/README.md"
+    "skillEvaluation": "evals/README.md",
+    "factoryConstitution": "registry/factory-constitution.json",
+    "autonomyLevels": "registry/autonomy-levels.json",
+    "negativeActions": "registry/negative-actions.json",
+    "learningPolicy": "registry/learning-policy.json",
+    "telemetryPolicy": "registry/telemetry-policy.json"
   },
   "capabilities": [
     {"id":"task-qualifier","family":"core-control","status":"core","localSkill":"skills/task-qualifier/SKILL.md"},
@@ -29,6 +35,10 @@
     {"id":"repair-loop","family":"core-contour","status":"core","localSkill":"skills/repair-loop/SKILL.md"},
     {"id":"factory-memory","family":"core-contour","status":"core","localSkill":"skills/factory-memory/SKILL.md"},
     {"id":"defensive-security","family":"core-contour","status":"core","localSkill":"skills/defensive-security/SKILL.md"},
+
+    {"id":"autonomous-runtime","family":"autonomous-runtime-and-learning","status":"core","localSkill":"skills/autonomous-runtime/SKILL.md"},
+    {"id":"incident-learning","family":"autonomous-runtime-and-learning","status":"core","localSkill":"skills/incident-learning/SKILL.md"},
+    {"id":"root-of-trust","family":"autonomous-runtime-and-learning","status":"core","localSkill":"skills/root-of-trust/SKILL.md"},
 
     {"id":"executive-router","family":"direction","status":"core","localSkill":"skills/executive-router/SKILL.md","implements":["CEO","CFO","COO","CIO","CMO","CRO"]},
     {"id":"context-governor","family":"second-ring","status":"core-adapted","localSkill":"skills/context-governor/SKILL.md","sources":["https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering","https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/context-engineering"]},
@@ -103,6 +113,6 @@
     "volatile vendor commands embedded as timeless policy",
     "DevOps empire without measured need",
     "offensive attack toolkit",
-    "autonomous self-rewriting of the factory"
+    "autonomous self-rewriting of the factory without evals and authority boundaries"
   ]
 }
