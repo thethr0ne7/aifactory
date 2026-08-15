@@ -1,6 +1,6 @@
 {
-  "schemaVersion": "1.2.0",
-  "factoryVersion": "2.1.0",
+  "schemaVersion": "1.3.0",
+  "factoryVersion": "2.3.0",
   "policy": {
     "architecture": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
     "defaultMode": "selective-routing",
@@ -8,7 +8,15 @@
     "multiAgentDefault": "off",
     "contextPolicy": "budgeted",
     "truthPolicy": "evidence-first",
-    "shipPolicy": "gated"
+    "shipPolicy": "gated",
+    "singleRouter": true,
+    "knowledgeNormalization": "classify imported guidance before promotion to Factory policy"
+  },
+  "contracts": {
+    "evidence": "registry/evidence-contract.json",
+    "knowledgeClasses": "registry/knowledge-classes.json",
+    "standards": "registry/standards.json",
+    "skillEvaluation": "evals/README.md"
   },
   "capabilities": [
     {"id":"task-qualifier","family":"core-control","status":"core","localSkill":"skills/task-qualifier/SKILL.md"},
@@ -23,7 +31,7 @@
     {"id":"defensive-security","family":"core-contour","status":"core","localSkill":"skills/defensive-security/SKILL.md"},
 
     {"id":"executive-router","family":"direction","status":"core","localSkill":"skills/executive-router/SKILL.md","implements":["CEO","CFO","COO","CIO","CMO","CRO"]},
-    {"id":"context-governor","family":"second-ring","status":"core-adapted","localSkill":"skills/context-governor/SKILL.md","source":"https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering"},
+    {"id":"context-governor","family":"second-ring","status":"core-adapted","localSkill":"skills/context-governor/SKILL.md","sources":["https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering","https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/context-engineering"]},
     {"id":"ui-taste-gate","family":"second-ring","status":"core","localSkill":"skills/ui-taste-gate/SKILL.md"},
     {"id":"compound-skill-loop","family":"second-ring","status":"core","localSkill":"skills/compound-skill-loop/SKILL.md"},
     {"id":"recent-signal-radar","family":"second-ring","status":"core","localSkill":"skills/recent-signal-radar/SKILL.md"},
@@ -38,14 +46,17 @@
     {"id":"deterministic-release-claims","family":"truth-and-control","status":"core","localSkill":"skills/deterministic-release-claims/SKILL.md"},
     {"id":"memory-approval-gate","family":"truth-and-control","status":"core","localSkill":"skills/memory-approval-gate/SKILL.md"},
     {"id":"third-party-security","family":"truth-and-control","status":"core","localSkill":"skills/third-party-security/SKILL.md"},
+    {"id":"source-driven-development","family":"truth-and-engineering","status":"core-adapted","localSkill":"skills/source-driven-development/SKILL.md","source":"https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/source-driven-development"},
 
     {"id":"engineering-kernel","family":"engineering","status":"core-adapted","localSkill":"skills/engineering-kernel/SKILL.md","source":"https://github.com/obra/superpowers"},
+    {"id":"debugging-error-recovery","family":"engineering","status":"core-adapted","localSkill":"skills/debugging-error-recovery/SKILL.md","source":"https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/debugging-and-error-recovery"},
+    {"id":"observability-discipline","family":"engineering-operations","status":"core-selective","localSkill":"skills/observability-discipline/SKILL.md","source":"https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/observability-and-instrumentation"},
     {"id":"code-navigation","family":"engineering","status":"core-pattern","localSkill":"skills/code-navigation/SKILL.md","source":"https://github.com/massgen/massgen"},
     {"id":"codebase-knowledge-graph","family":"engineering","status":"core-selective","localSkill":"skills/codebase-knowledge-graph/SKILL.md"},
     {"id":"architecture-review","family":"engineering","status":"core-selective","localSkill":"skills/architecture-review/SKILL.md"},
     {"id":"scientific-benchmark","family":"engineering","status":"core-selective","localSkill":"skills/scientific-benchmark/SKILL.md"},
     {"id":"local-ai-runtime","family":"engineering","status":"amplifier","localSkill":"skills/local-ai-runtime/SKILL.md"},
-    {"id":"skill-foundry","family":"engineering","status":"core-adapted","localSkill":"skills/skill-foundry/SKILL.md","source":"https://github.com/anthropics/skills/tree/main/skills/skill-creator"},
+    {"id":"skill-foundry","family":"engineering","status":"core-adapted","localSkill":"skills/skill-foundry/SKILL.md","sources":["https://github.com/anthropics/skills/tree/main/skills/skill-creator","https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25"]},
 
     {"id":"research-truth","family":"research","status":"core","localSkill":"skills/research-truth/SKILL.md"},
     {"id":"research-toolbelt","family":"research","status":"core-selective","localSkill":"skills/research-toolbelt/SKILL.md"},
@@ -76,16 +87,20 @@
     {"id":"spreadsheet-adapter","family":"knowledge-and-data","status":"controlled","localSkill":"skills/spreadsheet-adapter/SKILL.md","source":"https://github.com/haris-musa/excel-mcp-server"}
   ],
   "upstreamPatternCatalogue": "registry/upstream-patterns.json",
+  "upstreamAuditRegistry": "registry/upstreams/addyosmani-agent-skills.json",
   "roleRegistry": "registry/roles.json",
   "explicitlyRejectedAsCore": [
     "unbounded multi-agent swarms",
     "role-play councils",
     "recursive autonomous delegation",
+    "competing top-level skill routers",
     "blind skill installers",
     "unrestricted MCP filesystem access",
     "temporary-email or disposable-file services as production dependencies",
     "paywall-bypass/piracy sources as evidence infrastructure",
     "duplicate skills that only increase prompt/context noise",
+    "magic numeric thresholds promoted to invariants without evidence",
+    "volatile vendor commands embedded as timeless policy",
     "DevOps empire without measured need",
     "offensive attack toolkit",
     "autonomous self-rewriting of the factory"

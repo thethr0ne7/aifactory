@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Evidence Honesty Contract",
+  "purpose": "Prevent agents from presenting inference, static inspection or estimates as direct observation or measurement.",
+  "classes": [
+    {"id":"MEASURED","strength":6,"definition":"Produced by an instrument, benchmark, test, query or runtime measurement with method and artifact available.","requires":["method","artifact_or_output","scope","timestamp_or_run_id_when_relevant"]},
+    {"id":"OBSERVED","strength":5,"definition":"Directly seen in a source, runtime state, file, log, API response or tool result.","requires":["source_identifier"]},
+    {"id":"CONFIRMED","strength":5,"definition":"Supported by authoritative or independently sufficient evidence for the decision scope.","requires":["traceable_evidence"]},
+    {"id":"DERIVED","strength":4,"definition":"Computed deterministically from measured/observed inputs with reproducible transformation.","requires":["inputs","method"]},
+    {"id":"INFERRED","strength":3,"definition":"Reasoned conclusion supported by evidence but not directly observed or measured.","requires":["supporting_evidence","inference_marker"]},
+    {"id":"ASSUMPTION","strength":2,"definition":"Unverified premise used temporarily for planning or modeling.","requires":["impact_if_wrong"]},
+    {"id":"UNKNOWN","strength":1,"definition":"Relevant information is missing or unresolved.","requires":["next_evidence_action_when_material"]},
+    {"id":"BLOCKER","strength":0,"definition":"Missing/contradictory evidence prevents a safe decision or ship action.","requires":["repair_path"]}
+  ],
+  "rules": [
+    "Never upgrade a claim to a stronger class without new evidence.",
+    "Static source inspection cannot produce runtime performance measurements.",
+    "Search snippets, model memory and generated summaries are not authoritative evidence by themselves.",
+    "Derived values inherit the weakest material input unless independently verified.",
+    "Forecasts and recommendations must remain distinct from facts.",
+    "When evidence is time-sensitive, freshness is part of validity.",
+    "When evidence conflicts, expose the contradiction instead of averaging it away."
+  ],
+  "runtimeOutputFields": ["claim","class","evidence","scope","freshness","uncertainty","next_action"]
+}
