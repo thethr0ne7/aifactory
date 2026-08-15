@@ -1,0 +1,56 @@
+name: AI Factory self improvement
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 */2 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'runtime/self-improvement.mjs'
+      - 'registry/self-improvement.json'
+      - 'scripts/self-improvement-worker.mjs'
+      - 'scripts/test-self-improvement.mjs'
+      - 'scripts/validate-self-improvement.js'
+      - 'supabase/functions/ai-factory-broker/**'
+      - 'infra/supabase/migrations/20260815_250_controlled_self_improvement.sql'
+      - '.github/workflows/factory-self-improvement.yml'
+      - 'factory.manifest.json'
+
+permissions:
+  contents: read
+  id-token: write
+  copilot-requests: write
+
+concurrency:
+  group: ai-factory-self-improvement
+  cancel-in-progress: false
+
+jobs:
+  improve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
+    steps:
+      - name: Checkout factory
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install GitHub Copilot CLI
+        run: npm install -g @github/copilot
+
+      - name: Validate controlled self improvement
+        run: |
+          node scripts/validate-factory.js
+          node scripts/validate-autonomous-runtime.js
+          node scripts/validate-self-improvement.js
+
+      - name: Run A4 self improvement worker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/self-improvement-worker.mjs

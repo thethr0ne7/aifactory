@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "mode": "controlled-self-improvement",
+  "loop": [
+    "INCIDENT",
+    "REGRESSION_EVAL",
+    "PATCH_CANDIDATE",
+    "BASELINE_VS_CANDIDATE",
+    "A4_LOW_RISK_PROMOTION",
+    "OBSERVE",
+    "ROLLBACK_OR_RETAIN"
+  ],
+  "automaticPromotion": {
+    "maxAutonomyLevel": "A4",
+    "allowedTargetTypes": ["MEMORY_GUIDANCE"],
+    "allowedLessonClasses": ["PATTERN", "HEURISTIC", "SUCCESS_PATTERN", "EVIDENCE_GAP", "SPEC_GAP", "QUALITY_REGRESSION"],
+    "requiredRiskClass": "LOW",
+    "requiresRegressionEvalPass": true,
+    "requiresBaselineImprovement": true,
+    "requiresRollbackRef": true,
+    "requiresProductionDerivedSource": true,
+    "requiresProvenance": true
+  },
+  "neverAutoPromote": [
+    "Root of Trust changes",
+    "CATASTROPHIC control changes",
+    "security weakening",
+    "production permissions",
+    "autonomy ceiling changes",
+    "secret handling relaxations",
+    "destructive production writes",
+    "unbounded filesystem or network authority"
+  ],
+  "evaluation": {
+    "dimensions": ["structural", "routing", "behavioral", "adversarial", "production_regression"],
+    "minimumCandidateScore": 80,
+    "minimumDimensionScore": 75,
+    "minimumImprovementOverBaseline": 5,
+    "maxCandidatesPerRun": 1,
+    "maxModelEvaluationsPerRun": 1,
+    "maxPromptCharacters": 18000
+  },
+  "observation": {
+    "minimumPassObservationsToRetain": 2,
+    "rollbackOn": ["FAILED run using promoted lesson", "explicit promotion regression observation"],
+    "doNotTreatAsRegression": ["honest BLOCKED result", "new FORBIDDEN incident that enforces an existing invariant"],
+    "preserveAllHistory": true
+  },
+  "patchPolicy": {
+    "MEMORY_GUIDANCE": "may be promoted automatically at A4 after gates pass",
+    "ROUTING_HEURISTIC": "representation allowed, promotion requires separate A5 path",
+    "SKILL_PATCH": "representation allowed, may create reviewed candidate work but no direct merge from A4",
+    "WORKFLOW_PATCH": "representation allowed, may create reviewed candidate work but no direct merge from A4"
+  },
+  "duplicateControl": {
+    "exactStatementDeduplication": true,
+    "onePatchCandidatePerLesson": true,
+    "oneSeedRegressionEvalPerIncident": true,
+    "singleUnusualIncidentMustNotCreateMultiplePolicies": true
+  },
+  "telemetry": {
+    "events": [
+      "REGRESSION_EVAL_CANDIDATE_CREATED",
+      "IMPROVEMENT_CANDIDATE_CLAIMED",
+      "BASELINE_CANDIDATE_COMPARED",
+      "A4_PROMOTION_ACTIVATED",
+      "PROMOTION_OBSERVED",
+      "PROMOTION_RETAINED",
+      "PROMOTION_ROLLED_BACK"
+    ]
+  }
+}
