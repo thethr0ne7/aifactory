@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Factory Knowledge Classification",
+  "classes": [
+    {
+      "id": "INVARIANT",
+      "definition": "Non-negotiable safety, truth or integrity rule whose violation invalidates the work.",
+      "examples": ["do not commit secrets", "do not fabricate measurements", "authorization is enforced in code"],
+      "override": "authorized governance change only"
+    },
+    {
+      "id": "POLICY",
+      "definition": "Factory or project rule chosen for consistency, risk control or operating discipline.",
+      "examples": ["selective skill routing", "branch/PR workflow", "required release gates"],
+      "override": "project/factory owner with recorded reason"
+    },
+    {
+      "id": "HEURISTIC",
+      "definition": "Useful default or warning threshold that may be overridden by evidence or project context.",
+      "examples": ["preferred PR size", "context-size hint", "bundle budget", "rollout percentages"],
+      "override": "allowed with local rationale"
+    },
+    {
+      "id": "VOLATILE_REFERENCE",
+      "definition": "Version-sensitive external fact, command, standard, product surface or dependency behavior that must be checked against current authoritative sources before consequential use.",
+      "examples": ["CLI install commands", "package-manager security defaults", "tool-specific skill paths", "current accessibility/security standards"],
+      "override": "refresh from authoritative source"
+    },
+    {
+      "id": "PATTERN",
+      "definition": "Reusable conceptual technique that must be adapted to the actual stack and constraints.",
+      "examples": ["expand/migrate/contract", "parallel fan-out with merge", "RED/USE observability"],
+      "override": "adapt freely while preserving intent"
+    }
+  ],
+  "rules": [
+    "Numeric thresholds imported from third parties default to HEURISTIC unless they are explicitly tied to a current external standard.",
+    "Tool/vendor setup instructions default to VOLATILE_REFERENCE.",
+    "A VOLATILE_REFERENCE cannot be promoted to INVARIANT by repetition in multiple prompts.",
+    "External standards record name, version/date and authoritative source provenance.",
+    "Skill Foundry must classify imported rules before approval."
+  ]
+}

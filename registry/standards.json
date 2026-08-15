@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "asOf": "2026-08-15",
+  "policy": "External standards and vendor surfaces are volatile references. Verify the authoritative source when a consequential decision depends on current status.",
+  "standards": [
+    {
+      "id": "wcag",
+      "name": "Web Content Accessibility Guidelines",
+      "baseline": "WCAG 2.2 AA",
+      "authority": "W3C",
+      "source": "https://www.w3.org/TR/WCAG22/",
+      "class": "VOLATILE_REFERENCE",
+      "factoryNote": "Use WCAG 2.2 AA as the baseline. A 44x44 touch target may remain a stronger Factory UX heuristic; do not misstate it as the WCAG 2.2 AA minimum."
+    },
+    {
+      "id": "owasp-web",
+      "name": "OWASP Top 10",
+      "baseline": "2025",
+      "authority": "OWASP",
+      "source": "https://owasp.org/Top10/",
+      "class": "VOLATILE_REFERENCE"
+    },
+    {
+      "id": "owasp-llm",
+      "name": "OWASP Top 10 for LLM/GenAI Applications",
+      "baseline": "2025",
+      "authority": "OWASP GenAI Security Project",
+      "source": "https://genai.owasp.org/llm-top-10/",
+      "class": "VOLATILE_REFERENCE"
+    },
+    {
+      "id": "core-web-vitals",
+      "name": "Core Web Vitals",
+      "baseline": {"LCP_good":"<=2.5s","INP_good":"<=200ms","CLS_good":"<=0.1"},
+      "authority": "Google web.dev / Chrome UX Report",
+      "source": "https://web.dev/articles/vitals",
+      "class": "VOLATILE_REFERENCE",
+      "factoryNote": "These are external metric thresholds. Bundle sizes, API latency budgets and rollout thresholds remain project HEURISTIC/POLICY unless separately standardized."
+    }
+  ]
+}

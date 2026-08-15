@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "repository": "https://github.com/addyosmani/agent-skills",
+    "owner": "Addy Osmani",
+    "license": "MIT",
+    "auditedVersion": "0.6.7",
+    "auditedCommit": "df1edb2e05487d0aa6d93c747141e0aed1187f25",
+    "auditedAt": "2026-08-15",
+    "defaultTrust": "pattern-only-until-normalized"
+  },
+  "principles": {
+    "doNotVendorBlindly": true,
+    "singleFactoryRouter": true,
+    "separateEvergreenFromVolatile": true,
+    "heuristicsAreNotInvariants": true,
+    "externalExecutablesRequireSecurityReview": true
+  },
+  "skills": [
+    {"name":"using-agent-skills","decision":"REFERENCE","target":["executive-router","registry/capabilities.json"],"reason":"Useful intent-to-skill mapping, but a second active router would conflict with Factory selective routing."},
+    {"name":"interview-me","decision":"ADAPT","target":["task-qualifier","spec-lock"],"reason":"Keep uncertainty elicitation; remove mandatory questioning and pseudo-precise confidence thresholds."},
+    {"name":"idea-refine","decision":"ADAPT","target":["executive-router","research-truth"],"reason":"Strong product discovery lenses; load only for ideation/product discovery."},
+    {"name":"spec-driven-development","decision":"ADAPT","target":["spec-lock"],"reason":"Strong capability/spec gates; approvals become risk-based rather than mandatory at every phase."},
+    {"name":"planning-and-task-breakdown","decision":"ADAPT","target":["stateful-control"],"reason":"Adopt dependency, acceptance and verification structure; treat size limits as heuristics."},
+    {"name":"incremental-implementation","decision":"ADAPT","target":["engineering-kernel"],"reason":"Adopt small reversible slices; distinguish workspace checkpoints from git commits."},
+    {"name":"test-driven-development","decision":"ADAPT","target":["engineering-kernel","quality-gates"],"reason":"Keep Prove-It regression pattern; test strategy is risk/behavior driven, not universal fixed ratios."},
+    {"name":"context-engineering","decision":"ADOPT","target":["context-governor"],"reason":"Excellent context budgeting, progressive disclosure and durable/transient separation."},
+    {"name":"source-driven-development","decision":"ADOPT","target":["source-driven-development"],"reason":"Primary-source/version-first workflow directly strengthens Truth and Engineering."},
+    {"name":"doubt-driven-development","decision":"ADAPT","target":["destructive-review","research-truth"],"reason":"Use as high-risk independent verifier, not an always-on token-expensive loop."},
+    {"name":"frontend-ui-engineering","decision":"UPDATE_ADAPT","target":["frontend-design","ui-taste-gate","visual-fidelity"],"reason":"Useful state/responsive/accessibility patterns; update WCAG baseline and remove stack-specific dogma."},
+    {"name":"api-and-interface-design","decision":"ADAPT","target":["architecture-review"],"reason":"Strong contract/idempotency/backward-compatibility guidance; policy varies by public/internal boundary."},
+    {"name":"browser-testing-with-devtools","decision":"ADAPT","target":["engineering-kernel","visual-fidelity"],"reason":"Runtime evidence is valuable; tool/MCP details remain adapter-specific and permission-bounded."},
+    {"name":"debugging-and-error-recovery","decision":"ADOPT","target":["debugging-error-recovery"],"reason":"Reproduce/localize/reduce/root-cause/guard workflow is broadly reusable."},
+    {"name":"code-review-and-quality","decision":"ADAPT","target":["destructive-review","architecture-review"],"reason":"Five-axis review and severity are strong; numeric diff/file thresholds remain heuristics."},
+    {"name":"code-simplification","decision":"ADAPT","target":["engineering-kernel"],"reason":"Behavior-preserving simplification and Chesterton's Fence are useful; no magic line-count gates."},
+    {"name":"security-and-hardening","decision":"UPDATE_ADAPT","target":["defensive-security","third-party-security"],"reason":"Strong trust-boundary and supply-chain guidance; web taxonomy updated to OWASP Top 10 2025."},
+    {"name":"performance-optimization","decision":"ADAPT","target":["scientific-benchmark","quality-gates"],"reason":"Measure-first and re-measure discipline adopted; budgets are project-specific except external standards."},
+    {"name":"git-workflow-and-versioning","decision":"ADAPT","target":["engineering-kernel"],"reason":"Atomic/reversible history is useful; branching/squash conventions are project policy, not universal law."},
+    {"name":"ci-cd-and-automation","decision":"ADAPT","target":["quality-gates"],"reason":"Adopt automated gates and rollback concepts; detect actual runtime/CI stack before generating commands."},
+    {"name":"deprecation-and-migration","decision":"ADAPT","target":["architecture-review"],"reason":"Adopt expand/migrate/contract; require recoverability rather than a fake down migration for every change."},
+    {"name":"documentation-and-adrs","decision":"ADOPT_PATTERN","target":["factory-memory","knowledge-os"],"reason":"Decision rationale and current-state documentation strengthen durable Factory memory."},
+    {"name":"observability-and-instrumentation","decision":"ADOPT","target":["observability-discipline"],"reason":"Question-first telemetry, structured logs, RED/USE and verification are production-grade."},
+    {"name":"shipping-and-launch","decision":"ADAPT","target":["quality-gates","deterministic-release-claims"],"reason":"Staged rollout/rollback is strong; rollout percentages and waiting windows are risk-configurable policies."}
+  ],
+  "documentFindings": {
+    "skillAnatomy": {"decision":"ADOPT_PATTERN","target":"skill-foundry","notes":"Keep discovery metadata, progressive disclosure, evidence-based verification and eval requirement; size limits and bash-only helpers are not invariants."},
+    "evalFramework": {"decision":"ADOPT_EXTEND","target":"evals/README.md","notes":"Retain structural, routing and behavioral layers; add semantic, adversarial, cross-model and production-regression tiers."},
+    "accessibilityReference": {"decision":"UPDATE","baseline":"WCAG 2.2 AA","notes":"44x44 remains a Factory UX target where practical, not a statement of WCAG AA minimum."},
+    "securityReference": {"decision":"UPDATE","baseline":"OWASP Top 10 2025 + OWASP LLM/GenAI Top 10 2025","notes":"Package-manager/version matrices are volatile references and must be verified from current official docs."},
+    "performanceReference": {"decision":"ADAPT","notes":"Core Web Vitals standards may be referenced; bundle/API/font budgets are project-specific heuristics."},
+    "setupGuides": {"decision":"ADAPTER_ONLY","notes":"Codex/Gemini/Cursor/Copilot/Windsurf/OpenCode/Antigravity/CommandCode setup guidance is high-volatility and must not become evergreen core knowledge."},
+    "windsurfSetup": {"decision":"REWRITE_REQUIRED","notes":"Prefer current native skills/rules surfaces instead of a .windsurfrules-centric model."},
+    "opencodeSetup": {"decision":"REWRITE_REQUIRED","notes":"Current OpenCode has native skill discovery; AGENTS.md remains project policy rather than the skill transport itself."},
+    "sddCacheHook": {"decision":"REPLACE_IMPLEMENTATION","notes":"Cache normalized/raw source with validators and content hash; do not cache one prompt-shaped interpretation keyed only by URL."},
+    "simplifyIgnoreHook": {"decision":"REJECT_IMPLEMENTATION","notes":"Protect ranges through write-policy/patch validation; never mutate real source to placeholders and depend on a stop hook for restoration."},
+    "personas": {"decision":"ADAPT_AS_LENSES","notes":"Retain role lens + fixed output contract; do not create a second management hierarchy or persona-calls-persona tree."}
+  }
+}

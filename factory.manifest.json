@@ -1,6 +1,6 @@
 {
   "factory": "AI Factory",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "architecturePolicy": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
   "defaultMode": "selective-routing",
   "contextPolicy": "budgeted",
@@ -26,12 +26,20 @@
     "executive-and-context",
     "research-and-truth",
     "engineering",
+    "engineering-operations",
     "design-and-media",
     "marketing-and-growth",
     "knowledge-and-data",
     "security-and-quality"
   ],
+  "contracts": {
+    "evidenceHonesty": "registry/evidence-contract.json",
+    "knowledgeClassification": "registry/knowledge-classes.json",
+    "currentStandards": "registry/standards.json",
+    "skillEvaluation": "evals/README.md"
+  },
   "registry": "registry/capabilities.json",
+  "upstreamAuditRegistry": "registry/upstreams/addyosmani-agent-skills.json",
   "roleRegistry": "registry/roles.json",
   "executiveAgentRegistry": "registry/executive-agents.json",
   "executiveRuntime": "runtime/executive-team.json",
