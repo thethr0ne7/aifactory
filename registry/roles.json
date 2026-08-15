@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "Roles are bounded execution responsibilities, not permanent personas or a default multi-agent council.",
+  "roles": [
+    {"id":"architect","purpose":"define boundaries, interfaces, trade-offs and migration path","defaultSkills":["task-qualifier","repo-intake","spec-lock","code-navigation","engineering-kernel"]},
+    {"id":"engineer","purpose":"implement and repair scoped behavior","defaultSkills":["repo-intake","engineering-kernel","repair-loop","quality-gates"]},
+    {"id":"reviewer","purpose":"independent review against spec, evidence and ship gates","defaultSkills":["spec-lock","quality-gates","destructive-review","deterministic-release-claims"]},
+    {"id":"researcher","purpose":"retrieve, compare and synthesize traceable evidence","defaultSkills":["task-qualifier","research-truth","research-toolbelt","claim-checker","verified-provenance-gate"]},
+    {"id":"validator","purpose":"test claims/artifacts against explicit acceptance criteria","defaultSkills":["quality-gates","verified-provenance-gate","scientific-benchmark","visual-fidelity"]}
+  ]
+}
