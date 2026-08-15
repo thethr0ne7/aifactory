@@ -11,6 +11,7 @@ on:
       - 'registry/self-improvement.json'
       - 'scripts/self-improvement-worker.mjs'
       - 'scripts/test-self-improvement.mjs'
+      - 'scripts/validate-self-improvement.js'
       - 'supabase/functions/ai-factory-broker/**'
       - 'infra/supabase/migrations/20260815_250_controlled_self_improvement.sql'
       - '.github/workflows/factory-self-improvement.yml'
@@ -47,7 +48,7 @@ jobs:
         run: |
           node scripts/validate-factory.js
           node scripts/validate-autonomous-runtime.js
-          node scripts/test-self-improvement.mjs
+          node scripts/validate-self-improvement.js
 
       - name: Run A4 self improvement worker
         env:
