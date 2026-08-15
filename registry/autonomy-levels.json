@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "defaultLevel": "A3",
+  "levels": [
+    {"id":"A0","name":"Observe","may":["read state","collect telemetry","detect anomalies"],"mayNot":["modify artifacts","execute tools with side effects"]},
+    {"id":"A1","name":"Diagnose","may":["classify incidents","identify root cause","create analysis records"],"mayNot":["modify production","promote policy"]},
+    {"id":"A2","name":"Learn Draft","may":["create lesson candidates","create regression eval candidates","propose negative actions"],"mayNot":["activate new rules automatically"]},
+    {"id":"A3","name":"Safe Repair","may":["repair bounded non-production work","update ordinary skills in candidate branches","run evals"],"mayNot":["merge risky changes","change Root of Trust"]},
+    {"id":"A4","name":"Low-Risk Promote","may":["auto-promote low-risk improvements after required evals","perform reversible maintenance"],"mayNot":["security weakening","production-destructive writes","constitutional changes"]},
+    {"id":"A5","name":"Workflow Evolution","may":["change routing heuristics","change non-root workflows","change agent skill packs after eval"],"mayNot":["raise own autonomy ceiling","change Root of Trust"]},
+    {"id":"A6","name":"Constitution Proposal","may":["propose Root of Trust changes","produce impact analysis and adversarial evals"],"mayNot":["approve or activate its own constitutional proposal"]},
+    {"id":"A7","name":"Constitution Approval","may":["activate approved Root of Trust changes through a separate authorized mechanism"],"mayNot":["be granted implicitly to ordinary runtime agents"]}
+  ],
+  "riskRouting": {
+    "low":"A4",
+    "medium":"A3_with_review",
+    "high":"A2_proposal_only",
+    "root_or_catastrophic":"A6_proposal_only"
+  }
+}
