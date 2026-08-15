@@ -1,0 +1,72 @@
+name: AI Factory autonomous worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      objective:
+        description: Optional task objective to enqueue before worker claim
+        required: false
+        type: string
+      kind:
+        description: Task kind
+        required: false
+        default: general
+        type: string
+      autonomy_level:
+        description: Runtime autonomy level
+        required: false
+        default: A3
+        type: choice
+        options: [A0, A1, A2, A3, A4, A5, A6, A7]
+  schedule:
+    - cron: '*/15 * * * *'
+    - cron: '17 2 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'runtime/**'
+      - 'registry/**'
+      - 'skills/**'
+      - 'scripts/autonomous-worker.mjs'
+      - 'supabase/functions/ai-factory-broker/**'
+      - 'infra/supabase/migrations/**'
+      - '.github/workflows/factory-autonomous-worker.yml'
+
+permissions:
+  contents: read
+  id-token: write
+  models: read
+
+concurrency:
+  group: ai-factory-autonomous-worker
+  cancel-in-progress: false
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
+      FACTORY_MODEL: openai/gpt-4.1
+      FACTORY_OBJECTIVE: ${{ inputs.objective || '' }}
+      FACTORY_KIND: ${{ inputs.kind || 'general' }}
+      FACTORY_AUTONOMY_LEVEL: ${{ inputs.autonomy_level || 'A3' }}
+      FACTORY_DAILY_SELF_AUDIT: ${{ github.event_name == 'schedule' && github.event.schedule == '17 2 * * *' }}
+    steps:
+      - name: Checkout factory
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate factory contracts
+        run: |
+          node scripts/validate-factory.js
+          node scripts/validate-autonomous-runtime.js
+
+      - name: Run autonomous worker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/autonomous-worker.mjs

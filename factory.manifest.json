@@ -54,9 +54,15 @@
   "executiveAgentRegistry": "registry/executive-agents.json",
   "executiveRuntime": "runtime/executive-team.json",
   "autonomousRuntime": "runtime/autonomous-runtime.json",
+  "hostedWorker": ".github/workflows/factory-autonomous-worker.yml",
+  "hostedWorkerScript": "scripts/autonomous-worker.mjs",
+  "hostedBroker": "supabase/functions/ai-factory-broker/index.ts",
+  "hostedBrokerAudience": "aifactory-supabase-runtime",
+  "hostedInference": "GitHub Models via GITHUB_TOKEN / models:read",
   "executiveProfiles": "agents/executive/",
   "globalAgentContract": "AGENTS.md",
   "architecture": "docs/ARCHITECTURE.md",
   "autonomousRuntimeArchitecture": "docs/AUTONOMOUS-RUNTIME.md",
-  "runtimePersistenceReference": "infra/supabase/migrations/20260815_240_autonomous_runtime.sql"
+  "runtimePersistenceReference": "infra/supabase/migrations/20260815_240_autonomous_runtime.sql",
+  "hostedRuntimePersistence": "infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql"
 }

@@ -44,7 +44,19 @@ exists('skills/autonomous-runtime/SKILL.md');
 exists('skills/incident-learning/SKILL.md');
 exists('skills/root-of-trust/SKILL.md');
 exists('infra/supabase/migrations/20260815_240_autonomous_runtime.sql');
+exists('infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql');
+exists('supabase/functions/ai-factory-broker/index.ts');
+exists('scripts/autonomous-worker.mjs');
+exists('.github/workflows/factory-autonomous-worker.yml');
 exists('docs/AUTONOMOUS-RUNTIME.md');
+
+if (manifest) {
+  if (manifest.hostedWorker !== '.github/workflows/factory-autonomous-worker.yml') errors.push('manifest hostedWorker mismatch');
+  if (manifest.hostedWorkerScript !== 'scripts/autonomous-worker.mjs') errors.push('manifest hostedWorkerScript mismatch');
+  if (manifest.hostedBroker !== 'supabase/functions/ai-factory-broker/index.ts') errors.push('manifest hostedBroker mismatch');
+  if (manifest.hostedRuntimePersistence !== 'infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql') errors.push('manifest hostedRuntimePersistence mismatch');
+  if (manifest.hostedBrokerAudience !== 'aifactory-supabase-runtime') errors.push('manifest hostedBrokerAudience mismatch');
+}
 
 if (runtime) {
   const requiredStates = ['QUEUED','QUALIFYING','ROUTED','WORKING','VALIDATING','REPAIRING','LEARNING','COMPLETE','BLOCKED','FAILED'];
@@ -114,4 +126,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('AI Factory autonomous runtime validation OK: 2.4.0 contracts are structurally coherent');
+console.log('AI Factory autonomous runtime validation OK: 2.4.0 contracts and hosted activation artifacts are structurally coherent');
