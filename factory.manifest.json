@@ -1,0 +1,26 @@
+{
+  "factory": "AI Factory",
+  "version": "3.0.0",
+  "defaultMode": "selective-routing",
+  "contextPolicy": "budgeted",
+  "truthPolicy": "evidence-first",
+  "shipPolicy": "gated",
+  "multiAgentDefault": "off",
+  "thirdPartyDefault": "pattern-only-until-audited",
+  "executionLoops": {
+    "consequential": ["INPUT", "QUALIFY", "SPEC_LOCK", "STRATEGY_SEARCH", "PRODUCE", "EVIDENCE_CHECK", "CONTRADICTION_SCAN", "RISK_MAP", "VALIDATE", "REPAIR", "SAVE", "SHIP", "TRACEBACK"],
+    "engineering": ["INPUT", "PLAN", "PRODUCE", "CHECK", "FIX", "SAVE", "SHIP"]
+  },
+  "capabilityFamilies": [
+    "executive-and-context",
+    "research-and-truth",
+    "engineering",
+    "design-and-media",
+    "marketing-and-growth",
+    "knowledge-and-data",
+    "security-and-quality"
+  ],
+  "registry": "registry/capabilities.json",
+  "globalAgentContract": "AGENTS.md",
+  "architecture": "docs/ARCHITECTURE.md"
+}
