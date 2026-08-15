@@ -1,7 +1,7 @@
 {
   "factory": "AI Factory",
-  "version": "2.1.0",
-  "architecturePolicy": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
+  "version": "3.0.0",
+  "architecturePolicy": "Dedicated reusable AI Factory; bounded capability routing; no product-runtime coupling",
   "defaultMode": "selective-routing",
   "contextPolicy": "budgeted",
   "truthPolicy": "evidence-first",
@@ -13,6 +13,7 @@
     "researchGrade": ["INPUT", "QUALIFY", "SPEC_LOCK", "STRATEGY_SEARCH", "CANDIDATE_GENERATION", "EVIDENCE_CHECK", "CONTRADICTION_SCAN", "RISK_MAP", "DRAFT", "REVIEW", "SHIP", "TRACEBACK"]
   },
   "coreContours": [
+    "task-qualification-and-spec-lock",
     "repo-intake-runability",
     "evidence-locked-extraction",
     "evaluation-quality-gates",
@@ -21,7 +22,15 @@
     "factory-memory-knowledge-graph",
     "defensive-security-pre-ship"
   ],
-  "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
+  "secondRingAmplifiers": [
+    "agent-harness-best-practices",
+    "ui-taste-gate",
+    "compound-skill-loop",
+    "recent-signal-radar",
+    "context-governor",
+    "https-autopilot",
+    "writing-quality-gate"
+  ],
   "capabilityFamilies": [
     "executive-and-context",
     "research-and-truth",
@@ -34,5 +43,7 @@
   "registry": "registry/capabilities.json",
   "roleRegistry": "registry/roles.json",
   "globalAgentContract": "AGENTS.md",
-  "architecture": "docs/ARCHITECTURE.md"
+  "architecture": "docs/ARCHITECTURE.md",
+  "skillRoot": "skills",
+  "skillContract": "skills/<id>/SKILL.md"
 }
