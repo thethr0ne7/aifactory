@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const root = process.cwd();
 const errors = [];
@@ -32,10 +33,11 @@ const autonomy = readJson('registry/autonomy-levels.json');
 const negatives = readJson('registry/negative-actions.json');
 const learning = readJson('registry/learning-policy.json');
 const telemetry = readJson('registry/telemetry-policy.json');
+const executableMemory = readJson('registry/executable-memory.json');
 const providerEval = readJson('evals/runtime/provider-availability.json');
 
 const expectedVersion = '2.4.0';
-for (const [name, obj] of Object.entries({manifest, capabilities, runtime, constitution, autonomy, negatives, learning, telemetry})) {
+for (const [name, obj] of Object.entries({manifest, capabilities, runtime, constitution, autonomy, negatives, learning, telemetry, executableMemory})) {
   if (!obj) continue;
   const version = name === 'manifest' ? obj.version : obj.factoryVersion;
   if (version && version !== expectedVersion) errors.push(`${name} version mismatch: ${version} != ${expectedVersion}`);
@@ -48,9 +50,13 @@ exists('infra/supabase/migrations/20260815_240_autonomous_runtime.sql');
 exists('infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql');
 exists('supabase/functions/ai-factory-broker/index.ts');
 exists('scripts/copilot-autonomous-worker.mjs');
+exists('runtime/executable-memory.mjs');
+exists('scripts/test-executable-memory.mjs');
+exists('registry/executable-memory.json');
 exists('.github/workflows/factory-autonomous-worker.yml');
 exists('evals/runtime/provider-availability.json');
 exists('docs/AUTONOMOUS-RUNTIME.md');
+exists('docs/EXECUTABLE-MEMORY.md');
 
 if (manifest) {
   if (manifest.hostedWorker !== '.github/workflows/factory-autonomous-worker.yml') errors.push('manifest hostedWorker mismatch');
@@ -60,6 +66,9 @@ if (manifest) {
   if (manifest.hostedBrokerAudience !== 'aifactory-supabase-runtime') errors.push('manifest hostedBrokerAudience mismatch');
   if (!String(manifest.hostedInference || '').includes('Copilot CLI')) errors.push('hosted inference must use current Copilot CLI path');
   if (String(manifest.hostedInference || '').includes('GitHub Models')) errors.push('retired GitHub Models provider must not remain configured');
+  if (manifest.contracts?.executableMemory !== 'registry/executable-memory.json') errors.push('manifest executable memory contract mismatch');
+  if (manifest.executableMemoryRuntime !== 'runtime/executable-memory.mjs') errors.push('manifest executable memory runtime mismatch');
+  if (!(manifest.executionLoops?.autonomous || []).includes('LOAD_MEMORY')) errors.push('autonomous execution loop must load memory before validation');
 }
 
 if (runtime) {
@@ -118,6 +127,17 @@ if (learning) {
   if (learning.promotion?.requiresRegressionSuite !== true) errors.push('learning policy must require regression suite');
 }
 
+if (executableMemory) {
+  if (executableMemory.mode !== 'executable-read-only') errors.push('executable memory must remain read-only at A3');
+  if (executableMemory.sources?.lessons !== 'public.af_lessons') errors.push('executable memory lessons source mismatch');
+  if (executableMemory.sources?.incidents !== 'public.af_incidents') errors.push('executable memory incidents source mismatch');
+  if (executableMemory.promotionBoundary?.runtimeMayPromoteAtA3 !== false) errors.push('A3 executable memory must not self-promote lessons');
+  if (executableMemory.promotionBoundary?.rootOfTrustAutoPromotion !== false) errors.push('memory must not auto-promote Root of Trust changes');
+  if (executableMemory.telemetry?.loadEvent !== 'LEARNING_CONTEXT_LOADED') errors.push('memory load telemetry event mismatch');
+  if (executableMemory.telemetry?.applyEvent !== 'LEARNING_CONTEXT_APPLIED') errors.push('memory apply telemetry event mismatch');
+  if (!String(executableMemory.authority?.CANDIDATE || '').includes('hypothesis')) errors.push('candidate memory must be explicitly non-binding hypothesis');
+}
+
 if (telemetry) {
   const required = ['INCIDENT_OPENED','LESSON_CANDIDATE_CREATED','REGRESSION_EVAL_CREATED','RUN_COMPLETED','RUN_FAILED','RUN_BLOCKED'];
   const events = new Set(telemetry.eventTypes || []);
@@ -141,10 +161,31 @@ if (fs.existsSync(workflowPath)) {
   if (workflow.includes('models: read')) errors.push('retired GitHub Models permission must be removed');
 }
 
+const brokerPath = path.join(root, 'supabase/functions/ai-factory-broker/index.ts');
+if (fs.existsSync(brokerPath)) {
+  const broker = fs.readFileSync(brokerPath, 'utf8');
+  if (!broker.includes('"learning_context"')) errors.push('broker must expose learning_context action');
+  if (!broker.includes('af_lessons')) errors.push('broker learning context must read af_lessons');
+  if (!broker.includes('af_incidents')) errors.push('broker learning context must read af_incidents');
+}
+
+const workerPath = path.join(root, 'scripts/copilot-autonomous-worker.mjs');
+if (fs.existsSync(workerPath)) {
+  const worker = fs.readFileSync(workerPath, 'utf8');
+  if (!worker.includes("broker('learning_context'")) errors.push('worker must retrieve durable learning context');
+  if (!worker.includes('LEARNING_CONTEXT_LOADED')) errors.push('worker must trace loaded memory');
+  if (!worker.includes('LEARNING_CONTEXT_APPLIED')) errors.push('worker must trace applied memory');
+  if (!worker.includes('selectExecutableMemory')) errors.push('worker must use deterministic memory selector');
+  if (!worker.includes('memory_refs')) errors.push('worker result contract must expose used memory refs');
+}
+
+const memoryTest = spawnSync(process.execPath, ['scripts/test-executable-memory.mjs'], { cwd: root, encoding: 'utf8' });
+if (memoryTest.status !== 0) errors.push(`executable memory deterministic test failed: ${(memoryTest.stderr || memoryTest.stdout || '').trim()}`);
+
 if (errors.length) {
   console.error('AI Factory autonomous runtime validation FAILED');
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
 
-console.log('AI Factory autonomous runtime validation OK: 2.4.0 contracts, hosted activation and provider lifecycle controls are structurally coherent');
+console.log('AI Factory autonomous runtime validation OK: hosted runtime, provider lifecycle and executable memory are structurally coherent');
