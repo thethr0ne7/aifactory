@@ -31,6 +31,7 @@
   "executionRules": [
     "Load memory after a durable task is claimed and before model inference.",
     "Record exactly which lesson and incident IDs were injected into the run.",
+    "Record which injected memory IDs the model reports as materially used.",
     "Current evidence outranks historical memory when they conflict.",
     "Candidate lessons must be explicitly labeled CANDIDATE in model context.",
     "Superseded lessons are warnings against accidental reintroduction, not active instructions.",
@@ -40,12 +41,18 @@
   ],
   "telemetry": {
     "loadEvent": "LEARNING_CONTEXT_LOADED",
+    "applyEvent": "LEARNING_CONTEXT_APPLIED",
     "evidenceClass": "OBSERVED",
-    "requiredPayload": [
+    "requiredLoadPayload": [
       "lesson_ids",
       "incident_ids",
       "lesson_count",
       "incident_count"
+    ],
+    "requiredApplyPayload": [
+      "memory_refs",
+      "used_count",
+      "loaded_count"
     ]
   },
   "promotionBoundary": {
