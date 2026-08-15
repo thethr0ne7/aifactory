@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "goal": "Durable autonomous execution that survives user disconnects and device shutdowns.",
+  "stateMachine": {
+    "initial": "QUEUED",
+    "active": ["QUALIFYING", "ROUTED", "WORKING", "VALIDATING", "REPAIRING", "LEARNING"],
+    "terminal": ["COMPLETE", "BLOCKED", "FAILED"],
+    "transitions": {
+      "QUEUED": ["QUALIFYING", "BLOCKED"],
+      "QUALIFYING": ["ROUTED", "BLOCKED", "FAILED"],
+      "ROUTED": ["WORKING", "BLOCKED", "FAILED"],
+      "WORKING": ["VALIDATING", "REPAIRING", "BLOCKED", "FAILED"],
+      "VALIDATING": ["LEARNING", "REPAIRING", "BLOCKED", "FAILED"],
+      "REPAIRING": ["WORKING", "VALIDATING", "LEARNING", "BLOCKED", "FAILED"],
+      "LEARNING": ["COMPLETE", "BLOCKED", "FAILED"]
+    }
+  },
+  "durability": {
+    "requiredStores": ["factory_runs", "factory_tasks", "factory_events", "factory_checkpoints", "factory_incidents", "factory_lessons", "factory_negative_action_observations"],
+    "processMemoryIsSourceOfTruth": false,
+    "checkpointAfterMeaningfulTransition": true,
+    "resumeFromDurableState": true
+  },
+  "dispatcher": {
+    "singleExecutiveRouter": true,
+    "defaultMaxActiveExecutiveAgents": 3,
+    "skillSelectionTarget": "2-5 material capabilities",
+    "sharedEvidenceLedger": true,
+    "loadRootOfTrustForEveryWriteCapableRun": true,
+    "loadNegativeActionsForEveryWriteCapableRun": true
+  },
+  "worker": {
+    "atomicTaskClaimRequired": true,
+    "heartbeatRequired": true,
+    "defaultMaxAttempts": 3,
+    "boundedExecutionUnit": true,
+    "providerBoundary": "External model/tool adapter executes cognition and side-effecting tools; credentials are runtime secrets, never repository content."
+  },
+  "gates": ["evidence", "root-of-trust", "negative-actions", "security", "quality", "scope", "capability-honesty"],
+  "failurePath": ["OPEN_INCIDENT", "CLASSIFY", "ROOT_CAUSE", "REPAIR", "RECHECK", "LESSON_CANDIDATE", "REGRESSION_EVAL"],
+  "watchdog": {
+    "staleHeartbeatMinutes": 20,
+    "staleTaskLockMinutes": 30,
+    "safeRetryOnly": true,
+    "retryRequiresRemainingBudget": true,
+    "exhaustedTaskBecomes": "FAILED",
+    "staleRunBecomes": "BLOCKED"
+  },
+  "autonomy": {
+    "registry": "registry/autonomy-levels.json",
+    "default": "A3",
+    "rootOfTrustDirectMutation": false
+  },
+  "learning": {
+    "policy": "registry/learning-policy.json",
+    "telemetry": "registry/telemetry-policy.json",
+    "negativeActions": "registry/negative-actions.json",
+    "productionFailuresFeedEvals": true
+  },
+  "infrastructure": {
+    "queueAndStateReferenceImplementation": "infra/supabase/migrations/20260815_240_autonomous_runtime.sql",
+    "watchdogWorkflow": ".github/workflows/factory-watchdog.yml",
+    "workerDeploymentRequired": true,
+    "deviceIndependentOnlyWhenHostedWorkerAndStateStoreAreConfigured": true
+  }
+}
