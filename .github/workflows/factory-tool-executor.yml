@@ -10,10 +10,13 @@ on:
       - 'registry/tool-runtime.json'
       - 'runtime/tool-runtime.mjs'
       - 'scripts/tool-executor.mjs'
+      - 'scripts/record-workflow-failure.mjs'
       - 'scripts/test-tool-runtime.mjs'
       - 'scripts/validate-tool-runtime.js'
       - 'supabase/functions/ai-factory-broker/**'
+      - 'supabase/functions/ai-factory-fault-sink/**'
       - 'infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql'
+      - 'infra/supabase/migrations/20260817_271_tool_failure_memory.sql'
       - '.github/workflows/factory-tool-executor.yml'
 
 permissions:
@@ -31,6 +34,7 @@ jobs:
     timeout-minutes: 12
     env:
       FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
+      FACTORY_FAULT_SINK_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-fault-sink
     steps:
       - name: Checkout factory
         uses: actions/checkout@v4
@@ -49,3 +53,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/tool-executor.mjs
+
+      - name: Persist workflow failure to Factory memory
+        if: failure()
+        env:
+          FACTORY_FAILURE_SCOPE: tool-executor
+          FACTORY_FAILURE_SUMMARY: AI Factory controlled tool executor workflow failed; preserve the failure and repair the deterministic boundary before repeating the tool operation.
+        run: node scripts/record-workflow-failure.mjs
