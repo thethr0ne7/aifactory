@@ -84,22 +84,30 @@ export function candidatePathDecision(value, toolSpec = {}) {
 }
 
 export function boundToolContext(context = {}, maxChars = 30000) {
+  const budget = Math.max(300, Number(maxChars) || 30000);
   const requests = Array.isArray(context.requests) ? context.requests : [];
-  const requestIndex = requests.map(compactToolIndex);
-  const knownKeys = [...new Set(requestIndex.map((x) => x.request_key).filter(Boolean))];
-  const knownFingerprints = [...new Set(requestIndex.map((x) => x.request_fingerprint).filter(Boolean))];
+  const allIndex = requests.map(compactToolIndex);
+  const knownKeys = [...new Set(allIndex.map((x) => x.request_key).filter(Boolean))];
+  const knownFingerprints = [...new Set(allIndex.map((x) => x.request_fingerprint).filter(Boolean))];
   const safe = {
     known_request_keys: knownKeys,
     known_request_fingerprints: knownFingerprints,
-    request_index: requestIndex,
+    request_index: [],
     requests: [],
   };
 
   let used = JSON.stringify({
     known_request_keys: knownKeys,
     known_request_fingerprints: knownFingerprints,
-    request_index: requestIndex,
   }).length;
+
+  const indexCeiling = Math.max(used, Math.floor(budget * 0.45));
+  for (const item of allIndex) {
+    const text = JSON.stringify(item);
+    if (used + text.length > indexCeiling) continue;
+    safe.request_index.push(item);
+    used += text.length;
+  }
 
   const prioritized = [...requests].sort((a, b) => {
     const aTerminal = TERMINAL_TOOL_STATUSES.has(String(a?.status || '')) ? 1 : 0;
@@ -110,9 +118,15 @@ export function boundToolContext(context = {}, maxChars = 30000) {
 
   for (const request of prioritized) {
     const item = compactToolRequest(request);
-    const text = JSON.stringify(item);
-    if (used + text.length > maxChars) continue;
-    safe.requests.push(item);
+    let text = JSON.stringify(item);
+    if (used + text.length > budget) {
+      const minimal = minimalToolRequest(request);
+      text = JSON.stringify(minimal);
+      if (used + text.length > budget) continue;
+      safe.requests.push(minimal);
+    } else {
+      safe.requests.push(item);
+    }
     used += text.length;
   }
 
@@ -121,12 +135,13 @@ export function boundToolContext(context = {}, maxChars = 30000) {
 }
 
 export function formatToolContext(context = {}) {
-  if (!Array.isArray(context.request_index) || !context.request_index.length) {
-    return 'TOOL RESULTS\nNo prior tool requests for this run.';
-  }
+  const hasIndex = Array.isArray(context.request_index) && context.request_index.length;
+  const hasKeys = Array.isArray(context.known_request_keys) && context.known_request_keys.length;
+  if (!hasIndex && !hasKeys) return 'TOOL RESULTS\nNo prior tool requests for this run.';
   return [
     'TOOL RESULTS',
-    'The request index is durable. Never repeat a known request_key or a semantically identical request fingerprint, even if the full result body was compacted.',
+    'Known request keys/fingerprints are durable even when full result bodies were compacted.',
+    'Never repeat a known request_key or a semantically identical request fingerprint.',
     'Use git_blob_sha/sha256/path metadata as cache identity for repository reads. Request a new read only when the target revision changed or materially different evidence is required.',
     JSON.stringify(context),
   ].join('\n');
@@ -184,6 +199,21 @@ function compactToolRequest(request) {
     arguments: compactArguments(request?.arguments),
     result: compactToolResult(request?.tool_id, request?.result),
     error: compactValue(request?.error, 3000),
+  };
+}
+
+function minimalToolRequest(request) {
+  const index = compactToolIndex(request);
+  const result = object(request?.result);
+  return {
+    tool_id: index.tool_id,
+    request_key: index.request_key,
+    request_fingerprint: index.request_fingerprint,
+    status: index.status,
+    path: index.path,
+    git_blob_sha: index.git_blob_sha,
+    sha256: index.sha256,
+    result_preview: clean(result.content || result.error || '', 180),
   };
 }
 
