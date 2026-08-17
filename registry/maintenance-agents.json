@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "purpose": "Permanent maintenance crew for AI Factory reliability, memory integrity, incident prevention and runtime repair.",
+  "allRegisteredSkillsAvailable": true,
+  "routing": {
+    "mode": "full-registry-consideration-then-bounded-activation",
+    "maxActiveMaintainersPerTurn": 4,
+    "skillCatalog": "registry/capabilities.json",
+    "rule": "Every registered capability may be considered during maintenance. Activate the smallest sufficient subset per repair turn while preserving a trace of the full catalog considered."
+  },
+  "maintainers": [
+    {
+      "id": "reliability-sre",
+      "name": "Reliability SRE",
+      "mission": "Keep runs observable, recoverable and terminally consistent; prevent stuck work, silent failure and retry storms.",
+      "focus": ["leases", "heartbeats", "watchdog", "terminal states", "recovery", "SLA", "failure injection"]
+    },
+    {
+      "id": "runtime-mechanic",
+      "name": "Runtime Mechanic",
+      "mission": "Diagnose worker/tool/provider failures and repair parsing, orchestration, context, state-machine and provider boundaries.",
+      "focus": ["structured output", "tool runtime", "provider lifecycle", "state machine", "bounded retries", "runtime tests"]
+    },
+    {
+      "id": "memory-curator",
+      "name": "Memory Curator",
+      "mission": "Turn failures into durable anti-regression memory without allowing historical memory to override current evidence or Root of Trust.",
+      "focus": ["critical memory", "lesson quality", "evidence compaction", "deduplication", "supersession", "memory retrieval"]
+    },
+    {
+      "id": "incident-auditor",
+      "name": "Incident Auditor",
+      "mission": "Reconcile repeated incidents into root-cause clusters, verify repairs and regression coverage, and keep unresolved critical failures visible.",
+      "focus": ["incident clusters", "root cause", "regression evals", "forbidden actions", "security invariants", "closure evidence"]
+    }
+  ],
+  "sharedLearning": {
+    "incidentLedger": "public.af_incidents",
+    "lessonLedger": "public.af_lessons",
+    "clusterLedger": "public.af_incident_clusters",
+    "promotionLoop": "controlled A4 self-improvement",
+    "rule": "Maintainers learn through the same durable incident/lesson/eval system as all other workers. They may propose repairs but may not weaken Root of Trust, production permissions, security boundaries or autonomy ceilings."
+  },
+  "mandatorySelfCheck": [
+    "load all unresolved FORBIDDEN/CATASTROPHIC incidents",
+    "check whether the current action repeats a known request or failure fingerprint",
+    "verify relevant repair/regression evidence before retrying a known failure",
+    "record every runtime/tool failure as an incident",
+    "ensure every terminal failure reaches COMPLETE, BLOCKED or FAILED",
+    "never mark an incident resolved without repair evidence and regression coverage"
+  ]
+}
