@@ -1,0 +1,8 @@
+[submodule "upstreams/andrej-karpathy-skills"]
+	path = upstreams/andrej-karpathy-skills
+	url = https://github.com/multica-ai/andrej-karpathy-skills.git
+	branch = main
+[submodule "upstreams/atomic-agent"]
+	path = upstreams/atomic-agent
+	url = https://github.com/AtomicBot-ai/atomic-agent.git
+	branch = main
