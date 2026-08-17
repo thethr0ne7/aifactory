@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "installedAt": "2026-08-17",
+  "destination": "thethr0ne7/aifactory:main",
+  "requestedSkills": [
+    "market-research",
+    "customer-research",
+    "competitive-platform-analysis",
+    "pricing",
+    "investor-materials",
+    "cold-email",
+    "sales-enablement",
+    "revenue-operations",
+    "prospecting",
+    "draft-outreach",
+    "seo-audit",
+    "copywriting",
+    "marketing-psychology",
+    "content-strategy",
+    "marketing-campaign",
+    "interview-prep",
+    "chro-advisor",
+    "performance-review",
+    "compensation-analysis",
+    "hr-coordinator"
+  ],
+  "sources": [
+    {"repo":"coreyhaines31/marketingskills","commit":"7868cb9251fad80a73d26e488a5ad5f6c4a9f335","role":"marketing/sales/customer/pricing patterns","licenseObserved":"MIT"},
+    {"repo":"affaan-m/ECC","commit":"06c5e118c4d3e6c3b7f9445f973a2194c82de193","role":"market-research and investor-materials references"},
+    {"repo":"anthropics/knowledge-work-plugins","commit":"de7dd64c1e8de36761e91e701941f43c21df5d5e","role":"HR interview/performance/compensation references"},
+    {"repo":"alirezarezvani/claude-skills","commit":"aa8d778811a557a2c28ccadda4cf3d0bd028a4cc","role":"CHRO advisory reference"},
+    {"repo":"googleworkspace/cli","commit":"a3768d0e82ad83cca2da97724e46bea4ff0e6dbd","role":"HR coordinator workflow reference"}
+  ],
+  "implementation":"Factory-native SKILL.md implementations; upstream references are provenance and capability references, not runtime dependencies.",
+  "scopePreserved": true
+}
