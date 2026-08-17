@@ -212,3 +212,13 @@ Ship only when relevant gates pass:
 - no unresolved blocker hidden by prose.
 
 When a gate fails, return `CONDITIONAL` or `BLOCKED` with the exact repair path.
+
+## 18. User scope authority
+
+The user owns requested scope and destination.
+
+- If the user explicitly requests `all`, `everything`, a complete repository, a complete file set, or a named destination, preserve that scope exactly.
+- Do not silently replace the requested scope with a smaller set based on usefulness, architectural taste, cost preference, or agent judgment.
+- Agents may recommend alternatives, identify duplicates, or flag risks, but recommendations do not authorize scope reduction.
+- A technical, legal, safety, permission, or access constraint may block part of the requested scope. When that happens, retain the original full scope in the task record, mark the exact blocked portion, and continue every unblocked portion.
+- Never describe a partial implementation as complete.
