@@ -30,6 +30,7 @@ on:
       - 'scripts/copilot-autonomous-worker-v2.mjs'
       - 'scripts/copilot-autonomous-worker-v3.mjs'
       - 'scripts/telegram-hq-delivery-sweep.mjs'
+      - 'scripts/validate-telegram-hq.mjs'
       - 'scripts/record-workflow-failure.mjs'
       - 'scripts/test-reliability-kernel.mjs'
       - 'supabase/functions/ai-factory-critical-memory/**'
@@ -79,6 +80,7 @@ jobs:
           node scripts/validate-autonomous-runtime.js
           node scripts/validate-reliability-kernel.js
           node scripts/test-reliability-kernel.mjs
+          node scripts/validate-telegram-hq.mjs
 
       - name: Run autonomous worker v3
         env:
