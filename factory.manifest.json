@@ -11,9 +11,10 @@
   "executionLoops": {
     "core": ["INPUT", "PLAN", "PRODUCE", "CHECK", "FIX", "SAVE", "SHIP"],
     "researchGrade": ["INPUT", "QUALIFY", "SPEC_LOCK", "STRATEGY_SEARCH", "CANDIDATE_GENERATION", "EVIDENCE_CHECK", "CONTRADICTION_SCAN", "RISK_MAP", "DRAFT", "REVIEW", "SHIP", "TRACEBACK"],
-    "autonomous": ["QUEUE", "QUALIFY", "ROUTE", "WORK", "LOAD_MEMORY", "VALIDATE", "REPAIR", "LEARN", "COMPLETE"],
+    "autonomous": ["QUEUE", "QUALIFY", "ROUTE", "PRELOAD_CRITICAL_MEMORY", "WORK", "LOAD_MEMORY", "VALIDATE", "REPAIR", "LEARN", "COMPLETE"],
     "controlledSelfImprovement": ["INCIDENT", "REGRESSION_EVAL", "PATCH_CANDIDATE", "BASELINE_VS_CANDIDATE", "A4_LOW_RISK_PROMOTION", "OBSERVE", "ROLLBACK_OR_RETAIN"],
-    "controlledTools": ["REQUEST_TOOL", "WAITING_TOOLS", "CLAIM_TOOL", "EXECUTE_ALLOWLISTED", "RECORD_RESULT", "REQUEUE", "CONTINUE"]
+    "controlledTools": ["REQUEST_TOOL", "DEDUPLICATE", "WAITING_TOOLS", "CLAIM_TOOL", "EXECUTE_ALLOWLISTED", "RECORD_RESULT", "REQUEUE", "CONTINUE"],
+    "maintenance": ["LOAD_CRITICAL_MEMORY", "CONSIDER_FULL_SKILL_CATALOG", "REPRODUCE", "ROOT_CAUSE", "REPAIR", "REGRESSION_EVAL", "RECORD_INCIDENT", "LEARN", "SELF_CHECK"]
   },
   "coreContours": [
     "repo-intake-runability",
@@ -29,7 +30,10 @@
     "executable-memory",
     "controlled-self-improvement",
     "incident-lesson-provenance-linkage",
-    "controlled-tool-runtime"
+    "controlled-tool-runtime",
+    "reliability-kernel",
+    "critical-incident-memory",
+    "factory-maintenance-crew"
   ],
   "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
   "capabilityFamilies": [
@@ -55,19 +59,24 @@
     "telemetryPolicy": "registry/telemetry-policy.json",
     "executableMemory": "registry/executable-memory.json",
     "controlledSelfImprovement": "registry/self-improvement.json",
-    "toolRuntime": "registry/tool-runtime.json"
+    "toolRuntime": "registry/tool-runtime.json",
+    "maintenanceCrew": "registry/maintenance-agents.json"
   },
   "registry": "registry/capabilities.json",
   "upstreamAuditRegistry": "registry/upstreams/addyosmani-agent-skills.json",
   "roleRegistry": "registry/roles.json",
   "executiveAgentRegistry": "registry/executive-agents.json",
+  "maintenanceAgentRegistry": "registry/maintenance-agents.json",
   "executiveRuntime": "runtime/executive-team.json",
   "autonomousRuntime": "runtime/autonomous-runtime.json",
   "executableMemoryRuntime": "runtime/executable-memory.mjs",
+  "structuredOutputRuntime": "runtime/structured-output.mjs",
   "selfImprovementRuntime": "runtime/self-improvement.mjs",
   "toolRuntime": "runtime/tool-runtime.mjs",
   "hostedWorker": ".github/workflows/factory-autonomous-worker.yml",
-  "hostedWorkerScript": "scripts/copilot-autonomous-worker.mjs",
+  "hostedWorkerScript": "scripts/copilot-autonomous-worker-v3.mjs",
+  "hostedWorkerCore": "scripts/copilot-autonomous-worker-v2.mjs",
+  "criticalMemoryEndpoint": "supabase/functions/ai-factory-critical-memory/index.ts",
   "selfImprovementWorkflow": ".github/workflows/factory-self-improvement.yml",
   "selfImprovementWorker": "scripts/self-improvement-worker.mjs",
   "toolExecutor": ".github/workflows/factory-tool-executor.yml",
@@ -85,5 +94,7 @@
   "selfImprovementPersistence": "infra/supabase/migrations/20260815_250_controlled_self_improvement.sql",
   "incidentLessonLinkagePersistence": "infra/supabase/migrations/20260815_251_incident_lesson_linkage.sql",
   "toolRuntimePersistence": "infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql",
-  "toolRuntimeRepeatGuardPersistence": "infra/supabase/migrations/20260815_261_terminal_tool_repeat_guard.sql"
+  "toolRuntimeRepeatGuardPersistence": "infra/supabase/migrations/20260815_261_terminal_tool_repeat_guard.sql",
+  "reliabilityMemoryPersistence": "infra/supabase/migrations/20260817_270_reliability_memory_repairs.sql",
+  "toolFailureMemoryPersistence": "infra/supabase/migrations/20260817_271_tool_failure_memory.sql"
 }
