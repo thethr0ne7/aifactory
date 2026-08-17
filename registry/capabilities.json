@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.4.0",
+  "schemaVersion": "1.4.1",
   "factoryVersion": "2.4.0",
   "policy": {
     "architecture": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
@@ -59,6 +59,7 @@
     {"id":"source-driven-development","family":"truth-and-engineering","status":"core-adapted","localSkill":"skills/source-driven-development/SKILL.md","source":"https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/source-driven-development"},
 
     {"id":"engineering-kernel","family":"engineering","status":"core-adapted","localSkill":"skills/engineering-kernel/SKILL.md","source":"https://github.com/obra/superpowers"},
+    {"id":"karpathy-engineering-discipline","family":"engineering","status":"core-adapted","localSkill":"skills/karpathy-engineering-discipline/SKILL.md","source":"https://github.com/multica-ai/andrej-karpathy-skills/tree/2c606141936f1eeef17fa3043a72095b4765b9c2"},
     {"id":"debugging-error-recovery","family":"engineering","status":"core-adapted","localSkill":"skills/debugging-error-recovery/SKILL.md","source":"https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/debugging-and-error-recovery"},
     {"id":"observability-discipline","family":"engineering-operations","status":"core-selective","localSkill":"skills/observability-discipline/SKILL.md","source":"https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/observability-and-instrumentation"},
     {"id":"code-navigation","family":"engineering","status":"core-pattern","localSkill":"skills/code-navigation/SKILL.md","source":"https://github.com/massgen/massgen"},
@@ -66,6 +67,7 @@
     {"id":"architecture-review","family":"engineering","status":"core-selective","localSkill":"skills/architecture-review/SKILL.md"},
     {"id":"scientific-benchmark","family":"engineering","status":"core-selective","localSkill":"skills/scientific-benchmark/SKILL.md"},
     {"id":"local-ai-runtime","family":"engineering","status":"amplifier","localSkill":"skills/local-ai-runtime/SKILL.md"},
+    {"id":"atomic-agent-adapter","family":"engineering","status":"core-adapted","localSkill":"skills/atomic-agent-adapter/SKILL.md","source":"https://github.com/AtomicBot-ai/atomic-agent/tree/7073a61a990ab6ddd27af9109a7530abf43fda8c","runtime":"runtime/atomic-agent-sidecar-adapter.mjs"},
     {"id":"skill-foundry","family":"engineering","status":"core-adapted","localSkill":"skills/skill-foundry/SKILL.md","sources":["https://github.com/anthropics/skills/tree/main/skills/skill-creator","https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25"]},
 
     {"id":"research-truth","family":"research","status":"core","localSkill":"skills/research-truth/SKILL.md"},
