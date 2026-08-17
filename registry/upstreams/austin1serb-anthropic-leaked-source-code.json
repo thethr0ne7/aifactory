@@ -2,6 +2,9 @@
   "schemaVersion": "1.0.0",
   "source": {
     "repository": "https://github.com/Austin1serb/Anthropic-Leaked-Source-Code",
+    "auditedRef": "main",
+    "auditedCommit": "3fa80a4417103f205c97e7468337703094c0e3c1",
+    "auditedTree": "b3bb1e3248b9e6a0887af98fb6845290437e2099",
     "auditedAt": "2026-08-17",
     "declaredDescription": "Repository README describes the contents as an unmodified archive of leaked/reverse-engineered Claude Code source.",
     "license": null,
