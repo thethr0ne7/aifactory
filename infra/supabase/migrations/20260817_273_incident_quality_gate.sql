@@ -13,10 +13,10 @@ language sql
 immutable
 as $$
   select
-    coalesce(jsonb_object_length(coalesce(p_evidence,'{}'::jsonb)),0) > 0
-    or coalesce(jsonb_object_length(coalesce(p_root_cause,'{}'::jsonb)),0) > 0
+    coalesce(p_evidence,'{}'::jsonb) <> '{}'::jsonb
+    or coalesce(p_root_cause,'{}'::jsonb) <> '{}'::jsonb
     or coalesce(cardinality(p_affected_invariants),0) > 0
-    or coalesce(jsonb_object_length(coalesce(p_repair,'{}'::jsonb)),0) > 0
+    or coalesce(p_repair,'{}'::jsonb) <> '{}'::jsonb
     or coalesce(length(trim(p_negative_action_id)),0) > 0
     or coalesce(length(trim(p_regression_eval_ref)),0) > 0;
 $$;
