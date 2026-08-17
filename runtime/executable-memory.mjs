@@ -1,7 +1,8 @@
 const DEFAULTS = {
   maxLessons: 8,
   maxIncidents: 6,
-  maxSerializedCharacters: 18000,
+  maxCriticalIncidents: 50,
+  maxSerializedCharacters: 36000,
 };
 
 const STOP = new Set([
@@ -12,25 +13,38 @@ export function selectExecutableMemory(task, raw, options = {}) {
   const cfg = { ...DEFAULTS, ...options };
   const targetText = [task?.objective, task?.kind, safeJson(task?.payload)].filter(Boolean).join(' ');
   const targetTokens = tokenize(targetText);
+
+  const rawIncidents = Array.isArray(raw?.incidents) ? raw.incidents : [];
+  const explicitCritical = Array.isArray(raw?.critical_incidents) ? raw.critical_incidents : [];
+  const criticalIncidents = dedupeById([...explicitCritical, ...rawIncidents.filter(isCriticalOpen)])
+    .map(toCriticalIncident)
+    .sort(compareCritical)
+    .slice(0, Math.max(0, cfg.maxCriticalIncidents));
+  const criticalIds = new Set(criticalIncidents.map((x) => String(x.id || '')).filter(Boolean));
+
   const lessons = dedupeLessons(Array.isArray(raw?.lessons) ? raw.lessons : [])
     .map((item) => scoreLesson(item, targetTokens))
     .filter(Boolean)
     .sort(compareRank)
     .slice(0, Math.max(0, cfg.maxLessons));
-  const incidents = (Array.isArray(raw?.incidents) ? raw.incidents : [])
+
+  const incidents = rawIncidents
+    .filter((item) => !criticalIds.has(String(item?.id || '')))
     .map((item) => scoreIncident(item, targetTokens))
     .filter(Boolean)
     .sort(compareRank)
     .slice(0, Math.max(0, cfg.maxIncidents));
 
   const selection = {
-    selection_version: '1.0.0',
+    selection_version: '1.1.0',
     authority: {
       promoted: 'active learned guidance bounded by current Constitution/evidence',
       candidate: 'hypothesis only; non-binding',
       superseded: 'historical anti-regression context; inactive',
       incident: 'historical failure evidence; not policy',
+      critical_incident: 'mandatory anti-regression evidence; always loaded while unresolved',
     },
+    critical_incidents: criticalIncidents,
     lessons: lessons.map(stripRank),
     incidents: incidents.map(stripRank),
   };
@@ -41,10 +55,14 @@ export function selectExecutableMemory(task, raw, options = {}) {
 
 export function executableMemoryRefs(selection) {
   const lessonIds = (selection?.lessons || []).map((x) => String(x.id || '')).filter(Boolean);
-  const incidentIds = (selection?.incidents || []).map((x) => String(x.id || '')).filter(Boolean);
+  const incidentIds = [
+    ...(selection?.critical_incidents || []),
+    ...(selection?.incidents || []),
+  ].map((x) => String(x.id || '')).filter(Boolean);
   return {
     lesson_ids: lessonIds,
-    incident_ids: incidentIds,
+    incident_ids: [...new Set(incidentIds)],
+    critical_incident_ids: (selection?.critical_incidents || []).map((x) => String(x.id || '')).filter(Boolean),
     all: new Set([...lessonIds, ...incidentIds]),
   };
 }
@@ -52,6 +70,8 @@ export function executableMemoryRefs(selection) {
 export function formatExecutableMemory(selection) {
   return [
     'EXECUTABLE MEMORY CONTRACT',
+    '- CRITICAL_INCIDENTS are mandatory anti-regression evidence. They are always loaded while unresolved and cannot be displaced by relevance ranking.',
+    '- Before repeating an action related to a CRITICAL_INCIDENT, explicitly verify the known failure, root cause, repair state and regression evidence.',
     '- PROMOTED lessons are learned guidance, but never override Root of Trust, negative actions, security boundaries, or stronger current evidence.',
     '- CANDIDATE lessons are hypotheses only. They may suggest checks or experiments; they are not established facts or policy.',
     '- SUPERSEDED lessons are inactive historical context used to avoid accidental reintroduction.',
@@ -92,10 +112,9 @@ function scoreLesson(item, targetTokens) {
 function scoreIncident(item, targetTokens) {
   const severity = String(item?.severity || 'UNDESIRABLE').toUpperCase();
   const status = String(item?.status || 'OPEN').toUpperCase();
-  const text = [item?.summary, safeJson(item?.root_cause), (item?.affected_invariants || []).join(' '), item?.negative_action_id, item?.regression_eval_ref].join(' ');
+  const text = [item?.summary, safeJson(item?.root_cause), (item?.affected_invariants || []).join(' '), item?.negative_action_id, item?.regression_eval_ref, item?.fingerprint].join(' ');
   const overlap = tokenOverlap(targetTokens, tokenize(text));
-  const criticalOpen = severity === 'CATASTROPHIC' && status !== 'RESOLVED';
-  if (overlap === 0 && !criticalOpen) return null;
+  if (overlap === 0) return null;
   const severityBoost = severity === 'CATASTROPHIC' ? 9 : severity === 'FORBIDDEN' ? 5 : 1;
   return {
     id: item?.id,
@@ -103,17 +122,50 @@ function scoreIncident(item, targetTokens) {
     status,
     authority: 'HISTORICAL_FAILURE_EVIDENCE',
     severity,
-    summary: clip(item?.summary, 3500),
+    summary: clip(item?.summary, 2800),
     root_cause: plain(item?.root_cause),
     affected_invariants: strings(item?.affected_invariants, 20, 160),
     negative_action_id: clip(item?.negative_action_id, 160) || null,
     regression_eval_ref: clip(item?.regression_eval_ref, 500) || null,
+    fingerprint: clip(item?.fingerprint, 160) || null,
+    occurrence_count: Number(item?.occurrence_count || 1),
     source_run_id: item?.run_id || null,
     created_at: item?.created_at || null,
     resolved_at: item?.resolved_at || null,
     _score: overlap * 10 + severityBoost,
     _time: Date.parse(item?.created_at || 0) || 0,
   };
+}
+
+function toCriticalIncident(item) {
+  return {
+    id: item?.id,
+    type: 'critical_incident',
+    status: String(item?.status || 'OPEN').toUpperCase(),
+    authority: 'MANDATORY_ANTI_REGRESSION_EVIDENCE',
+    severity: String(item?.severity || 'FORBIDDEN').toUpperCase(),
+    summary: clip(item?.summary, 1800),
+    root_cause: compactObject(item?.root_cause, 2500),
+    affected_invariants: strings(item?.affected_invariants, 20, 160),
+    negative_action_id: clip(item?.negative_action_id, 160) || null,
+    regression_eval_ref: clip(item?.regression_eval_ref, 500) || null,
+    fingerprint: clip(item?.fingerprint, 160) || null,
+    occurrence_count: Number(item?.occurrence_count || 1),
+    source_run_id: item?.run_id || null,
+    created_at: item?.created_at || null,
+    resolved_at: item?.resolved_at || null,
+  };
+}
+
+function isCriticalOpen(item) {
+  const severity = String(item?.severity || '').toUpperCase();
+  const status = String(item?.status || 'OPEN').toUpperCase();
+  return ['FORBIDDEN','CATASTROPHIC'].includes(severity) && !['RESOLVED','ACCEPTED_RISK'].includes(status);
+}
+
+function compareCritical(a, b) {
+  const weight = (value) => String(value?.severity || '') === 'CATASTROPHIC' ? 2 : 1;
+  return (weight(b) - weight(a)) || ((Date.parse(b?.created_at || 0) || 0) - (Date.parse(a?.created_at || 0) || 0));
 }
 
 function compareRank(a, b) {
@@ -127,8 +179,8 @@ function stripRank(value) {
 
 function trimToBudget(selection, maxChars) {
   while (JSON.stringify(selection).length > maxChars) {
-    if ((selection.incidents?.length || 0) >= (selection.lessons?.length || 0) && selection.incidents.length) selection.incidents.pop();
-    else if (selection.lessons.length) selection.lessons.pop();
+    if (selection.incidents?.length) selection.incidents.pop();
+    else if (selection.lessons?.length) selection.lessons.pop();
     else break;
   }
 }
@@ -138,6 +190,18 @@ function dedupeLessons(items) {
   const out = [];
   for (const item of items) {
     const key = String(item?.statement || '').trim().toLocaleLowerCase();
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
+function dedupeById(items) {
+  const seen = new Set();
+  const out = [];
+  for (const item of items) {
+    const key = String(item?.id || '');
     if (key && seen.has(key)) continue;
     if (key) seen.add(key);
     out.push(item);
@@ -164,6 +228,12 @@ function safeJson(value) {
 
 function plain(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function compactObject(value, maxChars) {
+  const obj = plain(value);
+  const text = safeJson(obj);
+  return text.length <= maxChars ? obj : { compacted: true, preview: text.slice(0, maxChars) };
 }
 
 function strings(value, maxItems, maxLen) {
