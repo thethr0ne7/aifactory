@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "factoryVersion": "2.4.0",
   "purpose": "Permanent maintenance crew for AI Factory reliability, memory integrity, incident prevention and runtime repair.",
   "allRegisteredSkillsAvailable": true,
@@ -31,8 +31,8 @@
     {
       "id": "incident-auditor",
       "name": "Incident Auditor",
-      "mission": "Reconcile repeated incidents into root-cause clusters, verify repairs and regression coverage, and keep unresolved critical failures visible.",
-      "focus": ["incident clusters", "root cause", "regression evals", "forbidden actions", "security invariants", "closure evidence"]
+      "mission": "Reconcile repeated incidents into root-cause clusters, verify repairs and regression coverage, and keep unresolved critical failures visible without creating duplicate confirmation-only incidents.",
+      "focus": ["incident clusters", "root cause", "regression evals", "forbidden actions", "security invariants", "closure evidence", "incident quality gate"]
     }
   ],
   "sharedLearning": {
@@ -42,12 +42,19 @@
     "promotionLoop": "controlled A4 self-improvement",
     "rule": "Maintainers learn through the same durable incident/lesson/eval system as all other workers. They may propose repairs but may not weaken Root of Trust, production permissions, security boundaries or autonomy ceilings."
   },
+  "incidentQuality": {
+    "newFailuresOnly": true,
+    "requireConcreteEvidence": true,
+    "confirmationIsNotIncident": true,
+    "existingIncidentAction": "reference the existing incident or lesson in memory_refs and reconcile its cluster; do not create a second incident merely to confirm that the first incident exists, was loaded, was remembered or has a linked lesson"
+  },
   "mandatorySelfCheck": [
     "load all unresolved FORBIDDEN/CATASTROPHIC incidents",
     "check whether the current action repeats a known request or failure fingerprint",
     "verify relevant repair/regression evidence before retrying a known failure",
-    "record every runtime/tool failure as an incident",
+    "record every real runtime/tool failure as a substantive incident with concrete evidence, invariant, root cause, repair or regression reference",
+    "do not open an incident merely to confirm that an existing incident or lesson was recorded or loaded",
     "ensure every terminal failure reaches COMPLETE, BLOCKED or FAILED",
-    "never mark an incident resolved without repair evidence and regression coverage"
+    "never mark a real incident resolved without repair evidence and regression coverage"
   ]
 }
