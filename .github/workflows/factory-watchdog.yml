@@ -3,21 +3,19 @@ name: Factory watchdog
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '*/10 * * * *'
   pull_request:
     paths:
       - 'runtime/**'
       - 'registry/**'
-      - 'skills/autonomous-runtime/**'
-      - 'skills/incident-learning/**'
-      - 'skills/root-of-trust/**'
+      - 'skills/**'
       - 'scripts/validate-autonomous-runtime.js'
-      - 'scripts/test-executable-memory.mjs'
-      - 'scripts/copilot-autonomous-worker.mjs'
+      - 'scripts/validate-reliability-kernel.js'
+      - 'scripts/test-reliability-kernel.mjs'
+      - 'scripts/copilot-autonomous-worker-v2.mjs'
       - 'scripts/watchdog.mjs'
       - 'supabase/functions/ai-factory-broker/**'
       - 'infra/supabase/**'
-      - 'docs/EXECUTABLE-MEMORY.md'
       - 'factory.manifest.json'
       - '.github/workflows/factory-watchdog.yml'
 
@@ -34,6 +32,8 @@ jobs:
           node-version: '22'
       - run: node scripts/validate-factory.js
       - run: node scripts/validate-autonomous-runtime.js
+      - run: node scripts/validate-reliability-kernel.js
+      - run: node scripts/test-reliability-kernel.mjs
 
   watchdog:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -44,10 +44,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Recover stale runs and task locks
+      - name: Recover stale leases, tool claims and incident memory
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          FACTORY_STALE_RUN_MINUTES: '20'
-          FACTORY_STALE_TASK_MINUTES: '30'
+          FACTORY_STALE_RUN_MINUTES: '5'
+          FACTORY_STALE_TOOL_MINUTES: '5'
         run: node scripts/watchdog.mjs
