@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.4.1",
+  "schemaVersion": "1.4.2",
   "factoryVersion": "2.4.0",
   "policy": {
     "architecture": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
@@ -92,6 +92,7 @@
     {"id":"visual-fidelity","family":"design","status":"core","localSkill":"skills/visual-fidelity/SKILL.md"},
 
     {"id":"marketing-growth","family":"growth","status":"core-selective","localSkill":"skills/marketing-growth/SKILL.md","source":"https://github.com/coreyhaines31/marketingskills"},
+    {"id":"business-hr-growth-pack","family":"business-sales-marketing-hr","status":"core-selective","localSkill":"skills/business-hr-growth-pack/SKILL.md","registry":"registry/upstreams/business-hr-growth-skill-pack.json","implements":["market-research","customer-research","competitive-platform-analysis","pricing","investor-materials","cold-email","sales-enablement","revenue-operations","prospecting","draft-outreach","seo-audit","copywriting","marketing-psychology","content-strategy","marketing-campaign","interview-prep","chro-advisor","performance-review","compensation-analysis","hr-coordinator"]},
     {"id":"seo-geo","family":"growth","status":"core-selective","localSkill":"skills/seo-geo/SKILL.md","source":"https://github.com/aaron-he-zhu/aaron-marketing-skills"},
     {"id":"seo-audit-patterns","family":"growth","status":"pattern-only","localSkill":"skills/seo-audit-patterns/SKILL.md","source":"https://github.com/AgriciDaniel/claude-seo"},
 
