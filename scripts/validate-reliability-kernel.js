@@ -18,6 +18,7 @@ const required = [
   'infra/supabase/migrations/20260817_270_reliability_memory_repairs.sql',
   'infra/supabase/migrations/20260817_271_tool_failure_memory.sql',
   'infra/supabase/migrations/20260817_272_incident_reconciliation_v2.sql',
+  'infra/supabase/migrations/20260817_273_incident_quality_gate.sql',
 ];
 
 for (const rel of required) {
@@ -27,10 +28,15 @@ for (const rel of required) {
 const maintainers = JSON.parse(fs.readFileSync(path.join(root, 'registry/maintenance-agents.json'), 'utf8'));
 if (maintainers.allRegisteredSkillsAvailable !== true) throw new Error('Maintenance crew must have full registered skill catalog visibility');
 if (!Array.isArray(maintainers.maintainers) || maintainers.maintainers.length < 4) throw new Error('Maintenance crew requires four specialist maintainers');
+if (maintainers.incidentQuality?.confirmationIsNotIncident !== true) throw new Error('Maintenance crew must reject confirmation-only incidents');
 const ids = new Set(maintainers.maintainers.map((x) => x.id));
 for (const id of ['reliability-sre','runtime-mechanic','memory-curator','incident-auditor']) {
   if (!ids.has(id)) throw new Error(`Missing maintenance role: ${id}`);
 }
+
+const learning = JSON.parse(fs.readFileSync(path.join(root, 'registry/learning-policy.json'), 'utf8'));
+if (learning.incidentQualityGate?.quarantineConfirmationOnlyCandidates !== true) throw new Error('Learning policy must quarantine confirmation-only incidents');
+if (learning.incidentQualityGate?.requireConcreteEvidenceOrInvariantOrRepair !== true) throw new Error('Incident memory must require substantive failure evidence');
 
 const workflow = fs.readFileSync(path.join(root, '.github/workflows/factory-autonomous-worker.yml'), 'utf8');
 for (const marker of ['copilot-autonomous-worker-v3.mjs','FACTORY_CRITICAL_MEMORY_URL','FACTORY_FAULT_SINK_URL','record-workflow-failure.mjs','validate-reliability-kernel.js']) {
@@ -60,6 +66,10 @@ const migration271 = fs.readFileSync(path.join(root, 'infra/supabase/migrations/
 if (!migration271.includes('CONTROLLED_TOOL_FAILURE')) throw new Error('Tool failure memory migration missing failure incident recording');
 const migration272 = fs.readFileSync(path.join(root, 'infra/supabase/migrations/20260817_272_incident_reconciliation_v2.sql'), 'utf8');
 if (!migration272.includes('root-of-trust-mutation')) throw new Error('Incident reconciliation must cluster Root-of-Trust recurrence');
+const migration273 = fs.readFileSync(path.join(root, 'infra/supabase/migrations/20260817_273_incident_quality_gate.sql'), 'utf8');
+for (const marker of ['af_incident_is_substantive','INCIDENT_CANDIDATE_QUARANTINED','confirmation-only incident candidate']) {
+  if (!migration273.includes(marker)) throw new Error(`Incident quality gate missing ${marker}`);
+}
 
 const faultSink = fs.readFileSync(path.join(root, 'supabase/functions/ai-factory-fault-sink/index.ts'), 'utf8');
 for (const marker of ['af_runs','af_incidents','FACTORY_WORKFLOW_FAILURE']) {
