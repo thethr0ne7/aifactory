@@ -28,3 +28,4 @@ jobs:
           node scripts/validate-self-improvement.js
           node scripts/validate-tool-runtime.js
           node --test evals/runtime/agent-runtime-kernel.test.mjs
+          node --test evals/runtime/atomic-agent-sidecar-adapter.test.mjs
