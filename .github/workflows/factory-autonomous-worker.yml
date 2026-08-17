@@ -19,7 +19,7 @@ on:
         type: choice
         options: [A0, A1, A2, A3, A4, A5, A6, A7]
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
     - cron: '17 2 * * *'
   push:
     branches: [main]
@@ -29,11 +29,14 @@ on:
       - 'skills/**'
       - 'scripts/copilot-autonomous-worker-v2.mjs'
       - 'scripts/copilot-autonomous-worker-v3.mjs'
+      - 'scripts/telegram-hq-delivery-sweep.mjs'
+      - 'scripts/validate-telegram-hq.mjs'
       - 'scripts/record-workflow-failure.mjs'
       - 'scripts/test-reliability-kernel.mjs'
       - 'supabase/functions/ai-factory-critical-memory/**'
       - 'supabase/functions/ai-factory-fault-sink/**'
       - 'supabase/functions/ai-factory-broker/**'
+      - 'supabase/functions/ai-factory-telegram-hq/**'
       - 'infra/supabase/migrations/**'
       - '.github/workflows/factory-autonomous-worker.yml'
 
@@ -54,6 +57,7 @@ jobs:
       FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
       FACTORY_CRITICAL_MEMORY_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-critical-memory
       FACTORY_FAULT_SINK_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-fault-sink
+      FACTORY_TELEGRAM_HQ_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-telegram-hq
       FACTORY_OBJECTIVE: ${{ inputs.objective || '' }}
       FACTORY_KIND: ${{ inputs.kind || 'general' }}
       FACTORY_AUTONOMY_LEVEL: ${{ inputs.autonomy_level || 'A3' }}
@@ -76,11 +80,17 @@ jobs:
           node scripts/validate-autonomous-runtime.js
           node scripts/validate-reliability-kernel.js
           node scripts/test-reliability-kernel.mjs
+          node scripts/validate-telegram-hq.mjs
 
       - name: Run autonomous worker v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/copilot-autonomous-worker-v3.mjs
+
+      - name: Deliver completed Telegram HQ runs
+        if: always() && !cancelled()
+        continue-on-error: true
+        run: node scripts/telegram-hq-delivery-sweep.mjs
 
       - name: Persist workflow failure to Factory memory
         if: failure()
