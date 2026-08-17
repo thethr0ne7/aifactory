@@ -1,14 +1,14 @@
-# Clean-room agent runtime patterns
+# Clean-room agent runtime compatibility
 
 ## Status
 
-AI Factory does **not** vendor code or prompt text from `Austin1serb/Anthropic-Leaked-Source-Code`.
+AI Factory records the **full requested scope** of `Austin1serb/Anthropic-Leaked-Source-Code` by immutable repository, commit and tree in `registry/upstreams/austin1serb-anthropic-leaked-source-code.json`.
 
-The upstream repository publicly describes itself as an archive of leaked/reverse-engineered Claude Code source and does not expose a repository license. The Factory therefore treats it as a **pattern-only architecture reference**. The audit decision is recorded in `registry/upstreams/austin1serb-anthropic-leaked-source-code.json`.
+The upstream repository describes itself as leaked/reverse-engineered Claude Code source and does not expose a repository license. Its source and prompt text therefore are not reproduced inside AI Factory. This is an objective copying constraint, **not a judgment that only selected parts are useful**.
 
-## What was extracted
+The local runtime below is an independent compatibility implementation. The listed interfaces describe what AI Factory implements locally; they do not narrow the recorded upstream scope.
 
-Only generic architectural ideas that are independently useful for an agent runtime:
+## Local compatibility surfaces
 
 1. **Query/session coordinator** — one bounded object owns the current goal, lifecycle and turn state.
 2. **Explicit task/session history** — important state transitions and tool outcomes are durable artifacts rather than implicit model memory.
@@ -18,11 +18,11 @@ Only generic architectural ideas that are independently useful for an agent runt
 6. **External protocol adapters** — MCP-style or other remote/local tool protocols belong behind the same tool/runtime boundary.
 7. **Transport separation** — CLI, HTTP, SSE, WebSocket or another transport is an adapter detail, not core agent policy.
 
-No upstream implementation details, source text, private prompts or internal identifiers are required for these patterns.
+No upstream implementation text or prompt text is required for the independent local implementation.
 
 ## Local implementation
 
-`runtime/agent-runtime-kernel.mjs` implements the Factory-native version.
+`runtime/agent-runtime-kernel.mjs` implements the Factory-native compatibility layer.
 
 ### Session lifecycle
 
@@ -39,7 +39,7 @@ READY
 Any active state may end in BLOCKED or FAILED where explicitly allowed.
 ```
 
-The lifecycle is intentionally aligned with the existing durable autonomous runtime instead of creating a competing state machine.
+The lifecycle is aligned with the existing durable autonomous runtime instead of creating a competing state machine.
 
 ### Context layers
 
@@ -56,13 +56,13 @@ TOOL RESULTS
 
 The compiler applies a character budget and drops lower-priority excess instead of silently displacing policy/evidence with transient working context.
 
-This is not a claim that character count equals model tokens. It is a deterministic guardrail for the runtime layer; provider adapters may apply their own token-aware packing later.
+This is not a claim that character count equals model tokens. It is a deterministic guardrail for the runtime layer; provider adapters may apply token-aware packing later.
 
 ### Tool requests
 
-The kernel does not execute tools.
+The kernel does not execute tools directly.
 
-It passes requested calls through `runtime/tool-runtime.mjs`, which remains the single authority for:
+It passes requested calls through `runtime/tool-runtime.mjs`, which remains the authority for:
 
 - allowlisted tools;
 - minimum autonomy level;
@@ -82,7 +82,7 @@ A model/provider can propose a tool call but cannot grant itself permission.
 - credentials remain runtime secrets;
 - transport cannot become policy authority.
 
-This keeps OpenAI, Anthropic, local models, Copilot or future providers replaceable without rewriting the Factory core.
+This keeps provider adapters replaceable without rewriting the Factory core.
 
 ## Adapter architecture
 
@@ -107,7 +107,7 @@ Bounded tool result
 
 ## MCP and external tool protocols
 
-MCP is treated as one possible protocol adapter, not as a trusted execution layer.
+MCP is one possible protocol adapter, not a trusted execution layer.
 
 Before an MCP server can be used by a write-capable Factory run, its exposed actions still require:
 
@@ -122,7 +122,7 @@ An MCP server does not bypass `third-party-security`, `root-of-trust`, `negative
 
 ## Prompt construction
 
-AI Factory should build provider input from explicit local contracts rather than copying vendor system prompts.
+AI Factory builds provider input from explicit local contracts rather than copying vendor system prompts.
 
 Recommended composition:
 
@@ -140,11 +140,11 @@ Provider-specific formatting belongs in adapters.
 
 ## Evaluation
 
-The clean-room runtime has deterministic Node tests in:
+Deterministic Node tests live in:
 
 `evals/runtime/agent-runtime-kernel.test.mjs`
 
-The tests cover:
+They cover:
 
 - lifecycle transition enforcement;
 - context-priority preservation under budget pressure;
@@ -158,25 +158,8 @@ Run with:
 node --test evals/runtime/agent-runtime-kernel.test.mjs
 ```
 
-## Non-goals
+## Scope authority
 
-This integration deliberately does not add:
+When the user explicitly requests `all`, `everything`, a complete repository, an explicit file set, or an explicit destination, Factory agents must preserve that scope. They may identify blockers, risks and constraints, but may not silently reduce the scope based on their own usefulness ranking.
 
-- copied Claude Code source;
-- copied system prompts;
-- a second top-level router;
-- unrestricted shell execution;
-- a second permission system competing with `tool-runtime.mjs`;
-- a mandatory MCP dependency;
-- recursive agent swarms;
-- provider-specific business logic in the Factory core.
-
-## Future extensions
-
-Safe next extensions, if needed:
-
-1. provider adapters implementing the envelope contract;
-2. token-aware context packing on top of the deterministic character budget;
-3. durable persistence of session events into existing Factory run/event stores;
-4. protocol adapters registered as controlled tools;
-5. provider conformance evals ensuring no adapter bypasses policy or side-effect gates.
+If part of the requested scope cannot be copied, executed or accessed, the task record must retain the original full scope and identify the blocked part separately.
