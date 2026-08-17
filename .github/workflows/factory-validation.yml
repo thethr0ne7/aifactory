@@ -27,3 +27,4 @@ jobs:
           node scripts/validate-autonomous-runtime.js
           node scripts/validate-self-improvement.js
           node scripts/validate-tool-runtime.js
+          node --test evals/runtime/agent-runtime-kernel.test.mjs
