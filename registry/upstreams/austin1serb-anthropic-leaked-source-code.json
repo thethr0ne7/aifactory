@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.1.0",
+  "source": {
+    "repository": "https://github.com/Austin1serb/Anthropic-Leaked-Source-Code",
+    "auditedRef": "main",
+    "auditedCommit": "3fa80a4417103f205c97e7468337703094c0e3c1",
+    "auditedTree": "b3bb1e3248b9e6a0887af98fb6845290437e2099",
+    "auditedAt": "2026-08-17",
+    "declaredDescription": "Repository README describes the contents as an unmodified archive of leaked/reverse-engineered Claude Code source.",
+    "license": null
+  },
+  "scope": {
+    "selectionPolicy": "FULL_REPOSITORY_REFERENCE_NO_SELECTIVE_OMISSION",
+    "completeSnapshotIdentity": {
+      "commit": "3fa80a4417103f205c97e7468337703094c0e3c1",
+      "tree": "b3bb1e3248b9e6a0887af98fb6845290437e2099"
+    },
+    "localCopyStatus": "BLOCKED",
+    "blocker": "The upstream identifies itself as leaked/reverse-engineered source and provides no license. The full immutable upstream is recorded by repository+commit+tree without reproducing its source or prompt text in AI Factory."
+  },
+  "factoryImplementation": {
+    "mode": "CLEAN_ROOM_RUNTIME_COMPATIBILITY",
+    "runtime": "runtime/agent-runtime-kernel.mjs",
+    "skill": "skills/agent-runtime-kernel/SKILL.md",
+    "architecture": "docs/AGENT-RUNTIME-CLEANROOM.md",
+    "eval": "evals/runtime/agent-runtime-kernel.test.mjs"
+  },
+  "authorityRule": "Do not shrink an explicitly requested upstream scope based on subjective usefulness. Preserve the full requested scope and record only objective blockers for parts that cannot be copied or executed."
+}
