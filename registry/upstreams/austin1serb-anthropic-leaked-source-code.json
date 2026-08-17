@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "repository": "https://github.com/Austin1serb/Anthropic-Leaked-Source-Code",
+    "auditedAt": "2026-08-17",
+    "declaredDescription": "Repository README describes the contents as an unmodified archive of leaked/reverse-engineered Claude Code source.",
+    "license": null,
+    "defaultTrust": "pattern-only-no-vendoring"
+  },
+  "decision": {
+    "status": "CLEAN_ROOM_PATTERNS_ONLY",
+    "vendorSourceCode": false,
+    "copyPrompts": false,
+    "copyImplementation": false,
+    "executeUpstreamCode": false,
+    "reason": "The upstream explicitly describes itself as leaked source and exposes no repository license. AI Factory may study public architectural categories and independently implement generic patterns, but must not vendor or reproduce the upstream implementation."
+  },
+  "observedPublicArchitectureCategories": [
+    "agent/query orchestration",
+    "task/session lifecycle",
+    "tool abstraction",
+    "context/session history separation",
+    "permission and sandbox boundaries",
+    "provider/service adapters",
+    "MCP-style external tool adapters",
+    "CLI/transport separation",
+    "prompt/context construction"
+  ],
+  "cleanRoomTargets": [
+    {
+      "pattern": "query/session coordinator",
+      "decision": "IMPLEMENT_INDEPENDENTLY",
+      "target": "runtime/agent-runtime-kernel.mjs"
+    },
+    {
+      "pattern": "bounded context assembly",
+      "decision": "IMPLEMENT_INDEPENDENTLY",
+      "target": "runtime/agent-runtime-kernel.mjs"
+    },
+    {
+      "pattern": "tool requests behind permission/autonomy gates",
+      "decision": "ADAPT_TO_EXISTING_FACTORY_CONTRACTS",
+      "target": "runtime/tool-runtime.mjs"
+    },
+    {
+      "pattern": "provider/transport boundary",
+      "decision": "DOCUMENT_INTERFACE_ONLY",
+      "target": "docs/AGENT-RUNTIME-CLEANROOM.md"
+    },
+    {
+      "pattern": "session history as durable explicit state",
+      "decision": "ADAPT_TO_FACTORY_MEMORY",
+      "target": "runtime/agent-runtime-kernel.mjs"
+    }
+  ],
+  "provenanceRules": [
+    "No upstream source file may be copied into AI Factory.",
+    "No prompt text from the upstream may be copied into AI Factory.",
+    "Local implementations must be written against AI Factory contracts and naming.",
+    "Any future code-level comparison requires a separate legal/license review before reuse.",
+    "This audit records architectural inspiration, not source-code provenance for local implementation."
+  ]
+}
