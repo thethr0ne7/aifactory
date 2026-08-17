@@ -20,11 +20,12 @@ Deno.serve(async (request) => {
   try {
     const claims = await auth(request);
     const body = await safeJson(request);
-    const summary = clean(body?.summary || "AI Factory workflow failed before a truthful terminal state was confirmed.", 4000);
-    const affected = strings(body?.affected_invariants, 20, 160);
+    const scope = clean(body?.scope || "unknown",160);
+    const summary = clean(body?.summary || "AI Factory workflow failed before a truthful terminal state was confirmed.",4000);
+    const affected = strings(body?.affected_invariants,20,160);
     const evidence = {
       code: clean(body?.code || "FACTORY_WORKFLOW_FAILURE",120),
-      scope: clean(body?.scope || "unknown",160),
+      scope,
       details: object(body?.evidence),
       github_run_id: claims.run_id,
       run_number: claims.run_number,
@@ -35,8 +36,21 @@ Deno.serve(async (request) => {
       actor: claims.actor,
       actions_url: claims.run_id ? `https://github.com/thethr0ne7/aifactory/actions/runs/${claims.run_id}` : null
     };
+
+    const now = new Date().toISOString();
+    const { data: faultRun, error: runError } = await db.from("af_runs").insert({
+      objective: `Workflow fault memory: ${scope}`,
+      input: { source:"workflow-fault-sink", evidence },
+      status: "FAILED",
+      autonomy_level: "A3",
+      blocker: { code:"FACTORY_WORKFLOW_FAILURE", scope, github_run_id:claims.run_id },
+      heartbeat_at: now,
+      completed_at: now
+    }).select("id").single();
+    if (runError) throw runError;
+
     const { data, error } = await db.from("af_incidents").insert({
-      run_id: null,
+      run_id: faultRun.id,
       task_id: null,
       severity: "UNDESIRABLE",
       summary,
@@ -46,7 +60,7 @@ Deno.serve(async (request) => {
       repair: {action:"maintenance crew must inspect the failed workflow run, reproduce the failure, cluster it by fingerprint and prove a regression repair"}
     }).select("id,fingerprint,occurrence_count").single();
     if (error) throw error;
-    return json({incident_id:data.id,fingerprint:data.fingerprint,occurrence_count:data.occurrence_count});
+    return json({run_id:faultRun.id,incident_id:data.id,fingerprint:data.fingerprint,occurrence_count:data.occurrence_count});
   } catch (error) {
     const message = sanitize(error);
     const unauthorized = message.startsWith("oidc_");
