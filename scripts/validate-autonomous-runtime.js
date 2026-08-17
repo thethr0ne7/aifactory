@@ -49,7 +49,6 @@ exists('skills/root-of-trust/SKILL.md');
 exists('infra/supabase/migrations/20260815_240_autonomous_runtime.sql');
 exists('infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql');
 exists('supabase/functions/ai-factory-broker/index.ts');
-exists('scripts/copilot-autonomous-worker.mjs');
 exists('runtime/executable-memory.mjs');
 exists('scripts/test-executable-memory.mjs');
 exists('registry/executable-memory.json');
@@ -57,10 +56,11 @@ exists('.github/workflows/factory-autonomous-worker.yml');
 exists('evals/runtime/provider-availability.json');
 exists('docs/AUTONOMOUS-RUNTIME.md');
 exists('docs/EXECUTABLE-MEMORY.md');
+if (manifest?.hostedWorkerScript) exists(manifest.hostedWorkerScript);
 
 if (manifest) {
   if (manifest.hostedWorker !== '.github/workflows/factory-autonomous-worker.yml') errors.push('manifest hostedWorker mismatch');
-  if (manifest.hostedWorkerScript !== 'scripts/copilot-autonomous-worker.mjs') errors.push('manifest hostedWorkerScript mismatch');
+  if (!manifest.hostedWorkerScript) errors.push('manifest hostedWorkerScript is required');
   if (manifest.hostedBroker !== 'supabase/functions/ai-factory-broker/index.ts') errors.push('manifest hostedBroker mismatch');
   if (manifest.hostedRuntimePersistence !== 'infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql') errors.push('manifest hostedRuntimePersistence mismatch');
   if (manifest.hostedBrokerAudience !== 'aifactory-supabase-runtime') errors.push('manifest hostedBrokerAudience mismatch');
@@ -73,11 +73,7 @@ if (manifest) {
 
 if (runtime) {
   const requiredStates = ['QUEUED','QUALIFYING','ROUTED','WORKING','VALIDATING','REPAIRING','LEARNING','COMPLETE','BLOCKED','FAILED'];
-  const states = new Set([
-    runtime.stateMachine?.initial,
-    ...(runtime.stateMachine?.active || []),
-    ...(runtime.stateMachine?.terminal || [])
-  ]);
+  const states = new Set([runtime.stateMachine?.initial,...(runtime.stateMachine?.active || []),...(runtime.stateMachine?.terminal || [])]);
   for (const state of requiredStates) if (!states.has(state)) errors.push(`runtime missing state: ${state}`);
   if (runtime.infrastructure?.workerDeploymentRequired !== true) errors.push('runtime must declare hosted worker deployment required');
   if (runtime.autonomy?.rootOfTrustDirectMutation !== false) errors.push('runtime must forbid direct Root of Trust mutation');
@@ -125,6 +121,8 @@ if (learning) {
   if (learning.promotion?.rootOfTrustAutoPromotion !== false) errors.push('learning policy must forbid Root of Trust auto-promotion');
   if (learning.promotion?.requiresBaselineComparison !== true) errors.push('learning policy must require baseline comparison');
   if (learning.promotion?.requiresRegressionSuite !== true) errors.push('learning policy must require regression suite');
+  if (learning.errorMemory?.recordEveryRealFailure !== true) errors.push('learning policy must record every real failure');
+  if (learning.errorMemory?.criticalMemoryMayBeDroppedByRelevance !== false) errors.push('critical memory must not be relevance-droppable');
 }
 
 if (executableMemory) {
@@ -147,9 +145,7 @@ if (telemetry) {
 
 if (capabilities) {
   const ids = new Set((capabilities.capabilities || []).map((capability) => capability.id));
-  for (const id of ['autonomous-runtime','incident-learning','root-of-trust']) {
-    if (!ids.has(id)) errors.push(`capabilities missing runtime capability: ${id}`);
-  }
+  for (const id of ['autonomous-runtime','incident-learning','root-of-trust']) if (!ids.has(id)) errors.push(`capabilities missing runtime capability: ${id}`);
 }
 
 const workflowPath = path.join(root, '.github/workflows/factory-autonomous-worker.yml');
@@ -157,7 +153,8 @@ if (fs.existsSync(workflowPath)) {
   const workflow = fs.readFileSync(workflowPath, 'utf8');
   if (!workflow.includes('copilot-requests: write')) errors.push('autonomous worker must grant copilot-requests: write');
   if (!workflow.includes('npm install -g @github/copilot')) errors.push('autonomous worker must install current Copilot CLI');
-  if (!workflow.includes('node scripts/copilot-autonomous-worker.mjs')) errors.push('workflow must execute Copilot CLI worker');
+  const selectedWorker = manifest?.hostedWorkerScript || '';
+  if (!selectedWorker || !workflow.includes(`node ${selectedWorker}`)) errors.push('workflow must execute manifest-selected Copilot CLI worker');
   if (workflow.includes('models: read')) errors.push('retired GitHub Models permission must be removed');
 }
 
@@ -169,14 +166,19 @@ if (fs.existsSync(brokerPath)) {
   if (!broker.includes('af_incidents')) errors.push('broker learning context must read af_incidents');
 }
 
-const workerPath = path.join(root, 'scripts/copilot-autonomous-worker.mjs');
-if (fs.existsSync(workerPath)) {
+const workerPath = manifest?.hostedWorkerScript ? path.join(root, manifest.hostedWorkerScript) : null;
+if (workerPath && fs.existsSync(workerPath)) {
   const worker = fs.readFileSync(workerPath, 'utf8');
-  if (!worker.includes("broker('learning_context'")) errors.push('worker must retrieve durable learning context');
-  if (!worker.includes('LEARNING_CONTEXT_LOADED')) errors.push('worker must trace loaded memory');
-  if (!worker.includes('LEARNING_CONTEXT_APPLIED')) errors.push('worker must trace applied memory');
-  if (!worker.includes('selectExecutableMemory')) errors.push('worker must use deterministic memory selector');
-  if (!worker.includes('memory_refs')) errors.push('worker result contract must expose used memory refs');
+  if (!worker.includes('copilot-autonomous-worker-v2.mjs') && !worker.includes("broker('learning_context'")) errors.push('selected worker must retrieve or delegate durable learning context');
+}
+const coreWorker = path.join(root, 'scripts/copilot-autonomous-worker-v2.mjs');
+if (fs.existsSync(coreWorker)) {
+  const worker = fs.readFileSync(coreWorker, 'utf8');
+  if (!worker.includes("broker('learning_context'")) errors.push('core worker must retrieve durable learning context');
+  if (!worker.includes('LEARNING_CONTEXT_LOADED')) errors.push('core worker must trace loaded memory');
+  if (!worker.includes('LEARNING_CONTEXT_APPLIED')) errors.push('core worker must trace applied memory');
+  if (!worker.includes('selectExecutableMemory')) errors.push('core worker must use deterministic memory selector');
+  if (!worker.includes('memory_refs')) errors.push('core worker result contract must expose used memory refs');
 }
 
 const memoryTest = spawnSync(process.execPath, ['scripts/test-executable-memory.mjs'], { cwd: root, encoding: 'utf8' });

@@ -3,26 +3,28 @@ name: Factory watchdog
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '*/10 * * * *'
   pull_request:
     paths:
       - 'runtime/**'
       - 'registry/**'
-      - 'skills/autonomous-runtime/**'
-      - 'skills/incident-learning/**'
-      - 'skills/root-of-trust/**'
+      - 'skills/**'
       - 'scripts/validate-autonomous-runtime.js'
-      - 'scripts/test-executable-memory.mjs'
-      - 'scripts/copilot-autonomous-worker.mjs'
+      - 'scripts/validate-reliability-kernel.js'
+      - 'scripts/test-reliability-kernel.mjs'
+      - 'scripts/copilot-autonomous-worker-v2.mjs'
+      - 'scripts/copilot-autonomous-worker-v3.mjs'
+      - 'scripts/record-workflow-failure.mjs'
       - 'scripts/watchdog.mjs'
       - 'supabase/functions/ai-factory-broker/**'
+      - 'supabase/functions/ai-factory-fault-sink/**'
       - 'infra/supabase/**'
-      - 'docs/EXECUTABLE-MEMORY.md'
       - 'factory.manifest.json'
       - '.github/workflows/factory-watchdog.yml'
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   validate-runtime:
@@ -34,20 +36,31 @@ jobs:
           node-version: '22'
       - run: node scripts/validate-factory.js
       - run: node scripts/validate-autonomous-runtime.js
+      - run: node scripts/validate-reliability-kernel.js
+      - run: node scripts/test-reliability-kernel.mjs
 
   watchdog:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: validate-runtime
     runs-on: ubuntu-latest
+    env:
+      FACTORY_FAULT_SINK_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-fault-sink
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Recover stale runs and task locks
+      - name: Recover stale leases, tool claims and incident memory
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          FACTORY_STALE_RUN_MINUTES: '20'
-          FACTORY_STALE_TASK_MINUTES: '30'
+          FACTORY_STALE_RUN_MINUTES: '5'
+          FACTORY_STALE_TOOL_MINUTES: '5'
         run: node scripts/watchdog.mjs
+
+      - name: Persist watchdog failure to Factory memory
+        if: failure()
+        env:
+          FACTORY_FAILURE_SCOPE: watchdog
+          FACTORY_FAILURE_SUMMARY: AI Factory watchdog failed while recovering leases, tool claims or incident memory; maintenance crew must inspect the run before assuming recovery is healthy.
+        run: node scripts/record-workflow-failure.mjs
