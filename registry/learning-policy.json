@@ -1,7 +1,24 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "factoryVersion": "2.4.0",
-  "loop": ["OBSERVE", "CLASSIFY", "ROOT_CAUSE", "LESSON_CANDIDATE", "GENERALIZE", "REGRESSION_EVAL", "PATCH_CANDIDATE", "COMPARE", "PROMOTE_OR_REJECT"],
+  "loop": ["OBSERVE", "CLASSIFY", "ROOT_CAUSE", "INCIDENT_FINGERPRINT", "LESSON_CANDIDATE", "GENERALIZE", "REGRESSION_EVAL", "PATCH_CANDIDATE", "COMPARE", "PROMOTE_OR_REJECT"],
+  "errorMemory": {
+    "recordEveryRealFailure": true,
+    "incidentLedger": "public.af_incidents",
+    "clusterLedger": "public.af_incident_clusters",
+    "automaticAntiRegressionLesson": true,
+    "fingerprintRepeatedFailures": true,
+    "criticalMemoryAlwaysLoaded": ["OPEN:FORBIDDEN", "OPEN:CATASTROPHIC", "REPAIRING:FORBIDDEN", "REPAIRING:CATASTROPHIC", "BLOCKED:FORBIDDEN", "BLOCKED:CATASTROPHIC"],
+    "currentEvidenceWins": true,
+    "criticalMemoryMayBeDroppedByRelevance": false
+  },
+  "maintenanceCrew": {
+    "registry": "registry/maintenance-agents.json",
+    "sharedMemoryWithAllWorkers": true,
+    "allRegisteredSkillsAvailableForDiagnosis": true,
+    "maySelfApproveRootOfTrustChanges": false,
+    "mustVerifyRepairWithRegressionEvidence": true
+  },
   "promotion": {
     "requiresOriginalFailureReproduction": true,
     "requiresBaselineComparison": true,
