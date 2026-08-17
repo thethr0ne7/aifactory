@@ -10,11 +10,14 @@ const required = [
   'runtime/executable-memory.mjs',
   'scripts/copilot-autonomous-worker-v2.mjs',
   'scripts/copilot-autonomous-worker-v3.mjs',
+  'scripts/record-workflow-failure.mjs',
   'registry/maintenance-agents.json',
   'skills/factory-maintenance-crew/SKILL.md',
   'supabase/functions/ai-factory-critical-memory/index.ts',
+  'supabase/functions/ai-factory-fault-sink/index.ts',
   'infra/supabase/migrations/20260817_270_reliability_memory_repairs.sql',
   'infra/supabase/migrations/20260817_271_tool_failure_memory.sql',
+  'infra/supabase/migrations/20260817_272_incident_reconciliation_v2.sql',
 ];
 
 for (const rel of required) {
@@ -30,9 +33,9 @@ for (const id of ['reliability-sre','runtime-mechanic','memory-curator','inciden
 }
 
 const workflow = fs.readFileSync(path.join(root, '.github/workflows/factory-autonomous-worker.yml'), 'utf8');
-if (!workflow.includes('copilot-autonomous-worker-v3.mjs')) throw new Error('Autonomous workflow is not using critical-memory preload worker v3');
-if (!workflow.includes('FACTORY_CRITICAL_MEMORY_URL')) throw new Error('Autonomous workflow has no critical-memory endpoint');
-if (!workflow.includes('validate-reliability-kernel.js')) throw new Error('Autonomous workflow does not validate Reliability Kernel');
+for (const marker of ['copilot-autonomous-worker-v3.mjs','FACTORY_CRITICAL_MEMORY_URL','FACTORY_FAULT_SINK_URL','record-workflow-failure.mjs','validate-reliability-kernel.js']) {
+  if (!workflow.includes(marker)) throw new Error(`Autonomous workflow missing reliability marker: ${marker}`);
+}
 
 const worker = fs.readFileSync(path.join(root, 'scripts/copilot-autonomous-worker-v2.mjs'), 'utf8');
 for (const marker of ['STRUCTURED_OUTPUT_REPAIRED','known_request_fingerprints','critical_incident_ids','TERMINAL_FALLBACK_PENDING_WATCHDOG','startHeartbeat']) {
@@ -49,9 +52,18 @@ for (const marker of ['critical_incidents','FACTORY_CRITICAL_MEMORY_FILE','MANDA
   if (!memory.includes(marker)) throw new Error(`Executable memory missing critical-memory marker: ${marker}`);
 }
 
-const migration = fs.readFileSync(path.join(root, 'infra/supabase/migrations/20260817_270_reliability_memory_repairs.sql'), 'utf8');
+const migration270 = fs.readFileSync(path.join(root, 'infra/supabase/migrations/20260817_270_reliability_memory_repairs.sql'), 'utf8');
 for (const marker of ['af_incident_clusters','af_record_incident_memory','af_reconcile_incident_memory','af_recover_stale']) {
-  if (!migration.includes(marker)) throw new Error(`Reliability migration missing ${marker}`);
+  if (!migration270.includes(marker)) throw new Error(`Reliability migration missing ${marker}`);
+}
+const migration271 = fs.readFileSync(path.join(root, 'infra/supabase/migrations/20260817_271_tool_failure_memory.sql'), 'utf8');
+if (!migration271.includes('CONTROLLED_TOOL_FAILURE')) throw new Error('Tool failure memory migration missing failure incident recording');
+const migration272 = fs.readFileSync(path.join(root, 'infra/supabase/migrations/20260817_272_incident_reconciliation_v2.sql'), 'utf8');
+if (!migration272.includes('root-of-trust-mutation')) throw new Error('Incident reconciliation must cluster Root-of-Trust recurrence');
+
+const faultSink = fs.readFileSync(path.join(root, 'supabase/functions/ai-factory-fault-sink/index.ts'), 'utf8');
+for (const marker of ['af_runs','af_incidents','FACTORY_WORKFLOW_FAILURE']) {
+  if (!faultSink.includes(marker)) throw new Error(`Fault sink missing durable memory marker: ${marker}`);
 }
 
 console.log('AI Factory Reliability Kernel validation OK');
