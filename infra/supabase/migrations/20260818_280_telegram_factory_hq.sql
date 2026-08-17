@@ -39,6 +39,9 @@ create table if not exists public.af_telegram_messages (
   status text not null default 'RECEIVED' check (status in ('RECEIVED','QUEUED','DELIVERED','IGNORED','FAILED')),
   raw_update jsonb not null default '{}'::jsonb,
   delivery_error jsonb,
+  delivery_attempts integer not null default 0,
+  delivered_post_count integer not null default 0,
+  last_delivery_attempt_at timestamptz,
   created_at timestamptz not null default now(),
   delivered_at timestamptz
 );
@@ -61,4 +64,4 @@ revoke all on table public.af_telegram_messages from anon, authenticated;
 
 comment on table public.af_telegram_workspaces is 'Private Telegram workspaces allowed to enqueue AI Factory runs.';
 comment on table public.af_telegram_topics is 'Forum-topic routing policy for AI Factory HQ.';
-comment on table public.af_telegram_messages is 'Idempotent Telegram update ledger linked to durable AI Factory runs.';
+comment on table public.af_telegram_messages is 'Idempotent Telegram update ledger linked to durable AI Factory runs, with resumable outbound delivery.';
