@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "repository": "https://github.com/AtomicBot-ai/atomic-agent",
+    "commit": "7073a61a990ab6ddd27af9109a7530abf43fda8c",
+    "tree": "d406911a27597519b9313b3eb3af30be87131182",
+    "version": "0.2.1",
+    "license": "MIT",
+    "auditedAt": "2026-08-17"
+  },
+  "integration": {
+    "selectionPolicy": "FULL_UPSTREAM_REFERENCE_NO_SELECTIVE_OMISSION",
+    "mode": "PINNED_SUBMODULE_PLUS_FACTORY_ADAPTER",
+    "mount": "upstreams/atomic-agent",
+    "factoryCapability": "atomic-agent-adapter",
+    "localSkill": "skills/atomic-agent-adapter/SKILL.md",
+    "runtimeAdapter": "runtime/atomic-agent-sidecar-adapter.mjs"
+  },
+  "interfaces": {
+    "binary": "atomic-agent-sidecar",
+    "transport": "NDJSON over stdin/stdout",
+    "requestTypes": [
+      "start_session",
+      "run_step",
+      "send_message",
+      "cancel",
+      "approval_response",
+      "get_session",
+      "skill_install",
+      "skill_uninstall",
+      "skill_list",
+      "shutdown",
+      "ping"
+    ]
+  }
+}
