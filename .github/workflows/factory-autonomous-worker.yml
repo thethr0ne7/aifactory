@@ -29,8 +29,10 @@ on:
       - 'skills/**'
       - 'scripts/copilot-autonomous-worker-v2.mjs'
       - 'scripts/copilot-autonomous-worker-v3.mjs'
+      - 'scripts/record-workflow-failure.mjs'
       - 'scripts/test-reliability-kernel.mjs'
       - 'supabase/functions/ai-factory-critical-memory/**'
+      - 'supabase/functions/ai-factory-fault-sink/**'
       - 'supabase/functions/ai-factory-broker/**'
       - 'infra/supabase/migrations/**'
       - '.github/workflows/factory-autonomous-worker.yml'
@@ -51,6 +53,7 @@ jobs:
     env:
       FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
       FACTORY_CRITICAL_MEMORY_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-critical-memory
+      FACTORY_FAULT_SINK_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-fault-sink
       FACTORY_OBJECTIVE: ${{ inputs.objective || '' }}
       FACTORY_KIND: ${{ inputs.kind || 'general' }}
       FACTORY_AUTONOMY_LEVEL: ${{ inputs.autonomy_level || 'A3' }}
@@ -78,3 +81,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/copilot-autonomous-worker-v3.mjs
+
+      - name: Persist workflow failure to Factory memory
+        if: failure()
+        env:
+          FACTORY_FAILURE_SCOPE: autonomous-worker
+          FACTORY_FAILURE_SUMMARY: AI Factory autonomous worker workflow failed; inspect the linked Actions run and reconcile the failure before repeating it.
+        run: node scripts/record-workflow-failure.mjs
