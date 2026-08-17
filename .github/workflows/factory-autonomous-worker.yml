@@ -27,7 +27,8 @@ on:
       - 'runtime/**'
       - 'registry/**'
       - 'skills/**'
-      - 'scripts/copilot-autonomous-worker.mjs'
+      - 'scripts/copilot-autonomous-worker-v2.mjs'
+      - 'scripts/test-reliability-kernel.mjs'
       - 'supabase/functions/ai-factory-broker/**'
       - 'infra/supabase/migrations/**'
       - '.github/workflows/factory-autonomous-worker.yml'
@@ -63,12 +64,14 @@ jobs:
       - name: Install GitHub Copilot CLI
         run: npm install -g @github/copilot
 
-      - name: Validate factory contracts
+      - name: Validate factory contracts and reliability kernel
         run: |
           node scripts/validate-factory.js
           node scripts/validate-autonomous-runtime.js
+          node scripts/validate-reliability-kernel.js
+          node scripts/test-reliability-kernel.mjs
 
-      - name: Run autonomous worker
+      - name: Run autonomous worker v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/copilot-autonomous-worker.mjs
+        run: node scripts/copilot-autonomous-worker-v2.mjs
