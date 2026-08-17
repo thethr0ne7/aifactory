@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "source": {
     "repository": "https://github.com/Austin1serb/Anthropic-Leaked-Source-Code",
     "auditedRef": "main",
@@ -7,60 +7,23 @@
     "auditedTree": "b3bb1e3248b9e6a0887af98fb6845290437e2099",
     "auditedAt": "2026-08-17",
     "declaredDescription": "Repository README describes the contents as an unmodified archive of leaked/reverse-engineered Claude Code source.",
-    "license": null,
-    "defaultTrust": "pattern-only-no-vendoring"
+    "license": null
   },
-  "decision": {
-    "status": "CLEAN_ROOM_PATTERNS_ONLY",
-    "vendorSourceCode": false,
-    "copyPrompts": false,
-    "copyImplementation": false,
-    "executeUpstreamCode": false,
-    "reason": "The upstream explicitly describes itself as leaked source and exposes no repository license. AI Factory may study public architectural categories and independently implement generic patterns, but must not vendor or reproduce the upstream implementation."
+  "scope": {
+    "selectionPolicy": "FULL_REPOSITORY_REFERENCE_NO_SELECTIVE_OMISSION",
+    "completeSnapshotIdentity": {
+      "commit": "3fa80a4417103f205c97e7468337703094c0e3c1",
+      "tree": "b3bb1e3248b9e6a0887af98fb6845290437e2099"
+    },
+    "localCopyStatus": "BLOCKED",
+    "blocker": "The upstream identifies itself as leaked/reverse-engineered source and provides no license. The full immutable upstream is recorded by repository+commit+tree without reproducing its source or prompt text in AI Factory."
   },
-  "observedPublicArchitectureCategories": [
-    "agent/query orchestration",
-    "task/session lifecycle",
-    "tool abstraction",
-    "context/session history separation",
-    "permission and sandbox boundaries",
-    "provider/service adapters",
-    "MCP-style external tool adapters",
-    "CLI/transport separation",
-    "prompt/context construction"
-  ],
-  "cleanRoomTargets": [
-    {
-      "pattern": "query/session coordinator",
-      "decision": "IMPLEMENT_INDEPENDENTLY",
-      "target": "runtime/agent-runtime-kernel.mjs"
-    },
-    {
-      "pattern": "bounded context assembly",
-      "decision": "IMPLEMENT_INDEPENDENTLY",
-      "target": "runtime/agent-runtime-kernel.mjs"
-    },
-    {
-      "pattern": "tool requests behind permission/autonomy gates",
-      "decision": "ADAPT_TO_EXISTING_FACTORY_CONTRACTS",
-      "target": "runtime/tool-runtime.mjs"
-    },
-    {
-      "pattern": "provider/transport boundary",
-      "decision": "DOCUMENT_INTERFACE_ONLY",
-      "target": "docs/AGENT-RUNTIME-CLEANROOM.md"
-    },
-    {
-      "pattern": "session history as durable explicit state",
-      "decision": "ADAPT_TO_FACTORY_MEMORY",
-      "target": "runtime/agent-runtime-kernel.mjs"
-    }
-  ],
-  "provenanceRules": [
-    "No upstream source file may be copied into AI Factory.",
-    "No prompt text from the upstream may be copied into AI Factory.",
-    "Local implementations must be written against AI Factory contracts and naming.",
-    "Any future code-level comparison requires a separate legal/license review before reuse.",
-    "This audit records architectural inspiration, not source-code provenance for local implementation."
-  ]
+  "factoryImplementation": {
+    "mode": "CLEAN_ROOM_RUNTIME_COMPATIBILITY",
+    "runtime": "runtime/agent-runtime-kernel.mjs",
+    "skill": "skills/agent-runtime-kernel/SKILL.md",
+    "architecture": "docs/AGENT-RUNTIME-CLEANROOM.md",
+    "eval": "evals/runtime/agent-runtime-kernel.test.mjs"
+  },
+  "authorityRule": "Do not shrink an explicitly requested upstream scope based on subjective usefulness. Preserve the full requested scope and record only objective blockers for parts that cannot be copied or executed."
 }
