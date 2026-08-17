@@ -1,8 +1,10 @@
+import fs from 'node:fs';
+
 const DEFAULTS = {
   maxLessons: 8,
   maxIncidents: 6,
-  maxCriticalIncidents: 50,
-  maxSerializedCharacters: 36000,
+  maxCriticalIncidents: 100,
+  maxSerializedCharacters: 42000,
 };
 
 const STOP = new Set([
@@ -15,8 +17,12 @@ export function selectExecutableMemory(task, raw, options = {}) {
   const targetTokens = tokenize(targetText);
 
   const rawIncidents = Array.isArray(raw?.incidents) ? raw.incidents : [];
-  const explicitCritical = Array.isArray(raw?.critical_incidents) ? raw.critical_incidents : [];
+  const explicitCritical = [
+    ...(Array.isArray(raw?.critical_incidents) ? raw.critical_incidents : []),
+    ...preloadedCriticalIncidents(),
+  ];
   const criticalIncidents = dedupeById([...explicitCritical, ...rawIncidents.filter(isCriticalOpen)])
+    .filter(isCriticalOpen)
     .map(toCriticalIncident)
     .sort(compareCritical)
     .slice(0, Math.max(0, cfg.maxCriticalIncidents));
@@ -36,7 +42,7 @@ export function selectExecutableMemory(task, raw, options = {}) {
     .slice(0, Math.max(0, cfg.maxIncidents));
 
   const selection = {
-    selection_version: '1.1.0',
+    selection_version: '1.2.0',
     authority: {
       promoted: 'active learned guidance bounded by current Constitution/evidence',
       candidate: 'hypothesis only; non-binding',
@@ -80,6 +86,17 @@ export function formatExecutableMemory(selection) {
     '- If you materially use a memory item, return its exact id in memory_refs.',
     JSON.stringify(selection),
   ].join('\n');
+}
+
+function preloadedCriticalIncidents() {
+  const file = String(process.env.FACTORY_CRITICAL_MEMORY_FILE || '').trim();
+  if (!file) return [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return Array.isArray(parsed?.critical_incidents) ? parsed.critical_incidents : [];
+  } catch {
+    return [];
+  }
 }
 
 function scoreLesson(item, targetTokens) {
