@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "repository": "https://github.com/multica-ai/andrej-karpathy-skills",
+    "commit": "2c606141936f1eeef17fa3043a72095b4765b9c2",
+    "tree": "02718e4654045f25a518093899502c8ee932eaf1",
+    "license": "MIT",
+    "auditedAt": "2026-08-17"
+  },
+  "integration": {
+    "selectionPolicy": "FULL_UPSTREAM_REFERENCE_NO_SELECTIVE_OMISSION",
+    "mode": "PINNED_SUBMODULE_PLUS_FACTORY_ADAPTER",
+    "mount": "upstreams/andrej-karpathy-skills",
+    "factoryCapability": "karpathy-engineering-discipline",
+    "localSkill": "skills/karpathy-engineering-discipline/SKILL.md"
+  },
+  "principles": [
+    "think-before-coding",
+    "simplicity-first",
+    "surgical-changes",
+    "goal-driven-execution"
+  ]
+}
