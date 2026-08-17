@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "factoryVersion": "2.4.0",
-  "loop": ["OBSERVE", "CLASSIFY", "ROOT_CAUSE", "INCIDENT_FINGERPRINT", "LESSON_CANDIDATE", "GENERALIZE", "REGRESSION_EVAL", "PATCH_CANDIDATE", "COMPARE", "PROMOTE_OR_REJECT"],
+  "loop": ["OBSERVE", "CLASSIFY", "ROOT_CAUSE", "INCIDENT_QUALITY_GATE", "INCIDENT_FINGERPRINT", "LESSON_CANDIDATE", "GENERALIZE", "REGRESSION_EVAL", "PATCH_CANDIDATE", "COMPARE", "PROMOTE_OR_REJECT"],
   "errorMemory": {
     "recordEveryRealFailure": true,
     "incidentLedger": "public.af_incidents",
@@ -11,6 +11,13 @@
     "criticalMemoryAlwaysLoaded": ["OPEN:FORBIDDEN", "OPEN:CATASTROPHIC", "REPAIRING:FORBIDDEN", "REPAIRING:CATASTROPHIC", "BLOCKED:FORBIDDEN", "BLOCKED:CATASTROPHIC"],
     "currentEvidenceWins": true,
     "criticalMemoryMayBeDroppedByRelevance": false
+  },
+  "incidentQualityGate": {
+    "newFailuresOnly": true,
+    "requireConcreteEvidenceOrInvariantOrRepair": true,
+    "quarantineConfirmationOnlyCandidates": true,
+    "existingIncidentRule": "If the condition is already represented by an incident or lesson, cite its memory_ref and update/reconcile the existing cluster; do not open a new incident merely to say the old incident was recorded, loaded, remembered, or linked.",
+    "emptyEvidenceIncidentIsFailureRecord": false
   },
   "maintenanceCrew": {
     "registry": "registry/maintenance-agents.json",
