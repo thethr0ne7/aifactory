@@ -28,7 +28,9 @@ on:
       - 'registry/**'
       - 'skills/**'
       - 'scripts/copilot-autonomous-worker-v2.mjs'
+      - 'scripts/copilot-autonomous-worker-v3.mjs'
       - 'scripts/test-reliability-kernel.mjs'
+      - 'supabase/functions/ai-factory-critical-memory/**'
       - 'supabase/functions/ai-factory-broker/**'
       - 'infra/supabase/migrations/**'
       - '.github/workflows/factory-autonomous-worker.yml'
@@ -48,6 +50,7 @@ jobs:
     timeout-minutes: 12
     env:
       FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
+      FACTORY_CRITICAL_MEMORY_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-critical-memory
       FACTORY_OBJECTIVE: ${{ inputs.objective || '' }}
       FACTORY_KIND: ${{ inputs.kind || 'general' }}
       FACTORY_AUTONOMY_LEVEL: ${{ inputs.autonomy_level || 'A3' }}
@@ -71,7 +74,7 @@ jobs:
           node scripts/validate-reliability-kernel.js
           node scripts/test-reliability-kernel.mjs
 
-      - name: Run autonomous worker v2
+      - name: Run autonomous worker v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/copilot-autonomous-worker-v2.mjs
+        run: node scripts/copilot-autonomous-worker-v3.mjs
