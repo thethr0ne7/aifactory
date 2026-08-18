@@ -38,7 +38,10 @@
     "critical-incident-memory",
     "factory-maintenance-crew",
     "repo-owned-orchestration-workflow",
-    "terminal-runtime-truth-gate"
+    "terminal-runtime-truth-gate",
+    "telegram-interactive-priority",
+    "terminal-agent-reconciliation",
+    "telegram-thread-context"
   ],
   "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
   "capabilityFamilies": [
@@ -78,6 +81,9 @@
   "maintenanceAgentRegistry": "registry/maintenance-agents.json",
   "executiveRuntime": "runtime/executive-team.json",
   "autonomousRuntime": "runtime/autonomous-runtime.json",
+  "agentActivationRuntime": "runtime/agent-activation.mjs",
+  "agentSessionRuntime": "runtime/agent-runtime-kernel.mjs",
+  "atomicAgentSidecarAdapter": "runtime/atomic-agent-sidecar-adapter.mjs",
   "orchestrationWorkflow": "WORKFLOW.md",
   "workflowContract": "registry/workflow-contract.json",
   "runtimeTruthGate": "runtime/truth-gate.mjs",
@@ -117,5 +123,8 @@
   "telegramAgentTruthGuardPersistence": "infra/supabase/migrations/20260818_281_telegram_agent_truth_guard.sql",
   "runtimeTruthGatePersistence": "infra/supabase/migrations/20260818_283_runtime_truth_gate.sql",
   "toolTraceObservabilityPersistence": "infra/supabase/migrations/20260818_284_tool_trace_observability.sql",
-  "toolContinuationBudgetPersistence": "infra/supabase/migrations/20260818_285_tool_continuation_budget.sql"
+  "toolContinuationBudgetPersistence": "infra/supabase/migrations/20260818_285_tool_continuation_budget.sql",
+  "telegramInteractivePriorityPersistence": "infra/supabase/migrations/20260818_286_telegram_interactive_priority.sql",
+  "terminalAgentReconciliationPersistence": "infra/supabase/migrations/20260818_287_terminal_agent_reconciliation.sql",
+  "telegramThreadContextPersistence": "infra/supabase/migrations/20260818_288_telegram_thread_context.sql"
 }
