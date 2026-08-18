@@ -33,6 +33,7 @@
     "controlled-tool-runtime",
     "normalized-tool-adapters",
     "trace-correlated-observability",
+    "tool-continuation-budget-integrity",
     "reliability-kernel",
     "critical-incident-memory",
     "factory-maintenance-crew",
@@ -115,5 +116,6 @@
   "toolFailureMemoryPersistence": "infra/supabase/migrations/20260817_271_tool_failure_memory.sql",
   "telegramAgentTruthGuardPersistence": "infra/supabase/migrations/20260818_281_telegram_agent_truth_guard.sql",
   "runtimeTruthGatePersistence": "infra/supabase/migrations/20260818_283_runtime_truth_gate.sql",
-  "toolTraceObservabilityPersistence": "infra/supabase/migrations/20260818_284_tool_trace_observability.sql"
+  "toolTraceObservabilityPersistence": "infra/supabase/migrations/20260818_284_tool_trace_observability.sql",
+  "toolContinuationBudgetPersistence": "infra/supabase/migrations/20260818_285_tool_continuation_budget.sql"
 }
