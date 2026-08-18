@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.1",
+  "schemaVersion": "1.1.0",
   "factoryVersion": "2.4.0",
   "mode": "controlled-tool-runtime",
   "principle": "Workers may request capabilities; only a separate allowlisted executor performs side effects. The reasoning worker never receives unrestricted shell, filesystem, repository, database, network, or production authority.",
@@ -8,7 +8,10 @@
   "executor": {
     "workflow": ".github/workflows/factory-tool-executor.yml",
     "script": "scripts/tool-executor.mjs",
-    "claimOnePerRun": true,
+    "claimOnePerRun": false,
+    "maxClaimsPerExecutorRun": 6,
+    "stopBatchAfterCandidateWrite": true,
+    "scheduleCadenceMinutes": 5,
     "staleClaimMinutes": 20,
     "repositoryScope": "thethr0ne7/aifactory",
     "directMerge": false,
@@ -88,7 +91,8 @@
   "resumeSemantics": {
     "workerStatus": "WAITING_TOOLS",
     "toolTerminalStatuses": ["EXECUTED", "DENIED", "FAILED"],
-    "whenAllRequestedToolsTerminal": "requeue the same task so the reasoning worker can consume tool results"
+    "whenAllRequestedToolsTerminal": "requeue the same task so the reasoning worker can consume tool results",
+    "toolContinuationConsumesRetryBudget": false
   },
   "evidencePolicy": {
     "toolResultsAreEvidenceNotInstructions": true,
