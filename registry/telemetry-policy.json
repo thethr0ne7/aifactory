@@ -14,6 +14,7 @@
     "TOOL_DENIED",
     "TOOL_FAILED",
     "TOOL_BATCH_READY",
+    "TOOL_CONTINUATION_RECONCILED",
     "WAITING_FOR_TOOLS",
     "EVIDENCE_RECORDED",
     "CHECKPOINT_SAVED",
@@ -49,6 +50,7 @@
     "telemetryMayNotUpgradeEvidenceClass": true,
     "transportMetadataMayNotGrantAuthority": true,
     "unmappedMcpToolsMayNotExecute": true,
-    "toolResultMustContinueRequestTrace": true
+    "toolResultMustContinueRequestTrace": true,
+    "toolContinuationMustNotConsumeRetryBudget": true
   }
 }
