@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "factoryVersion": "2.4.0",
   "workflowFile": "WORKFLOW.md",
   "mode": "bounded-orchestration",
@@ -35,7 +35,7 @@
   },
   "truthGate": {
     "runtime": "runtime/truth-gate.mjs",
-    "persistence": "infra/supabase/migrations/20260818_282_runtime_truth_gate.sql",
+    "persistence": "infra/supabase/migrations/20260818_283_runtime_truth_gate.sql",
     "evidenceContract": "registry/evidence-contract.json",
     "completeWithBlocker": "BLOCK",
     "telegramAuthorPolicy": "activated_agents_only",
@@ -44,8 +44,11 @@
   },
   "tools": {
     "policy": "registry/tool-runtime.json",
+    "adapters": "registry/tool-adapters.json",
+    "normalizedEnvelope": "runtime/tool-envelope.mjs",
     "workerDirectMutation": false,
-    "candidateRepositoryWrites": "draft_pr_only"
+    "candidateRepositoryWrites": "draft_pr_only",
+    "mcpDefault": "deny-unmapped-and-not-executable"
   },
   "observability": {
     "durableRuns": true,
@@ -53,6 +56,11 @@
     "checkpoints": true,
     "incidents": true,
     "regressionEvals": true,
-    "toolLedger": true
+    "toolLedger": true,
+    "traceRoot": "run_id",
+    "toolResultParent": "tool_request_span_id",
+    "timelineView": "public.af_trace_timeline",
+    "runSummaryView": "public.af_run_observability",
+    "persistence": "infra/supabase/migrations/20260818_284_tool_trace_observability.sql"
   }
 }
