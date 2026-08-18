@@ -28,10 +28,12 @@ on:
       - 'runtime/**'
       - 'registry/**'
       - 'skills/**'
+      - 'evals/runtime/**'
       - 'scripts/copilot-autonomous-worker-v2.mjs'
       - 'scripts/copilot-autonomous-worker-v3.mjs'
       - 'scripts/telegram-hq-delivery-sweep.mjs'
       - 'scripts/validate-workflow-contract.mjs'
+      - 'scripts/validate-tool-observability.mjs'
       - 'scripts/test-runtime-truth-gate.mjs'
       - 'scripts/validate-telegram-hq.mjs'
       - 'scripts/validate-telegram-agent-truth.mjs'
@@ -83,11 +85,13 @@ jobs:
           node scripts/validate-factory.js
           node scripts/validate-workflow-contract.mjs
           node scripts/validate-autonomous-runtime.js
+          node scripts/validate-tool-observability.mjs
           node scripts/validate-reliability-kernel.js
           node scripts/test-reliability-kernel.mjs
           node scripts/test-runtime-truth-gate.mjs
           node scripts/validate-telegram-hq.mjs
           node scripts/validate-telegram-agent-truth.mjs
+          node --test evals/runtime/tool-envelope.test.mjs
 
       - name: Run autonomous worker v3
         env:
