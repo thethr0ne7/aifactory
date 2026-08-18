@@ -30,5 +30,6 @@ jobs:
           node scripts/validate-reliability-kernel.js
           node scripts/test-reliability-kernel.mjs
           node scripts/validate-telegram-hq.mjs
+          node scripts/validate-telegram-agent-truth.mjs
           node --test evals/runtime/agent-runtime-kernel.test.mjs
           node --test evals/runtime/atomic-agent-sidecar-adapter.test.mjs
