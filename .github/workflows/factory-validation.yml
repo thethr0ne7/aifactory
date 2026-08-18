@@ -28,6 +28,7 @@ jobs:
           node scripts/validate-autonomous-runtime.js
           node scripts/validate-self-improvement.js
           node scripts/validate-tool-runtime.js
+          node scripts/validate-tool-executor-batch.mjs
           node scripts/validate-tool-observability.mjs
           node scripts/validate-reliability-kernel.js
           node scripts/test-reliability-kernel.mjs
