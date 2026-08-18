@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process';
 import { selectExecutableMemory, executableMemoryRefs, formatExecutableMemory } from '../runtime/executable-memory.mjs';
 import { normalizeToolRequests, boundToolContext, formatToolContext } from '../runtime/tool-runtime.mjs';
 import { parseStructuredObject, buildStructuredRepairPrompt, structuredOutputFingerprint } from '../runtime/structured-output.mjs';
+import { reconcileActivatedAgents } from '../runtime/agent-activation.mjs';
 
 const root = process.cwd();
 const brokerUrl = process.env.FACTORY_BROKER_URL || 'https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker';
@@ -340,6 +341,7 @@ async function callCopilot(prompt) {
         stdout += chunk;
         if (stdout.length > 4 * 1024 * 1024) child.kill('SIGTERM');
       });
+      child.stderr.setEncoding('utf8');
       child.stderr.on('data', (chunk) => {
         stderr += chunk;
         if (stderr.length > 1024 * 1024) stderr = stderr.slice(-1024 * 1024);
@@ -446,7 +448,13 @@ function normalizeResult(value, capabilityIds, memoryIds, toolPolicy, autonomyLe
   if (maintenanceMode) for (const id of maintenanceAgentIds) agents.add(id);
   const classes = new Set(['MEASURED','OBSERVED','CONFIRMED','DERIVED','INFERRED','ASSUMPTION','UNKNOWN','BLOCKER']);
   const severities = new Set(['UNDESIRABLE','FORBIDDEN','CATASTROPHIC']);
-  const activated_agents = uniq(obj.activated_agents).filter((x) => agents.has(x)).slice(0, maintenanceMode ? 4 : 3);
+  const activation = reconcileActivatedAgents({
+    declared: obj.activated_agents,
+    output: object(obj.output),
+    allowedAgentIds: agents,
+    maxAgents: maintenanceMode ? 4 : 3,
+  });
+  const activated_agents = activation.activated_agents;
   const selected_skills = uniq(obj.selected_skills).filter((x) => capabilityIds.has(x)).slice(0, 8);
   const memory_refs = uniq(obj.memory_refs).filter((x) => memoryIds.has(x)).slice(0, 24);
   const evidence = Array.isArray(obj.evidence) ? obj.evidence.slice(0, 24).map((e) => ({ class: classes.has(String(e?.class)) ? String(e.class) : 'UNKNOWN', claim: str(e?.claim, 1200), basis: str(e?.basis, 2000) })).filter((e) => e.claim) : [];
@@ -454,6 +462,11 @@ function normalizeResult(value, capabilityIds, memoryIds, toolPolicy, autonomyLe
   const lesson_candidates = Array.isArray(obj.lesson_candidates) ? obj.lesson_candidates.slice(0, 8).map((l) => ({ lesson_class: str(l?.lesson_class, 120) || 'PATTERN', statement: str(l?.statement, 5000), generalization: object(l?.generalization), regression_eval_ref: str(l?.regression_eval_ref, 500) || null, candidate_change: object(l?.candidate_change) })).filter((l) => l.statement) : [];
   const tool_requests = normalizeToolRequests(obj.tool_requests, toolPolicy, autonomyLevel, priorToolContext);
   const outputResult = enforceTelegramAgentTruth(object(obj.output), activated_agents);
+  const telegramTruthGuard = {
+    ...outputResult.guard,
+    activation_recovered_from_posts: activation.recovered_count,
+    recovered_agents: activation.recovered_agents,
+  };
 
   let status = obj.status === 'COMPLETE' ? 'COMPLETE' : obj.status === 'WAITING_TOOLS' ? 'WAITING_TOOLS' : 'BLOCKED';
   if (status === 'WAITING_TOOLS' && tool_requests.length === 0) {
@@ -462,7 +475,7 @@ function normalizeResult(value, capabilityIds, memoryIds, toolPolicy, autonomyLe
   }
   if (status !== 'WAITING_TOOLS') tool_requests.length = 0;
 
-  return { status, decision: str(obj.decision, 5000), activated_agents, selected_skills, memory_refs, tool_requests, output: outputResult.output, telegram_truth_guard: outputResult.guard, evidence, assumptions: uniq(obj.assumptions).slice(0, 20), risks: uniq(obj.risks).slice(0, 20), next_action: str(obj.next_action, 3000), incidents, lesson_candidates };
+  return { status, decision: str(obj.decision, 5000), activated_agents, selected_skills, memory_refs, tool_requests, output: outputResult.output, telegram_truth_guard: telegramTruthGuard, evidence, assumptions: uniq(obj.assumptions).slice(0, 20), risks: uniq(obj.risks).slice(0, 20), next_action: str(obj.next_action, 3000), incidents, lesson_candidates };
 }
 
 function enforceTelegramAgentTruth(output, activatedAgents) {
