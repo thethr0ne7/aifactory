@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "classification": "PATTERN",
+  "policy": "pattern-only-until-audited",
+  "reviewedAt": "2026-08-18",
+  "purpose": "Track selectively adapted OpenAI orchestration, agent-runtime and evaluation patterns without importing upstream code as Factory authority.",
+  "sources": [
+    {
+      "repository": "https://github.com/openai/symphony",
+      "artifacts": ["README.md", "SPEC.md"],
+      "observedBlobShas": [
+        "e0f24a048407bb6a9524d6560c2e0070a392a4ce",
+        "cd24131a1e2358cbfecc4f6efb028fc9fc6edefc"
+      ],
+      "adaptedPatterns": [
+        "repo-owned workflow contract",
+        "separation of policy/coordination/execution/integration/observability",
+        "bounded concurrency",
+        "durable retry and reconciliation",
+        "per-work-item isolation"
+      ],
+      "notImported": ["reference implementation", "Linear-specific integration", "unbounded autonomous landing"]
+    },
+    {
+      "repository": "https://github.com/openai/openai-agents-python",
+      "artifacts": ["README.md"],
+      "observedBlobShas": ["53b111f2de4db094e0a9d409c94f9f84bf631538"],
+      "adaptedPatterns": [
+        "agents with explicit tools and guardrails",
+        "handoff as bounded delegation",
+        "session-aware execution",
+        "tracing and human-in-the-loop boundaries"
+      ],
+      "notImported": ["SDK dependency in hosted worker", "provider abstraction rewrite"]
+    },
+    {
+      "repository": "https://github.com/openai/evals",
+      "artifacts": ["README.md"],
+      "observedBlobShas": ["b6d57c76ee5b1361834b415ffbb63bb9c5f3ff68"],
+      "adaptedPatterns": [
+        "explicit regression evals",
+        "deterministic gates before model-graded judgment",
+        "private task-specific evaluation"
+      ],
+      "notImported": ["registry datasets", "Git LFS evaluation corpus"]
+    }
+  ],
+  "promotionRule": "No upstream wording or implementation becomes an INVARIANT or POLICY without local evidence, regression coverage and explicit Factory review."
+}
