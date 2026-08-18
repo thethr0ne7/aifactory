@@ -19,7 +19,7 @@ on:
         type: choice
         options: [A0, A1, A2, A3, A4, A5, A6, A7]
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '3/5 * * * *'
     - cron: '17 2 * * *'
   push:
     branches: [main]
