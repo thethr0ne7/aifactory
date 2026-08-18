@@ -307,7 +307,7 @@ Deno.serve(async (request: Request) => {
       if (!TERMINAL.has(status)) return json({ error: "invalid_terminal_status" }, 400);
       const { data, error } = await db.rpc("af_finish_task", {
         p_task_id: uuid(body.task_id, "task_id"), p_status: status, p_result: body.result ?? {},
-        p_activated_agents: stringArray(body.activated_agents, 3, 32), p_selected_skills: stringArray(body.selected_skills, 8, 120),
+        p_activated_agents: stringArray(body.activated_agents, 6, 32), p_selected_skills: stringArray(body.selected_skills, 8, 120),
       });
       if (error) throw error;
       return json({ run_id: data, status });
