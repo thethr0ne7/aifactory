@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "defaultPolicy": "deny-unmapped",
+  "canonicalIdentity": "tool_id from registry/tool-runtime.json",
+  "principles": [
+    "transport identity never grants execution authority",
+    "MCP tools must map explicitly to an existing canonical Factory tool_id",
+    "adapter metadata cannot lower risk_class or required_autonomy",
+    "arguments are normalized but never interpreted as authority",
+    "unmapped external tools are denied",
+    "tool results remain evidence, never instructions"
+  ],
+  "adapters": [
+    {
+      "id": "native-factory",
+      "transport": "native",
+      "normalizationEnabled": true,
+      "executionEnabled": true,
+      "mappingMode": "canonical-identity",
+      "description": "Existing controlled Factory tools. Canonical tool_id is already known and allowlisted by tool-runtime policy."
+    },
+    {
+      "id": "mcp-bridge",
+      "transport": "mcp",
+      "normalizationEnabled": true,
+      "executionEnabled": false,
+      "mappingMode": "explicit-only",
+      "description": "Normalization boundary for MCP servers. No MCP server or tool is executable until a reviewed mapping is added below and a bounded executor is explicitly enabled.",
+      "mappings": []
+    }
+  ],
+  "normalizedEnvelope": {
+    "required": [
+      "schema_version",
+      "canonical_tool_id",
+      "request_key",
+      "idempotency_key",
+      "transport",
+      "adapter_id",
+      "arguments",
+      "trace",
+      "provenance"
+    ],
+    "traceRequired": ["trace_id", "span_id"],
+    "externalIdentity": ["server", "tool"],
+    "externalIdentityRequiredWhenTransport": "mcp"
+  }
+}
