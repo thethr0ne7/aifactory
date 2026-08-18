@@ -17,7 +17,7 @@ Telegram HQ ingress/delivery, Supabase durable runtime, GitHub Actions workers/t
 9. Normal `WAITING_TOOLS -> QUEUED` continuation previously consumed task attempt budget and could strand a task at `attempts=max_attempts`. Continuation is now retry-budget neutral and stranded continuations are reconciled with durable evidence.
 10. Recent Telegram processing was observed on push-triggered GitHub Actions runs rather than prompt event-driven wakeups. The worker schedule is normalized to `*/5`, but true chat-like latency still requires an authenticated event-driven wake mechanism from Telegram/Supabase to the hosted worker.
 11. Unresolved FORBIDDEN/CATASTROPHIC incidents are always injected into executable memory. This protects anti-regression behavior but currently adds substantial governance context even to casual Telegram messages; it is a relevance/latency-quality debt, not the main queue-delay cause.
-12. Production Supabase had moved ahead of GitHub main. Migrations and orchestration contracts in this repair branch restore the repository as the intended source of truth.
+12. Production Supabase moved ahead of GitHub `main` during the repair sequence. The migrations and contracts in this branch restore repository/database alignment when merged.
 
 ## Latency evidence observed during audit
 
