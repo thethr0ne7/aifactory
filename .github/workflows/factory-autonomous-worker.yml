@@ -1,5 +1,4 @@
 name: AI Factory autonomous worker
-# manual wake-up: 2026-08-18T00:31Z
 
 on:
   workflow_dispatch:
