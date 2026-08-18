@@ -13,7 +13,7 @@
     "researchGrade": ["INPUT", "QUALIFY", "SPEC_LOCK", "STRATEGY_SEARCH", "CANDIDATE_GENERATION", "EVIDENCE_CHECK", "CONTRADICTION_SCAN", "RISK_MAP", "DRAFT", "REVIEW", "SHIP", "TRACEBACK"],
     "autonomous": ["QUEUE", "QUALIFY", "ROUTE", "PRELOAD_CRITICAL_MEMORY", "WORK", "LOAD_MEMORY", "VALIDATE", "REPAIR", "LEARN", "COMPLETE"],
     "controlledSelfImprovement": ["INCIDENT", "REGRESSION_EVAL", "PATCH_CANDIDATE", "BASELINE_VS_CANDIDATE", "A4_LOW_RISK_PROMOTION", "OBSERVE", "ROLLBACK_OR_RETAIN"],
-    "controlledTools": ["REQUEST_TOOL", "DEDUPLICATE", "WAITING_TOOLS", "CLAIM_TOOL", "EXECUTE_ALLOWLISTED", "RECORD_RESULT", "REQUEUE", "CONTINUE"],
+    "controlledTools": ["REQUEST_TOOL", "NORMALIZE", "TRACE", "DEDUPLICATE", "WAITING_TOOLS", "CLAIM_TOOL", "EXECUTE_ALLOWLISTED", "RECORD_RESULT", "REQUEUE", "CONTINUE"],
     "maintenance": ["LOAD_CRITICAL_MEMORY", "CONSIDER_FULL_SKILL_CATALOG", "REPRODUCE", "ROOT_CAUSE", "REPAIR", "REGRESSION_EVAL", "RECORD_INCIDENT", "LEARN", "SELF_CHECK"]
   },
   "coreContours": [
@@ -31,6 +31,8 @@
     "controlled-self-improvement",
     "incident-lesson-provenance-linkage",
     "controlled-tool-runtime",
+    "normalized-tool-adapters",
+    "trace-correlated-observability",
     "reliability-kernel",
     "critical-incident-memory",
     "factory-maintenance-crew",
@@ -62,6 +64,7 @@
     "executableMemory": "registry/executable-memory.json",
     "controlledSelfImprovement": "registry/self-improvement.json",
     "toolRuntime": "registry/tool-runtime.json",
+    "toolAdapters": "registry/tool-adapters.json",
     "maintenanceCrew": "registry/maintenance-agents.json",
     "orchestrationWorkflow": "registry/workflow-contract.json",
     "runtimeTruthGate": "runtime/truth-gate.mjs",
@@ -77,6 +80,10 @@
   "orchestrationWorkflow": "WORKFLOW.md",
   "workflowContract": "registry/workflow-contract.json",
   "runtimeTruthGate": "runtime/truth-gate.mjs",
+  "toolEnvelopeRuntime": "runtime/tool-envelope.mjs",
+  "toolAdapterRegistry": "registry/tool-adapters.json",
+  "traceTimelineView": "public.af_trace_timeline",
+  "runObservabilityView": "public.af_run_observability",
   "executableMemoryRuntime": "runtime/executable-memory.mjs",
   "structuredOutputRuntime": "runtime/structured-output.mjs",
   "selfImprovementRuntime": "runtime/self-improvement.mjs",
@@ -97,6 +104,7 @@
   "architecture": "docs/ARCHITECTURE.md",
   "autonomousRuntimeArchitecture": "docs/AUTONOMOUS-RUNTIME.md",
   "toolRuntimeArchitecture": "docs/TOOL-RUNTIME.md",
+  "toolNormalizationArchitecture": "docs/TOOL-NORMALIZATION-AND-TRACING.md",
   "runtimePersistenceReference": "infra/supabase/migrations/20260815_240_autonomous_runtime.sql",
   "hostedRuntimePersistence": "infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql",
   "selfImprovementPersistence": "infra/supabase/migrations/20260815_250_controlled_self_improvement.sql",
@@ -106,5 +114,6 @@
   "reliabilityMemoryPersistence": "infra/supabase/migrations/20260817_270_reliability_memory_repairs.sql",
   "toolFailureMemoryPersistence": "infra/supabase/migrations/20260817_271_tool_failure_memory.sql",
   "telegramAgentTruthGuardPersistence": "infra/supabase/migrations/20260818_281_telegram_agent_truth_guard.sql",
-  "runtimeTruthGatePersistence": "infra/supabase/migrations/20260818_282_runtime_truth_gate.sql"
+  "runtimeTruthGatePersistence": "infra/supabase/migrations/20260818_283_runtime_truth_gate.sql",
+  "toolTraceObservabilityPersistence": "infra/supabase/migrations/20260818_284_tool_trace_observability.sql"
 }
