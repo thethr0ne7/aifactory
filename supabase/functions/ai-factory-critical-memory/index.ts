@@ -14,6 +14,19 @@ type GitHubClaims = JWTPayload & {
   actor?: string;
 };
 
+type IncidentCluster = {
+  fingerprint?: string;
+  canonical_incident_id?: string;
+  severity?: string;
+  status?: string;
+  occurrence_count?: number;
+  first_seen_at?: string;
+  last_seen_at?: string;
+  last_summary?: string;
+  affected_invariants?: string[];
+  metadata?: Record<string, unknown>;
+};
+
 const SUPABASE_URL = mustEnv("SUPABASE_URL");
 const db = createClient(SUPABASE_URL, adminKey(), { auth: { persistSession: false, autoRefreshToken: false } });
 const ISSUER = "https://token.actions.githubusercontent.com";
@@ -31,24 +44,64 @@ Deno.serve(async (request: Request) => {
     const body = await safeJson(request);
     const limit = Math.max(1, Math.min(Number(body?.limit) || 50, 100));
 
-    const { data, error } = await db.from("af_incidents")
-      .select("id,run_id,task_id,severity,status,summary,root_cause,affected_invariants,negative_action_id,regression_eval_ref,fingerprint,occurrence_count,last_seen_at,created_at,resolved_at")
+    const { data: clusterRows, error: clusterError } = await db.from("af_incident_clusters")
+      .select("fingerprint,canonical_incident_id,severity,status,occurrence_count,first_seen_at,last_seen_at,last_summary,affected_invariants,metadata")
       .in("severity", ["FORBIDDEN", "CATASTROPHIC"])
       .in("status", ["OPEN", "REPAIRING", "BLOCKED"])
-      .order("created_at", { ascending: false })
+      .order("last_seen_at", { ascending: false })
       .limit(limit);
-    if (error) throw error;
+    if (clusterError) throw clusterError;
+
+    const clusters = (clusterRows ?? []) as IncidentCluster[];
+    const canonicalIds = [...new Set(clusters.map((row) => row.canonical_incident_id).filter(Boolean))] as string[];
+    let incidentRows: any[] = [];
+    if (canonicalIds.length) {
+      const { data, error } = await db.from("af_incidents")
+        .select("id,run_id,task_id,severity,status,summary,root_cause,affected_invariants,negative_action_id,regression_eval_ref,fingerprint,occurrence_count,last_seen_at,created_at,resolved_at")
+        .in("id", canonicalIds);
+      if (error) throw error;
+      incidentRows = data ?? [];
+    }
+
+    const byId = new Map(incidentRows.map((row) => [String(row.id), row]));
+    const critical = clusters.map((cluster) => {
+      const canonical = cluster.canonical_incident_id ? byId.get(String(cluster.canonical_incident_id)) : null;
+      return {
+        ...(canonical ?? {}),
+        id: canonical?.id ?? cluster.canonical_incident_id ?? null,
+        severity: cluster.severity ?? canonical?.severity ?? "FORBIDDEN",
+        status: cluster.status ?? canonical?.status ?? "OPEN",
+        summary: cluster.last_summary ?? canonical?.summary ?? "Canonical critical incident cluster",
+        affected_invariants: cluster.affected_invariants ?? canonical?.affected_invariants ?? [],
+        fingerprint: cluster.fingerprint ?? canonical?.fingerprint ?? null,
+        occurrence_count: Number(cluster.occurrence_count || canonical?.occurrence_count || 1),
+        last_seen_at: cluster.last_seen_at ?? canonical?.last_seen_at ?? null,
+        cluster: {
+          canonical: true,
+          fingerprint: cluster.fingerprint ?? null,
+          canonical_incident_id: cluster.canonical_incident_id ?? null,
+          occurrence_count: Number(cluster.occurrence_count || 1),
+          first_seen_at: cluster.first_seen_at ?? null,
+          last_seen_at: cluster.last_seen_at ?? null,
+          metadata: cluster.metadata ?? {},
+        },
+      };
+    });
 
     return json({
-      critical_incidents: data ?? [],
+      critical_incidents: critical,
       policy: {
         mandatory: true,
         relevance_filtering_allowed: false,
+        application_scope_required: true,
+        unrelated_read_only_block: false,
         current_evidence_wins: true,
         root_of_trust_override: false,
       },
       provenance: {
-        source: "public.af_incidents",
+        source: "public.af_incident_clusters + public.af_incidents",
+        canonical_clusters: true,
+        cluster_count: critical.length,
         repository: claims.repository,
         run_id: claims.run_id,
         run_attempt: claims.run_attempt,
