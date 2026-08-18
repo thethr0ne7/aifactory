@@ -33,7 +33,9 @@
     "controlled-tool-runtime",
     "reliability-kernel",
     "critical-incident-memory",
-    "factory-maintenance-crew"
+    "factory-maintenance-crew",
+    "repo-owned-orchestration-workflow",
+    "terminal-runtime-truth-gate"
   ],
   "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
   "capabilityFamilies": [
@@ -60,7 +62,10 @@
     "executableMemory": "registry/executable-memory.json",
     "controlledSelfImprovement": "registry/self-improvement.json",
     "toolRuntime": "registry/tool-runtime.json",
-    "maintenanceCrew": "registry/maintenance-agents.json"
+    "maintenanceCrew": "registry/maintenance-agents.json",
+    "orchestrationWorkflow": "registry/workflow-contract.json",
+    "runtimeTruthGate": "runtime/truth-gate.mjs",
+    "openAIOrchestrationPatterns": "registry/upstreams/openai-orchestration-patterns.json"
   },
   "registry": "registry/capabilities.json",
   "upstreamAuditRegistry": "registry/upstreams/addyosmani-agent-skills.json",
@@ -69,6 +74,9 @@
   "maintenanceAgentRegistry": "registry/maintenance-agents.json",
   "executiveRuntime": "runtime/executive-team.json",
   "autonomousRuntime": "runtime/autonomous-runtime.json",
+  "orchestrationWorkflow": "WORKFLOW.md",
+  "workflowContract": "registry/workflow-contract.json",
+  "runtimeTruthGate": "runtime/truth-gate.mjs",
   "executableMemoryRuntime": "runtime/executable-memory.mjs",
   "structuredOutputRuntime": "runtime/structured-output.mjs",
   "selfImprovementRuntime": "runtime/self-improvement.mjs",
@@ -96,5 +104,7 @@
   "toolRuntimePersistence": "infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql",
   "toolRuntimeRepeatGuardPersistence": "infra/supabase/migrations/20260815_261_terminal_tool_repeat_guard.sql",
   "reliabilityMemoryPersistence": "infra/supabase/migrations/20260817_270_reliability_memory_repairs.sql",
-  "toolFailureMemoryPersistence": "infra/supabase/migrations/20260817_271_tool_failure_memory.sql"
+  "toolFailureMemoryPersistence": "infra/supabase/migrations/20260817_271_tool_failure_memory.sql",
+  "telegramAgentTruthGuardPersistence": "infra/supabase/migrations/20260818_281_telegram_agent_truth_guard.sql",
+  "runtimeTruthGatePersistence": "infra/supabase/migrations/20260818_282_runtime_truth_gate.sql"
 }
