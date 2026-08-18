@@ -12,6 +12,16 @@ AI Factory HQ turns one private Telegram forum group into a bounded control room
 - A delivery sweep posts terminal results back to the same Telegram topic.
 - A Telegram outage does not erase the Factory result: unsent posts remain in the durable ledger and resume from `delivered_post_count`.
 
+## Truth boundary
+
+Telegram output is subject to layered checks:
+
+1. The hosted worker normalizes agent attribution against the real activated-agent set.
+2. The terminal runtime Truth Gate (`af_apply_runtime_truth_gate`) sanitizes `output.telegram_posts` before the task, run and terminal event are persisted.
+3. The `trg_af_runs_telegram_agent_truth` trigger repeats the author check on `af_runs` as defense in depth.
+
+A Telegram post is deliverable only when its `agent` is present in the same run's `activated_agents`. Invalid posts are dropped; they are never relabeled as another agent. The runtime Truth Gate also prevents a run from remaining `COMPLETE` while unresolved `BLOCKER` evidence is present.
+
 ## Security
 
 The public repository contains no Telegram owner ID, private group ID, topic IDs or bot token.
@@ -42,10 +52,11 @@ The hosted autonomous worker polls every five minutes for the initial HQ version
 ## Required deployment steps
 
 1. Apply `20260818_280_telegram_factory_hq.sql`.
-2. Seed the private workspace and topic IDs directly in Supabase; do not commit those identifiers.
-3. Set Supabase Edge Function secret `TELEGRAM_BOT_TOKEN`.
-4. Deploy `ai-factory-telegram-hq` with platform JWT verification disabled because it implements two custom authentication paths: Telegram secret header inbound and GitHub OIDC outbound.
-5. Register the Telegram webhook with the derived secret token.
-6. Send a test message in each registered topic and verify the durable path: Telegram update -> `af_telegram_messages` -> `af_runs` -> terminal result -> Telegram delivery.
+2. Apply `20260818_281_telegram_agent_truth_guard.sql` and `20260818_282_runtime_truth_gate.sql`.
+3. Seed the private workspace and topic IDs directly in Supabase; do not commit those identifiers.
+4. Set Supabase Edge Function secret `TELEGRAM_BOT_TOKEN`.
+5. Deploy `ai-factory-telegram-hq` with platform JWT verification disabled because it implements two custom authentication paths: Telegram secret header inbound and GitHub OIDC outbound.
+6. Register the Telegram webhook with the derived secret token.
+7. Send a test message in each registered topic and verify the durable path: Telegram update -> `af_telegram_messages` -> `af_runs` -> terminal Truth Gate -> terminal result -> Telegram delivery.
 
-Run `node scripts/validate-telegram-hq.mjs` before merge.
+Run `node scripts/validate-workflow-contract.mjs`, `node scripts/test-runtime-truth-gate.mjs`, `node scripts/validate-telegram-hq.mjs`, and `node scripts/validate-telegram-agent-truth.mjs` before merge.

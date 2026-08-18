@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "workflowFile": "WORKFLOW.md",
+  "mode": "bounded-orchestration",
+  "rootOfTrust": [
+    "AGENTS.md",
+    "registry/factory-constitution.json",
+    "registry/autonomy-levels.json",
+    "registry/negative-actions.json",
+    "registry/evidence-contract.json"
+  ],
+  "stages": [
+    "QUEUE",
+    "QUALIFY",
+    "ROUTE",
+    "PRELOAD_CRITICAL_MEMORY",
+    "WORK",
+    "VALIDATE",
+    "REPAIR",
+    "LEARN",
+    "COMPLETE"
+  ],
+  "pauseStates": ["WAITING_TOOLS"],
+  "terminalStates": ["COMPLETE", "BLOCKED", "FAILED"],
+  "coordination": {
+    "singleDurableRunIdentity": true,
+    "multiAgentDefault": "off",
+    "maxExecutiveAgents": 3,
+    "maxActiveSkillsPerTurn": 8,
+    "workspaceIdentity": "run_id",
+    "retryPolicy": "bounded-exponential-backoff",
+    "reconciliationRequired": true,
+    "cancelWhenIneligible": true
+  },
+  "truthGate": {
+    "runtime": "runtime/truth-gate.mjs",
+    "persistence": "infra/supabase/migrations/20260818_283_runtime_truth_gate.sql",
+    "evidenceContract": "registry/evidence-contract.json",
+    "completeWithBlocker": "BLOCK",
+    "telegramAuthorPolicy": "activated_agents_only",
+    "unauthorizedTelegramPostPolicy": "DROP_AND_RECORD",
+    "structuralRepairPolicy": "DETERMINISTIC_ONLY"
+  },
+  "tools": {
+    "policy": "registry/tool-runtime.json",
+    "adapters": "registry/tool-adapters.json",
+    "normalizedEnvelope": "runtime/tool-envelope.mjs",
+    "workerDirectMutation": false,
+    "candidateRepositoryWrites": "draft_pr_only",
+    "mcpDefault": "deny-unmapped-and-not-executable"
+  },
+  "observability": {
+    "durableRuns": true,
+    "events": true,
+    "checkpoints": true,
+    "incidents": true,
+    "regressionEvals": true,
+    "toolLedger": true,
+    "traceRoot": "run_id",
+    "toolResultParent": "tool_request_span_id",
+    "timelineView": "public.af_trace_timeline",
+    "runSummaryView": "public.af_run_observability",
+    "persistence": "infra/supabase/migrations/20260818_284_tool_trace_observability.sql"
+  }
+}

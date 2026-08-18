@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "factoryVersion": "2.4.0",
   "eventTypes": [
     "RUN_CREATED",
@@ -8,6 +8,14 @@
     "AGENT_ACTIVATED",
     "SKILL_SELECTED",
     "TOOL_CALLED",
+    "TOOL_REQUESTED",
+    "TOOL_CLAIMED",
+    "TOOL_EXECUTED",
+    "TOOL_DENIED",
+    "TOOL_FAILED",
+    "TOOL_BATCH_READY",
+    "TOOL_CONTINUATION_RECONCILED",
+    "WAITING_FOR_TOOLS",
     "EVIDENCE_RECORDED",
     "CHECKPOINT_SAVED",
     "GATE_PASSED",
@@ -24,13 +32,25 @@
     "RUN_COMPLETED",
     "WATCHDOG_RECOVERY"
   ],
-  "requiredFields": ["event_id", "run_id", "event_type", "occurred_at", "source", "evidence_class"],
-  "recommendedFields": ["task_id", "agent_id", "skill_id", "tool", "duration_ms", "cost", "gate", "status", "payload", "provenance"],
+  "requiredFields": ["event_id", "run_id", "trace_id", "span_id", "event_type", "occurred_at", "source", "evidence_class"],
+  "recommendedFields": ["task_id", "tool_request_id", "parent_span_id", "agent_id", "skill_id", "tool", "transport", "adapter_id", "duration_ms", "cost", "gate", "status", "payload", "provenance"],
+  "traceModel": {
+    "root": "run_id",
+    "trace_id": "same UUID as run_id for internal Factory traces",
+    "span_id": "UUID per event/tool request/tool result",
+    "tool_result_parent": "tool request span_id",
+    "externalInterop": "runtime/tool-envelope.mjs can emit W3C traceparent",
+    "views": ["af_trace_timeline", "af_run_observability"]
+  },
   "rules": {
     "appendOnlyMeaning": true,
     "secretRedactionRequired": true,
     "privateChainOfThoughtForbidden": true,
     "productionFailuresFeedRegressionCandidates": true,
-    "telemetryMayNotUpgradeEvidenceClass": true
+    "telemetryMayNotUpgradeEvidenceClass": true,
+    "transportMetadataMayNotGrantAuthority": true,
+    "unmappedMcpToolsMayNotExecute": true,
+    "toolResultMustContinueRequestTrace": true,
+    "toolContinuationMustNotConsumeRetryBudget": true
   }
 }

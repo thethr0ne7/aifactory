@@ -13,58 +13,69 @@ const runId = process.env.GITHUB_RUN_ID || 'local';
 const workerId = `github-actions:tool:${runId}:${process.env.GITHUB_RUN_ATTEMPT || '1'}`;
 const repo = 'thethr0ne7/aifactory';
 const policy = JSON.parse(fs.readFileSync(path.join(root, 'registry/tool-runtime.json'), 'utf8'));
+const maxBatch = Math.max(1, Math.min(Number(process.env.FACTORY_TOOL_BATCH_SIZE) || 6, 8));
 
 if (!process.env.GITHUB_TOKEN) throw new Error('GITHUB_TOKEN is required');
 const oidcToken = await getOidcToken(audience);
 
 await broker('tool_recover', { stale_minutes: Number(policy.executor?.staleClaimMinutes) || 20 });
-const claimed = await broker('tool_claim', { worker_id: workerId });
-if (!claimed.request) {
-  console.log('AI Factory Tool Runtime: queue empty');
-  process.exit(0);
-}
 
-const request = claimed.request;
-console.log(`AI Factory Tool Runtime: claimed request=${request.id} tool=${request.tool_id}`);
+let processed = 0;
+let failed = 0;
+let candidateWriteSeen = false;
 
-let status = 'FAILED';
-let result = {};
-let error = null;
-let evidenceClass = 'OBSERVED';
+while (processed < maxBatch && !candidateWriteSeen) {
+  const claimed = await broker('tool_claim', { worker_id: workerId });
+  if (!claimed.request) break;
 
-try {
-  const decision = validateToolRequest(request, policy, request.requested_autonomy);
-  if (!decision.ok) {
-    status = 'DENIED';
-    evidenceClass = 'BLOCKER';
-    error = { code: decision.code, tool_id: request.tool_id };
-  } else {
-    result = await executeTool(request, decision.spec);
-    if (result?.denied === true) {
+  const request = claimed.request;
+  console.log(`AI Factory Tool Runtime: claimed request=${request.id} tool=${request.tool_id}`);
+
+  let status = 'FAILED';
+  let result = {};
+  let error = null;
+  let evidenceClass = 'OBSERVED';
+
+  try {
+    const decision = validateToolRequest(request, policy, request.requested_autonomy);
+    if (!decision.ok) {
       status = 'DENIED';
       evidenceClass = 'BLOCKER';
-      error = { code: String(result.code || 'TOOL_POLICY_DENIED'), tool_id: request.tool_id };
+      error = { code: decision.code, tool_id: request.tool_id };
     } else {
-      status = 'EXECUTED';
-      evidenceClass = 'CONFIRMED';
+      result = await executeTool(request, decision.spec);
+      if (result?.denied === true) {
+        status = 'DENIED';
+        evidenceClass = 'BLOCKER';
+        error = { code: String(result.code || 'TOOL_POLICY_DENIED'), tool_id: request.tool_id };
+      } else {
+        status = 'EXECUTED';
+        evidenceClass = 'CONFIRMED';
+      }
     }
+  } catch (err) {
+    status = 'FAILED';
+    evidenceClass = 'BLOCKER';
+    error = { code: 'TOOL_EXECUTION_FAILED', message: safeError(err) };
   }
-} catch (err) {
-  status = 'FAILED';
-  evidenceClass = 'BLOCKER';
-  error = { code: 'TOOL_EXECUTION_FAILED', message: safeError(err) };
+
+  await broker('tool_finish', {
+    request_id: request.id,
+    status,
+    result: boundObject(result, 30000),
+    error,
+    evidence_class: evidenceClass,
+  });
+
+  processed += 1;
+  if (status === 'FAILED') failed += 1;
+  candidateWriteSeen = request.tool_id === 'factory.repo.candidate_write';
+  console.log(`AI Factory Tool Runtime: ${status} request=${request.id}`);
 }
 
-await broker('tool_finish', {
-  request_id: request.id,
-  status,
-  result: boundObject(result, 30000),
-  error,
-  evidence_class: evidenceClass,
-});
-
-console.log(`AI Factory Tool Runtime: ${status} request=${request.id}`);
-if (status === 'FAILED') process.exitCode = 1;
+if (processed === 0) console.log('AI Factory Tool Runtime: queue empty');
+else console.log(`AI Factory Tool Runtime: batch complete processed=${processed} failed=${failed} max_batch=${maxBatch}`);
+if (failed > 0) process.exitCode = 1;
 
 async function executeTool(request, spec) {
   const args = object(request.arguments);
@@ -273,7 +284,7 @@ async function broker(action, payload = {}) {
   const response = await fetch(brokerUrl, {
     method: 'POST',
     headers: { Authorization: `Bearer ${oidcToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, ...payload, metadata: { worker_id: workerId, executor: 'controlled-tool-runtime-v1' } }),
+    body: JSON.stringify({ action, ...payload, metadata: { worker_id: workerId, executor: 'controlled-tool-runtime-v2-batch' } }),
   });
   const text = await response.text();
   let body;

@@ -3,7 +3,7 @@ name: AI Factory tool executor
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/5 * * * *'
   push:
     branches: [main]
     paths:
@@ -15,8 +15,7 @@ on:
       - 'scripts/validate-tool-runtime.js'
       - 'supabase/functions/ai-factory-broker/**'
       - 'supabase/functions/ai-factory-fault-sink/**'
-      - 'infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql'
-      - 'infra/supabase/migrations/20260817_271_tool_failure_memory.sql'
+      - 'infra/supabase/migrations/**'
       - '.github/workflows/factory-tool-executor.yml'
 
 permissions:
@@ -35,6 +34,7 @@ jobs:
     env:
       FACTORY_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-broker
       FACTORY_FAULT_SINK_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-fault-sink
+      FACTORY_TOOL_BATCH_SIZE: '6'
     steps:
       - name: Checkout factory
         uses: actions/checkout@v4
@@ -49,7 +49,7 @@ jobs:
       - name: Validate controlled tool runtime
         run: node scripts/validate-tool-runtime.js
 
-      - name: Execute one allowlisted tool request
+      - name: Execute bounded allowlisted tool batch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/tool-executor.mjs
