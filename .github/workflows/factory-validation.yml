@@ -35,6 +35,7 @@ jobs:
           node scripts/test-runtime-truth-gate.mjs
           node scripts/validate-telegram-hq.mjs
           node scripts/validate-telegram-agent-truth.mjs
+          node scripts/validate-telegram-context-memory.mjs
           node --test evals/runtime/telegram-agent-activation-reconciliation.test.mjs
           node --test evals/runtime/tool-envelope.test.mjs
           node --test evals/runtime/agent-runtime-kernel.test.mjs
