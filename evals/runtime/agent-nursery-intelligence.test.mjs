@@ -77,9 +77,11 @@ test('A4 nursery candidate and missing dimensions are rejected for repair', () =
   const candidate = normalizeAgentCandidate({
     candidate_id: 'candidate-a4', generation: 1, role: 'ops', autonomy_level: 'A4', provenance: { source: 'test' },
   });
+  const incompleteDimensions = { ...requiredDimensions };
+  delete incompleteDimensions.truthfulness;
   const decision = assessPromotion(candidate, {
     baseline_ref: 'baseline', regression_suite_ref: 'suite', regression_passed: true,
-    dimensions: { ...requiredDimensions, truthfulness: undefined },
+    dimensions: incompleteDimensions,
   });
   assert.equal(decision.decision, 'REJECT_OR_REPAIR');
   assert.ok(decision.failures.some((x) => x.includes('exceeds automatic nursery ceiling A3')));
