@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "purpose": "Audited provenance and adoption boundaries for the agent nursery, evaluation, document-routing, intelligence-sweep, defensive-OSINT and telemetry patterns proposed for AI Factory.",
+  "policy": {
+    "defaultAdoption": "pattern-only-until-audited",
+    "noSecretsInRegistry": true,
+    "noRootOfTrustDelegation": true,
+    "externalSystemsAreEvidenceOrExecutionSurfacesNotAuthority": true
+  },
+  "sources": [
+    {
+      "id": "n8n",
+      "repository": "https://github.com/n8n-io/n8n",
+      "auditedCommit": "8c6d469c1982c4322ee5496a481db6543aec8c9e",
+      "license": "Sustainable Use License with enterprise-only portions",
+      "adoption": "external-runtime-adapter",
+      "factoryRole": "agent nursery orchestration, triggers, approvals and long-running workflow coordination",
+      "mustNot": [
+        "change Root of Trust",
+        "raise its own autonomy ceiling",
+        "disable security/evidence gates",
+        "self-approve promotion to production"
+      ]
+    },
+    {
+      "id": "opik",
+      "repository": "https://github.com/comet-ml/opik",
+      "auditedCommit": "aec1e2f7a210cb750e0d07a7d670ad52e605b24d",
+      "license": "Apache-2.0",
+      "adoption": "external-evaluation-adapter",
+      "factoryRole": "trace sink, experiment/evaluation surface and fitness evidence provider",
+      "mustNot": [
+        "become the source of Factory policy",
+        "promote an agent without Factory gates",
+        "turn evaluator output into MEASURED evidence unless the metric provenance is present"
+      ]
+    },
+    {
+      "id": "firecrawl-pdf-inspector",
+      "repository": "https://github.com/firecrawl/pdf-inspector",
+      "auditedCommit": "841513d3fb9d4b86fe6d8f531425c7fc08771898",
+      "license": "MIT",
+      "adoption": "core-adapted-pattern",
+      "factoryRole": "PDF preflight and extraction routing before OCR/vision",
+      "mustNot": [
+        "treat classification confidence as document truth",
+        "discard page-level provenance",
+        "use OCR when native extraction is sufficient without a reason"
+      ]
+    },
+    {
+      "id": "crucix",
+      "repository": "https://github.com/calesthio/Crucix",
+      "auditedCommit": "3db7068817e0c815df353fa0f19657c85142789d",
+      "license": "AGPL-3.0",
+      "adoption": "pattern-only",
+      "factoryRole": "parallel multi-source sweep, source-health and temporal-delta pattern for intelligence monitoring",
+      "mustNot": [
+        "copy AGPL implementation into Factory core without an explicit license decision",
+        "promote a single-source alert as confirmed fact",
+        "hide stale/fallback source state"
+      ]
+    },
+    {
+      "id": "blackbird",
+      "repository": "https://github.com/p1ngul1n0/blackbird",
+      "auditedCommit": "b45505080ef51bb3ef52dc29879ee6bef31e5b94",
+      "license": "UNKNOWN_NO_ROOT_LICENSE_FILE_FOUND_IN_AUDIT",
+      "adoption": "restricted-pattern-only",
+      "factoryRole": "defensive OSINT identity discovery pattern across public services",
+      "mustNot": [
+        "be enabled as unrestricted people-search in the general research toolbelt",
+        "be used for stalking, credential discovery or intrusive targeting",
+        "be vendored until license and intended-use review are complete"
+      ]
+    },
+    {
+      "id": "cybermon",
+      "repository": "https://github.com/ZachJW34/cybermon",
+      "auditedCommit": "5f3284477df4fb9944329f988ca2b0d8926759eb",
+      "license": "UNKNOWN_NO_ROOT_LICENSE_FILE_FOUND_IN_AUDIT",
+      "adoption": "ui-pattern-only",
+      "factoryRole": "human-readable runtime telemetry dashboard pattern",
+      "observedDependency": "LibreHardwareMonitor HTTP data.json endpoint",
+      "mustNot": [
+        "expose a local hardware telemetry endpoint to the public Internet by default",
+        "treat a dashboard visualization as the telemetry source of truth",
+        "vendor code until license review is complete"
+      ]
+    }
+  ]
+}
