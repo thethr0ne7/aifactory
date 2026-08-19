@@ -38,6 +38,7 @@ jobs:
           node scripts/validate-telegram-context-memory.mjs
           node scripts/validate-agent-nursery-intelligence.mjs
           node scripts/validate-live-n8n-binding.mjs
+          node scripts/validate-n8n-mcp-binding.mjs
           node --test evals/runtime/telegram-agent-activation-reconciliation.test.mjs
           node --test evals/runtime/tool-envelope.test.mjs
           node --test evals/runtime/agent-runtime-kernel.test.mjs
