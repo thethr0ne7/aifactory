@@ -14,7 +14,9 @@
     "autonomous": ["QUEUE", "QUALIFY", "ROUTE", "PRELOAD_CRITICAL_MEMORY", "WORK", "LOAD_MEMORY", "VALIDATE", "REPAIR", "LEARN", "COMPLETE"],
     "controlledSelfImprovement": ["INCIDENT", "REGRESSION_EVAL", "PATCH_CANDIDATE", "BASELINE_VS_CANDIDATE", "A4_LOW_RISK_PROMOTION", "OBSERVE", "ROLLBACK_OR_RETAIN"],
     "controlledTools": ["REQUEST_TOOL", "NORMALIZE", "TRACE", "DEDUPLICATE", "WAITING_TOOLS", "CLAIM_TOOL", "EXECUTE_ALLOWLISTED", "RECORD_RESULT", "REQUEUE", "CONTINUE"],
-    "maintenance": ["LOAD_CRITICAL_MEMORY", "CONSIDER_FULL_SKILL_CATALOG", "REPRODUCE", "ROOT_CAUSE", "REPAIR", "REGRESSION_EVAL", "RECORD_INCIDENT", "LEARN", "SELF_CHECK"]
+    "maintenance": ["LOAD_CRITICAL_MEMORY", "CONSIDER_FULL_SKILL_CATALOG", "REPRODUCE", "ROOT_CAUSE", "REPAIR", "REGRESSION_EVAL", "RECORD_INCIDENT", "LEARN", "SELF_CHECK"],
+    "agentNursery": ["DRAFT", "SPAWN", "TRAIN", "EVALUATE", "BASELINE_COMPARE", "REGRESSION_GATE", "REPAIR_OR_CANDIDATE", "HUMAN_PROMOTION_REVIEW"],
+    "intelligenceSweep": ["SOURCE_SWEEP", "SOURCE_HEALTH", "NORMALIZE", "TEMPORAL_DELTA", "SIGNIFICANCE_ROUTE", "EVIDENCE_CHECK", "ALERT_OR_STOP"]
   },
   "coreContours": [
     "repo-intake-runability",
@@ -41,7 +43,13 @@
     "terminal-runtime-truth-gate",
     "telegram-interactive-priority",
     "terminal-agent-reconciliation",
-    "telegram-thread-context"
+    "telegram-thread-context",
+    "bounded-agent-nursery",
+    "external-evaluation-evidence",
+    "document-extraction-routing",
+    "multi-source-intelligence-sweep",
+    "bounded-defensive-osint",
+    "runtime-telemetry-dashboard"
   ],
   "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
   "capabilityFamilies": [
@@ -72,7 +80,9 @@
     "maintenanceCrew": "registry/maintenance-agents.json",
     "orchestrationWorkflow": "registry/workflow-contract.json",
     "runtimeTruthGate": "runtime/truth-gate.mjs",
-    "openAIOrchestrationPatterns": "registry/upstreams/openai-orchestration-patterns.json"
+    "openAIOrchestrationPatterns": "registry/upstreams/openai-orchestration-patterns.json",
+    "agentNursery": "registry/agent-nursery.json",
+    "agentNurseryUpstreamAudit": "registry/upstreams/agent-nursery-intelligence-pack.json"
   },
   "registry": "registry/capabilities.json",
   "upstreamAuditRegistry": "registry/upstreams/addyosmani-agent-skills.json",
@@ -84,6 +94,9 @@
   "agentActivationRuntime": "runtime/agent-activation.mjs",
   "agentSessionRuntime": "runtime/agent-runtime-kernel.mjs",
   "atomicAgentSidecarAdapter": "runtime/atomic-agent-sidecar-adapter.mjs",
+  "agentNurseryRuntime": "runtime/agent-nursery.mjs",
+  "externalEvaluationAdapters": "runtime/external-eval-adapters.mjs",
+  "intelligenceRoutingRuntime": "runtime/intelligence-routing.mjs",
   "orchestrationWorkflow": "WORKFLOW.md",
   "workflowContract": "registry/workflow-contract.json",
   "runtimeTruthGate": "runtime/truth-gate.mjs",
@@ -112,6 +125,7 @@
   "autonomousRuntimeArchitecture": "docs/AUTONOMOUS-RUNTIME.md",
   "toolRuntimeArchitecture": "docs/TOOL-RUNTIME.md",
   "toolNormalizationArchitecture": "docs/TOOL-NORMALIZATION-AND-TRACING.md",
+  "agentNurseryArchitecture": "docs/AGENT-NURSERY-INTELLIGENCE.md",
   "runtimePersistenceReference": "infra/supabase/migrations/20260815_240_autonomous_runtime.sql",
   "hostedRuntimePersistence": "infra/supabase/migrations/20260815_241_autonomous_runtime_hosted.sql",
   "selfImprovementPersistence": "infra/supabase/migrations/20260815_250_controlled_self_improvement.sql",

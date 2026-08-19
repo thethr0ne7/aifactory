@@ -36,7 +36,9 @@ jobs:
           node scripts/validate-telegram-hq.mjs
           node scripts/validate-telegram-agent-truth.mjs
           node scripts/validate-telegram-context-memory.mjs
+          node scripts/validate-agent-nursery-intelligence.mjs
           node --test evals/runtime/telegram-agent-activation-reconciliation.test.mjs
           node --test evals/runtime/tool-envelope.test.mjs
           node --test evals/runtime/agent-runtime-kernel.test.mjs
           node --test evals/runtime/atomic-agent-sidecar-adapter.test.mjs
+          node --test evals/runtime/agent-nursery-intelligence.test.mjs

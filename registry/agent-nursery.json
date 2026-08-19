@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "mode": "bounded-agent-lifecycle",
+  "purpose": "Allow external orchestration to create, exercise and improve agent candidates while Factory retains promotion authority and Root of Trust.",
+  "states": [
+    "DRAFT",
+    "SPAWNED",
+    "TRAINING",
+    "EVALUATING",
+    "REPAIRING",
+    "CANDIDATE",
+    "PROMOTED",
+    "REJECTED",
+    "QUARANTINED"
+  ],
+  "candidateContract": {
+    "required": [
+      "candidate_id",
+      "generation",
+      "role",
+      "parent_refs",
+      "skills",
+      "tools",
+      "autonomy_level",
+      "mutation_summary",
+      "provenance"
+    ],
+    "maxParents": 4,
+    "maxSkills": 12,
+    "maxTools": 12,
+    "maxAutonomyWithoutOwnerPromotion": "A3",
+    "rootOfTrustMutable": false
+  },
+  "evaluationContract": {
+    "requiredDimensions": [
+      "task_success",
+      "evidence_quality",
+      "truthfulness",
+      "safety_compliance",
+      "tool_discipline",
+      "cost_or_resource_efficiency"
+    ],
+    "optionalDimensions": [
+      "latency",
+      "user_preference",
+      "domain_accuracy",
+      "robustness",
+      "regression_delta"
+    ],
+    "acceptedEvidenceClasses": [
+      "MEASURED",
+      "OBSERVED",
+      "CONFIRMED",
+      "DERIVED"
+    ],
+    "noSingleMetricPromotion": true,
+    "baselineRequired": true,
+    "regressionSuiteRequired": true
+  },
+  "promotionGate": {
+    "ownerOrHigherAuthorityRequiredFor": [
+      "Root of Trust changes",
+      "autonomy above A3",
+      "new production write authority",
+      "new security authority",
+      "new secret scope",
+      "new external data-export scope"
+    ],
+    "automaticPromotionAllowed": false,
+    "mustPass": [
+      "provenance",
+      "baseline-vs-candidate",
+      "regression-suite",
+      "negative-actions",
+      "security-boundary",
+      "evidence-honesty",
+      "rollback-plan"
+    ]
+  },
+  "externalRoles": {
+    "n8n": "orchestrator and nursery workflow surface",
+    "opik": "trace/evaluation evidence surface",
+    "factory": "policy, routing, memory, promotion and production authority"
+  },
+  "hardDenials": [
+    "self-modifying Root of Trust",
+    "self-raised autonomy ceiling",
+    "self-authored evaluation criteria plus self-promotion in one authority boundary",
+    "promotion with missing baseline",
+    "promotion with hidden failed regressions",
+    "unbounded recursive agent spawning",
+    "silent expansion of tool or secret scope"
+  ]
+}
