@@ -49,7 +49,8 @@
     "document-extraction-routing",
     "multi-source-intelligence-sweep",
     "bounded-defensive-osint",
-    "runtime-telemetry-dashboard"
+    "runtime-telemetry-dashboard",
+    "live-n8n-nursery-binding"
   ],
   "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
   "capabilityFamilies": [
@@ -82,7 +83,8 @@
     "runtimeTruthGate": "runtime/truth-gate.mjs",
     "openAIOrchestrationPatterns": "registry/upstreams/openai-orchestration-patterns.json",
     "agentNursery": "registry/agent-nursery.json",
-    "agentNurseryUpstreamAudit": "registry/upstreams/agent-nursery-intelligence-pack.json"
+    "agentNurseryUpstreamAudit": "registry/upstreams/agent-nursery-intelligence-pack.json",
+    "externalRuntimes": "registry/external-runtimes.json"
   },
   "registry": "registry/capabilities.json",
   "upstreamAuditRegistry": "registry/upstreams/addyosmani-agent-skills.json",
@@ -97,6 +99,9 @@
   "agentNurseryRuntime": "runtime/agent-nursery.mjs",
   "externalEvaluationAdapters": "runtime/external-eval-adapters.mjs",
   "intelligenceRoutingRuntime": "runtime/intelligence-routing.mjs",
+  "n8nNurseryWorkflow": "integrations/n8n/workflows/ai-factory-agent-nursery.json",
+  "n8nNurseryDeploymentScript": "scripts/deploy-n8n-agent-nursery.mjs",
+  "n8nNurseryDeploymentWorkflow": ".github/workflows/n8n-agent-nursery-deploy.yml",
   "orchestrationWorkflow": "WORKFLOW.md",
   "workflowContract": "registry/workflow-contract.json",
   "runtimeTruthGate": "runtime/truth-gate.mjs",
