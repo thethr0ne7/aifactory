@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "factoryVersion": "2.4.0",
   "runtimes": [
     {
@@ -8,7 +8,33 @@
       "provider": "n8n-cloud",
       "instanceUrl": "https://thethr0ne7.app.n8n.cloud",
       "apiBasePath": "/api/v1",
-      "status": "URL_BOUND_AUTH_PENDING",
+      "mcpServerUrl": "https://thethr0ne7.app.n8n.cloud/mcp-server/http",
+      "status": "MCP_URL_BOUND_AUTH_PENDING",
+      "transports": {
+        "mcp": {
+          "priority": "primary",
+          "type": "streamable-http",
+          "serverUrl": "https://thethr0ne7.app.n8n.cloud/mcp-server/http",
+          "authentication": {
+            "recommended": "oauth",
+            "nonInteractiveFallback": "bearer-token",
+            "requiredSecretNames": ["N8N_MCP_TOKEN"]
+          },
+          "documentedCapabilities": [
+            "search workflows",
+            "read workflow details",
+            "execute and test exposed workflows",
+            "create and edit workflows when granted by n8n",
+            "publish or unpublish workflows when granted by n8n"
+          ]
+        },
+        "restApi": {
+          "priority": "bootstrap-fallback",
+          "basePath": "/api/v1",
+          "authentication": "X-N8N-API-KEY",
+          "requiredSecretNames": ["N8N_API_KEY"]
+        }
+      },
       "authority": {
         "maxAutonomy": "A3",
         "rootOfTrustMutation": false,
@@ -24,9 +50,11 @@
         "requiredSecretNames": ["N8N_API_KEY"]
       },
       "notes": [
-        "The instance URL is not a secret and is pinned here as deployment configuration.",
-        "The API key must exist only in a secret store; never commit it to this repository.",
-        "The nursery ingress workflow is deployed inactive until webhook authentication and the Factory gateway are explicitly completed and verified."
+        "The instance and MCP URLs are deployment configuration, not secrets.",
+        "MCP is the preferred interactive management surface because n8n exposes workflow discovery, execution and workflow editing through instance-level MCP subject to n8n permissions.",
+        "OAuth is preferred for interactive MCP clients. A bearer access token may be used only from a secret store for non-interactive clients.",
+        "REST API deployment remains a bootstrap fallback until an authenticated MCP client is available to the Factory runtime.",
+        "The nursery ingress workflow must remain unpublished until authentication, scope and end-to-end evidence are verified."
       ]
     }
   ]
