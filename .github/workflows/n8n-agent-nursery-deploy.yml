@@ -2,6 +2,10 @@ name: Deploy n8n agent nursery gateway
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/n8n/deploy-request.json'
 
 permissions:
   contents: read
