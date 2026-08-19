@@ -1,0 +1,35 @@
+name: Configure n8n nursery model
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/configure-n8n-nursery-model.mjs'
+      - '.github/workflows/n8n-nursery-model-config.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  configure:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin model without publishing or executing
+        run: node scripts/configure-n8n-nursery-model.mjs
+      - name: Upload sanitized result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: n8n-nursery-model-config
+          path: artifacts/n8n-nursery-model-config.json
+          if-no-files-found: ignore
+          retention-days: 7
