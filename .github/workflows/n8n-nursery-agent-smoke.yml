@@ -1,0 +1,35 @@
+name: Smoke n8n nursery agent
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/smoke-n8n-nursery-agent.mjs'
+      - '.github/workflows/n8n-nursery-agent-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preview nursery supervisor without external tools
+        run: node scripts/smoke-n8n-nursery-agent.mjs
+      - name: Upload sanitized smoke result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: n8n-nursery-agent-smoke
+          path: artifacts/n8n-nursery-agent-smoke.json
+          if-no-files-found: ignore
+          retention-days: 7
