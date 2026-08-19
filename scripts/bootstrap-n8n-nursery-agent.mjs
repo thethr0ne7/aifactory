@@ -95,7 +95,7 @@ const projectId = personalProjects[0].id;
 
 const agentsPayload = await callTool('search_agents', { projectId, query: agentName, limit: 50 });
 const agents = structured(agentsPayload)?.data || [];
-let existing = agents.find((agent) => agent.name === agentName) || null;
+const existing = agents.find((agent) => agent.name === agentName) || null;
 let createdThisRun = false;
 let agentId = existing?.id || existing?.agentId || null;
 let createResult = null;
@@ -122,7 +122,7 @@ if (!agentId) {
   createdThisRun = true;
 }
 
-let agentSnapshot = structured(await callTool('get_agent', { agentId }));
+const agentSnapshot = structured(await callTool('get_agent', { agentId }));
 let configHash = findKey(agentSnapshot, 'configHash');
 if (!configHash) throw new Error('get_agent returned no configHash for draft agent');
 
@@ -152,7 +152,8 @@ if (createdThisRun) {
 }
 
 const validation = structured(await callTool('validate_agent', { agentId }));
-const validationOk = Boolean(validation?.ok ?? validation?.valid ?? false);
+const validationCallOk = Boolean(validation?.ok ?? false);
+const validationValid = Boolean(validation?.valid ?? false);
 const editorUrl = findKey(validation, 'url') || findKey(createResult, 'url') || null;
 
 const result = {
@@ -163,7 +164,8 @@ const result = {
   agent_id: agentId,
   created_this_run: createdThisRun,
   skill_created_this_run: Boolean(skillResult),
-  validation_ok: validationOk,
+  validation_call_ok: validationCallOk,
+  validation_valid: validationValid,
   validation,
   editor_url: editorUrl,
   publication_attempted: false,
@@ -174,6 +176,6 @@ const result = {
 await fs.mkdir('artifacts', { recursive: true });
 await fs.writeFile('artifacts/n8n-nursery-agent-bootstrap.json', JSON.stringify(result, null, 2) + '\n');
 
-console.log(`N8N_NURSERY_AGENT_BOOTSTRAP_OK agent_id=${agentId} created=${createdThisRun} validation_ok=${validationOk}`);
+console.log(`N8N_NURSERY_AGENT_BOOTSTRAP_OK agent_id=${agentId} created=${createdThisRun} validation_call_ok=${validationCallOk} validation_valid=${validationValid}`);
 if (editorUrl) console.log(`Agent editor: ${editorUrl}`);
-if (!validationOk) console.log('Draft exists but is not runnable yet; inspect validation artifact for exact blockers.');
+if (!validationValid) console.log(`Draft exists but is not runnable yet; missing=${JSON.stringify(validation?.missing || [])}`);
