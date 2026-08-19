@@ -40,6 +40,7 @@ jobs:
           node scripts/validate-live-n8n-binding.mjs
           node scripts/validate-n8n-mcp-binding.mjs
           node scripts/validate-n8n-mcp-live-probe.mjs
+          node scripts/validate-n8n-agent-bootstrap.mjs
           node --test evals/runtime/telegram-agent-activation-reconciliation.test.mjs
           node --test evals/runtime/tool-envelope.test.mjs
           node --test evals/runtime/agent-runtime-kernel.test.mjs
