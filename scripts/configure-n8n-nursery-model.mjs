@@ -68,15 +68,20 @@ async function tool(name, args = {}) {
   return request({ jsonrpc: '2.0', id: id++, method: 'tools/call', params: { name, arguments: args } });
 }
 
-const credentialsPayload = structured(await tool('list_credentials', {
-  projectId,
-  query: targetCredentialName,
-  limit: 50,
-}));
-const credentialRows = Array.isArray(credentialsPayload?.data) ? credentialsPayload.data : [];
-const exactMatches = credentialRows.filter((row) => row?.name === targetCredentialName);
+async function listCredentials(args = {}) {
+  const payload = structured(await tool('list_credentials', { limit: 200, ...args }));
+  return Array.isArray(payload?.data) ? payload.data : [];
+}
+
+const globalRows = await listCredentials({ query: targetCredentialName });
+const projectRows = await listCredentials({ projectId, query: targetCredentialName });
+const allGlobalRows = globalRows.length ? globalRows : await listCredentials({});
+const visibleRows = [...globalRows, ...projectRows, ...allGlobalRows]
+  .filter((row, index, array) => row?.id && array.findIndex((candidate) => candidate?.id === row.id) === index);
+const exactMatches = visibleRows.filter((row) => row?.name === targetCredentialName);
 if (exactMatches.length !== 1) {
-  throw new Error(`Expected exactly one credential named ${targetCredentialName}; found ${exactMatches.length}`);
+  const visibleSummary = visibleRows.map((row) => ({ name: row?.name || null, type: row?.type || null })).slice(0, 30);
+  throw new Error(`Expected exactly one credential named ${targetCredentialName}; found ${exactMatches.length}; visible=${JSON.stringify(visibleSummary)}`);
 }
 const credential = exactMatches[0];
 const credentialId = credential.id;
@@ -86,18 +91,14 @@ if (credentialType && !/openai/i.test(credentialType)) {
   throw new Error(`Credential ${targetCredentialName} has unexpected type ${credentialType}`);
 }
 
-let before = structured(await tool('get_agent', { agentId }));
+const before = structured(await tool('get_agent', { agentId }));
 let configHash = findKey(before, 'configHash');
 if (!configHash) throw new Error('Agent configHash missing');
 const currentModel = findKey(before, 'model') || '';
 const currentCredential = findKey(before, 'credential') || '';
 const patch = [];
-if (currentModel !== targetModel) {
-  patch.push({ op: currentModel ? 'replace' : 'add', path: '/model', value: targetModel });
-}
-if (currentCredential !== credentialId) {
-  patch.push({ op: currentCredential ? 'replace' : 'add', path: '/credential', value: credentialId });
-}
+if (currentModel !== targetModel) patch.push({ op: currentModel ? 'replace' : 'add', path: '/model', value: targetModel });
+if (currentCredential !== credentialId) patch.push({ op: currentCredential ? 'replace' : 'add', path: '/credential', value: credentialId });
 
 let changed = false;
 if (patch.length) {
