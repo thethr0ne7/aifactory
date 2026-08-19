@@ -1,0 +1,35 @@
+name: Deploy n8n agent nursery gateway
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-agent-nursery-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      N8N_INSTANCE_URL: https://thethr0ne7.app.n8n.cloud
+      N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate bounded n8n contract
+        run: |
+          node scripts/validate-agent-nursery-intelligence.mjs
+          node scripts/validate-live-n8n-binding.mjs
+
+      - name: Deploy inactive nursery gateway
+        run: node scripts/deploy-n8n-agent-nursery.mjs
