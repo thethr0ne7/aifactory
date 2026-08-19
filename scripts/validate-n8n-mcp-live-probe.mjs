@@ -8,7 +8,10 @@ const requiredScriptTokens = [
   'https://thethr0ne7.app.n8n.cloud/mcp-server/http',
   "method: 'initialize'",
   "method: 'tools/list'",
-  "name: 'search_workflows'",
+  "callReadOnlyTool('search_workflows'",
+  "callReadOnlyTool('search_projects'",
+  "callReadOnlyTool('search_agents'",
+  "callReadOnlyTool('get_agent_builder_reference'",
   'Read-only live probe',
 ];
 for (const token of requiredScriptTokens) {
@@ -16,11 +19,15 @@ for (const token of requiredScriptTokens) {
 }
 
 const forbiddenCalls = [
-  "name: 'create_workflow'",
-  "name: 'update_workflow'",
-  "name: 'publish_workflow'",
-  "name: 'execute_workflow'",
-  "name: 'delete_workflow'",
+  "callReadOnlyTool('create_workflow",
+  "callReadOnlyTool('update_workflow'",
+  "callReadOnlyTool('publish_workflow'",
+  "callReadOnlyTool('execute_workflow'",
+  "callReadOnlyTool('delete_workflow'",
+  "callReadOnlyTool('create_agent'",
+  "callReadOnlyTool('mutate_agent'",
+  "callReadOnlyTool('publish_agent'",
+  "callReadOnlyTool('call_agent'",
 ];
 for (const token of forbiddenCalls) {
   if (script.includes(token)) throw new Error(`Read-only MCP probe must not call mutating/execution tool: ${token}`);
