@@ -4,8 +4,8 @@ const endpoint = process.env.N8N_MCP_URL || 'https://thethr0ne7.app.n8n.cloud/mc
 const token = process.env.N8N_MCP_TOKEN;
 const agentId = 'tjPdLV47rjFQFHOV';
 const projectId = 'FP3HOvN6NpEDN0PB';
-const targetModel = 'openai/gpt-5.6-sol';
-const preferredCredentialName = 'AI Factory OpenAI';
+const targetModel = 'groq/openai/gpt-oss-120b';
+const preferredCredentialName = 'AI Factory n8n';
 if (!token) throw new Error('N8N_MCP_TOKEN is required');
 
 function parsePayload(text, type = '') {
@@ -62,30 +62,30 @@ let id = 2;
 async function tool(name, args = {}) { return request({ jsonrpc: '2.0', id: id++, method: 'tools/call', params: { name, arguments: args } }); }
 
 async function listCredentials(args = {}) {
-  const payload = structured(await tool('list_credentials', { limit: 200, ...args }));
+  const payload = structured(await tool('list_credentials', { projectId, limit: 200, ...args }));
   return Array.isArray(payload?.data) ? payload.data : [];
 }
 
 const allRows = await listCredentials({});
-const openAiRows = allRows.filter((row) => /openai/i.test(String(row?.type || '')));
-const preferred = openAiRows.filter((row) => row?.name === preferredCredentialName);
+const groqRows = allRows.filter((row) => /groq/i.test(String(row?.type || '')));
+const preferred = groqRows.filter((row) => row?.name === preferredCredentialName);
 let credential = null;
 let selectionRule = null;
 if (preferred.length === 1) {
   credential = preferred[0];
   selectionRule = 'preferred_exact_name';
 } else if (preferred.length > 1) {
-  throw new Error(`Multiple OpenAI credentials named ${preferredCredentialName}; refusing to guess`);
-} else if (openAiRows.length === 1) {
-  credential = openAiRows[0];
-  selectionRule = 'only_accessible_openai_credential';
+  throw new Error(`Multiple Groq credentials named ${preferredCredentialName}; refusing to guess`);
+} else if (groqRows.length === 1) {
+  credential = groqRows[0];
+  selectionRule = 'only_accessible_groq_credential';
 } else {
-  const summary = openAiRows.map((row) => ({ name: row?.name || null, type: row?.type || null }));
-  throw new Error(`Expected one unambiguous OpenAI credential; found ${openAiRows.length}; visible=${JSON.stringify(summary)}`);
+  const summary = allRows.map((row) => ({ name: row?.name || null, type: row?.type || null }));
+  throw new Error(`Expected one unambiguous Groq credential; found ${groqRows.length}; visible=${JSON.stringify(summary)}`);
 }
 
 const credentialId = credential?.id;
-if (!credentialId) throw new Error('Selected OpenAI credential has no id');
+if (!credentialId) throw new Error('Selected Groq credential has no id');
 const credentialName = String(credential?.name || '');
 const credentialType = String(credential?.type || '');
 
