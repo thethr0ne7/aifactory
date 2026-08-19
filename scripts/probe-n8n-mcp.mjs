@@ -136,6 +136,20 @@ const projectSearch = await callReadOnlyTool('search_projects', { limit: 50 });
 const agentSearch = await callReadOnlyTool('search_agents', { limit: 50 });
 const agentBuilderReference = await callReadOnlyTool('get_agent_builder_reference', {});
 
+const projects = projectSearch?.result?.structuredContent?.data || [];
+const projectId = projects.length === 1 ? projects[0].id : null;
+let modelAssets = null;
+let credentialSummary = null;
+if (projectId) {
+  modelAssets = await callReadOnlyTool('discover_agent_assets', { projectId, kind: 'models' });
+  const credentials = await callReadOnlyTool('list_credentials', { projectId, limit: 200 });
+  const rows = credentials?.result?.structuredContent?.data || [];
+  credentialSummary = {
+    count: rows.length,
+    types: [...new Set(rows.map((row) => row.type).filter(Boolean))].sort(),
+  };
+}
+
 const result = {
   checked_at: new Date().toISOString(),
   endpoint,
@@ -149,6 +163,8 @@ const result = {
   project_search: projectSearch,
   agent_search: agentSearch,
   agent_builder_reference: agentBuilderReference,
+  model_assets: modelAssets,
+  credential_summary: credentialSummary,
   authority_note: 'Read-only live probe. No create/edit/publish/execute/delete tool is called.',
 };
 
@@ -157,4 +173,4 @@ await fs.writeFile('artifacts/n8n-mcp-probe.json', JSON.stringify(result, null, 
 
 console.log(`N8N_MCP_AUTH_OK protocol=${protocolVersion} tools=${tools.length} session=${Boolean(sessionId)}`);
 console.log('MCP tools:', tools.map((tool) => tool.name).join(', '));
-console.log('Read-only discovery completed: workflows, projects, agents, agent-builder reference');
+console.log(`Read-only discovery completed: workflows, projects, agents, agent-builder reference, models; credential_count=${credentialSummary?.count ?? 'n/a'}`);
