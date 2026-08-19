@@ -2,7 +2,7 @@ const endpoint = process.env.N8N_MCP_URL || 'https://thethr0ne7.app.n8n.cloud/mc
 const token = process.env.N8N_MCP_TOKEN;
 const agentId = 'tjPdLV47rjFQFHOV';
 if (!token) throw new Error('N8N_MCP_TOKEN is required');
-function parse(t,ct=''){if(ct.includes('text/event-stream')){for(const b of t.split(/\r?\n\r?\n/).reverse()){const s=b.split(/\r?\n/).filter(l=>l.startsWith('data:')).map(l=>l.slice(5).trimStart()).join('\n');if(s)try{return JSON.parse(s)}catch{}}throw new Error('No SSE JSON')}return JSON.parse(t)}
+function parse(t,ct=''){if(!t.trim())return null;if(ct.includes('text/event-stream')){for(const b of t.split(/\r?\n\r?\n/).reverse()){const s=b.split(/\r?\n/).filter(l=>l.startsWith('data:')).map(l=>l.slice(5).trimStart()).join('\n');if(s)try{return JSON.parse(s)}catch{}}throw new Error('No SSE JSON')}return JSON.parse(t)}
 async function req(m){const r=await fetch(endpoint,{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json',accept:'application/json, text/event-stream'},body:JSON.stringify(m)});const p=parse(await r.text(),r.headers.get('content-type')||'');if(!r.ok||p?.error)throw new Error(JSON.stringify(p).slice(0,1000));return p}
 function s(p){return p?.result?.structuredContent||JSON.parse(p?.result?.content?.find?.(x=>x.type==='text')?.text||'null')}
 function find(v,k){if(!v||typeof v!=='object')return null;if(Object.prototype.hasOwnProperty.call(v,k)&&v[k]!=null)return v[k];for(const c of Array.isArray(v)?v:Object.values(v)){const x=find(c,k);if(x!=null)return x}return null}
