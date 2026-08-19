@@ -1,0 +1,58 @@
+name: Bootstrap n8n nursery agent
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/n8n/bootstrap-agent-request.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ops/n8n/bootstrap-agent-request.json'
+      - '.github/workflows/n8n-agent-nursery-bootstrap.yml'
+      - 'scripts/bootstrap-n8n-nursery-agent.mjs'
+      - 'scripts/validate-n8n-agent-bootstrap.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-agent-nursery-bootstrap-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate bounded bootstrap contract
+        run: node scripts/validate-n8n-agent-bootstrap.mjs
+
+      - name: Require same-repository secret context
+        if: github.event_name == 'pull_request'
+        run: |
+          test "${{ github.event.pull_request.head.repo.full_name }}" = "${{ github.repository }}"
+
+      - name: Create or reconcile unpublished nursery supervisor draft
+        run: node scripts/bootstrap-n8n-nursery-agent.mjs
+
+      - name: Upload sanitized bootstrap result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: n8n-nursery-agent-bootstrap
+          path: artifacts/n8n-nursery-agent-bootstrap.json
+          if-no-files-found: ignore
+          retention-days: 7

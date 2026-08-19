@@ -1,0 +1,8 @@
+{
+  "requested_at": "2026-08-20T02:10:00+03:00",
+  "agent_name": "AI Factory Nursery Supervisor",
+  "mode": "draft-only",
+  "publish": false,
+  "preview_execution": false,
+  "purpose": "create the first bounded n8n-native nursery supervisor and attach Factory governance skill"
+}
