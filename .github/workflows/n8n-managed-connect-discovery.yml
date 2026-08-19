@@ -1,0 +1,35 @@
+name: Discover n8n managed AI connection
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/discover-n8n-managed-connect.mjs'
+      - '.github/workflows/n8n-managed-connect-discovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Discover credentials, n8n Connect coverage and model catalogs
+        run: node scripts/discover-n8n-managed-connect.mjs
+      - name: Upload sanitized discovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: n8n-managed-connect-discovery
+          path: artifacts/n8n-managed-connect-discovery.json
+          if-no-files-found: ignore
+          retention-days: 7
