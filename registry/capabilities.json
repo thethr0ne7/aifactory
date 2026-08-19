@@ -39,6 +39,8 @@
     {"id":"autonomous-runtime","family":"autonomous-runtime-and-learning","status":"core","localSkill":"skills/autonomous-runtime/SKILL.md"},
     {"id":"incident-learning","family":"autonomous-runtime-and-learning","status":"core","localSkill":"skills/incident-learning/SKILL.md"},
     {"id":"root-of-trust","family":"autonomous-runtime-and-learning","status":"core","localSkill":"skills/root-of-trust/SKILL.md"},
+    {"id":"agent-nursery","family":"autonomous-runtime-and-learning","status":"core-selective","localSkill":"skills/agent-nursery/SKILL.md","contract":"registry/agent-nursery.json","runtime":"runtime/agent-nursery.mjs","upstreamAudit":"registry/upstreams/agent-nursery-intelligence-pack.json"},
+    {"id":"agent-evaluation","family":"autonomous-runtime-and-learning","status":"core-selective","localSkill":"skills/agent-evaluation/SKILL.md","runtime":"runtime/external-eval-adapters.mjs","source":"https://github.com/comet-ml/opik","upstreamAudit":"registry/upstreams/agent-nursery-intelligence-pack.json"},
 
     {"id":"executive-router","family":"direction","status":"core","localSkill":"skills/executive-router/SKILL.md","implements":["CEO","CFO","COO","CIO","CMO","CRO"]},
     {"id":"context-governor","family":"second-ring","status":"core-adapted","localSkill":"skills/context-governor/SKILL.md","sources":["https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering","https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/context-engineering"]},
@@ -62,6 +64,7 @@
     {"id":"karpathy-engineering-discipline","family":"engineering","status":"core-adapted","localSkill":"skills/karpathy-engineering-discipline/SKILL.md","source":"https://github.com/multica-ai/andrej-karpathy-skills/tree/2c606141936f1eeef17fa3043a72095b4765b9c2"},
     {"id":"debugging-error-recovery","family":"engineering","status":"core-adapted","localSkill":"skills/debugging-error-recovery/SKILL.md","source":"https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/debugging-and-error-recovery"},
     {"id":"observability-discipline","family":"engineering-operations","status":"core-selective","localSkill":"skills/observability-discipline/SKILL.md","source":"https://github.com/addyosmani/agent-skills/tree/df1edb2e05487d0aa6d93c747141e0aed1187f25/skills/observability-and-instrumentation"},
+    {"id":"runtime-telemetry-dashboard","family":"engineering-operations","status":"core-pattern","localSkill":"skills/runtime-telemetry-dashboard/SKILL.md","runtime":"runtime/intelligence-routing.mjs","source":"https://github.com/ZachJW34/cybermon","upstreamAudit":"registry/upstreams/agent-nursery-intelligence-pack.json"},
     {"id":"code-navigation","family":"engineering","status":"core-pattern","localSkill":"skills/code-navigation/SKILL.md","source":"https://github.com/massgen/massgen"},
     {"id":"codebase-knowledge-graph","family":"engineering","status":"core-selective","localSkill":"skills/codebase-knowledge-graph/SKILL.md"},
     {"id":"architecture-review","family":"engineering","status":"core-selective","localSkill":"skills/architecture-review/SKILL.md"},
@@ -76,6 +79,9 @@
     {"id":"source-recovery","family":"research","status":"core-selective","localSkill":"skills/source-recovery/SKILL.md"},
     {"id":"grant-analysis","family":"research","status":"core-selective","localSkill":"skills/grant-analysis/SKILL.md"},
     {"id":"data-validation","family":"research-and-data","status":"core-selective","localSkill":"skills/data-validation/SKILL.md"},
+    {"id":"pdf-routing","family":"research-and-data","status":"core-adapted","localSkill":"skills/pdf-routing/SKILL.md","runtime":"runtime/intelligence-routing.mjs","source":"https://github.com/firecrawl/pdf-inspector","upstreamAudit":"registry/upstreams/agent-nursery-intelligence-pack.json"},
+    {"id":"intelligence-sweep","family":"research","status":"core-pattern","localSkill":"skills/intelligence-sweep/SKILL.md","runtime":"runtime/intelligence-routing.mjs","source":"https://github.com/calesthio/Crucix","upstreamAudit":"registry/upstreams/agent-nursery-intelligence-pack.json"},
+    {"id":"defensive-osint-identity","family":"research-and-security","status":"restricted-pattern","localSkill":"skills/defensive-osint-identity/SKILL.md","runtime":"runtime/intelligence-routing.mjs","source":"https://github.com/p1ngul1n0/blackbird","upstreamAudit":"registry/upstreams/agent-nursery-intelligence-pack.json"},
     {"id":"source-grounded-notebook","family":"research","status":"idea-extract","localSkill":"skills/source-grounded-notebook/SKILL.md","source":"https://github.com/PleasePrompto/notebooklm-skill"},
 
     {"id":"design-dna","family":"design","status":"core-adapted","localSkill":"skills/design-dna/SKILL.md","source":"https://github.com/zanwei/design-dna"},
