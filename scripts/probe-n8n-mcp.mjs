@@ -114,21 +114,27 @@ const toolSummary = tools.map((tool) => ({
   description: tool.description || null,
   inputSchema: tool.inputSchema || null,
 }));
+const toolNames = new Set(tools.map((tool) => tool.name));
 
-let workflowSearch = null;
-const searchTool = tools.find((tool) => tool.name === 'search_workflows');
-if (searchTool) {
-  const searchResponse = await request({
+let nextId = 3;
+async function callReadOnlyTool(name, args = {}) {
+  if (!toolNames.has(name)) return null;
+  const response = await request({
     jsonrpc: '2.0',
-    id: 3,
+    id: nextId++,
     method: 'tools/call',
-    params: {
-      name: 'search_workflows',
-      arguments: { limit: 50, sortBy: 'updatedAt:desc' },
-    },
+    params: { name, arguments: args },
   }, sessionId);
-  workflowSearch = searchResponse.payload;
+  if (response.payload?.error) {
+    throw new Error(`${name} failed: ${JSON.stringify(response.payload.error)}`);
+  }
+  return response.payload;
 }
+
+const workflowSearch = await callReadOnlyTool('search_workflows', { limit: 50, sortBy: 'updatedAt:desc' });
+const projectSearch = await callReadOnlyTool('search_projects', { limit: 50 });
+const agentSearch = await callReadOnlyTool('search_agents', { limit: 50 });
+const agentBuilderReference = await callReadOnlyTool('get_agent_builder_reference', {});
 
 const result = {
   checked_at: new Date().toISOString(),
@@ -140,7 +146,10 @@ const result = {
   session_established: Boolean(sessionId),
   tools: toolSummary,
   workflow_search: workflowSearch,
-  authority_note: 'Read-only live probe. No create/edit/publish/execute tool is called.',
+  project_search: projectSearch,
+  agent_search: agentSearch,
+  agent_builder_reference: agentBuilderReference,
+  authority_note: 'Read-only live probe. No create/edit/publish/execute/delete tool is called.',
 };
 
 await fs.mkdir('artifacts', { recursive: true });
@@ -148,4 +157,4 @@ await fs.writeFile('artifacts/n8n-mcp-probe.json', JSON.stringify(result, null, 
 
 console.log(`N8N_MCP_AUTH_OK protocol=${protocolVersion} tools=${tools.length} session=${Boolean(sessionId)}`);
 console.log('MCP tools:', tools.map((tool) => tool.name).join(', '));
-if (workflowSearch) console.log('search_workflows call completed');
+console.log('Read-only discovery completed: workflows, projects, agents, agent-builder reference');
