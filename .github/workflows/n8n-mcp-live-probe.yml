@@ -1,0 +1,46 @@
+name: Probe n8n MCP connection
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/n8n/mcp-probe-request.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-mcp-live-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate MCP probe contract
+        run: node scripts/validate-n8n-mcp-live-probe.mjs
+
+      - name: Probe authenticated n8n MCP
+        run: node scripts/probe-n8n-mcp.mjs
+
+      - name: Upload sanitized MCP discovery artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: n8n-mcp-probe
+          path: artifacts/n8n-mcp-probe.json
+          if-no-files-found: ignore
+          retention-days: 7
