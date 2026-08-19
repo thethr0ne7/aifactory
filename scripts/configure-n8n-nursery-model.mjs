@@ -5,7 +5,7 @@ const token = process.env.N8N_MCP_TOKEN;
 const agentId = 'tjPdLV47rjFQFHOV';
 const projectId = 'FP3HOvN6NpEDN0PB';
 const targetModel = 'openai/gpt-5.6-sol';
-const targetCredentialName = 'AI Factory OpenAI';
+const preferredCredentialName = 'AI Factory OpenAI';
 if (!token) throw new Error('N8N_MCP_TOKEN is required');
 
 function parsePayload(text, type = '') {
@@ -35,9 +35,7 @@ async function request(message) {
   });
   const text = await response.text();
   const payload = parsePayload(text, response.headers.get('content-type') || '');
-  if (!response.ok || payload?.error) {
-    throw new Error(`MCP failure ${response.status}: ${JSON.stringify(payload).slice(0, 1200)}`);
-  }
+  if (!response.ok || payload?.error) throw new Error(`MCP failure ${response.status}: ${JSON.stringify(payload).slice(0, 1200)}`);
   return payload;
 }
 
@@ -58,38 +56,38 @@ function findKey(value, key) {
   return null;
 }
 
-await request({
-  jsonrpc: '2.0', id: 1, method: 'initialize',
-  params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'ai-factory-nursery-model-config', version: '2.4.0' } },
-});
+await request({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'ai-factory-nursery-model-config', version: '2.4.0' } } });
 await request({ jsonrpc: '2.0', method: 'notifications/initialized' });
 let id = 2;
-async function tool(name, args = {}) {
-  return request({ jsonrpc: '2.0', id: id++, method: 'tools/call', params: { name, arguments: args } });
-}
+async function tool(name, args = {}) { return request({ jsonrpc: '2.0', id: id++, method: 'tools/call', params: { name, arguments: args } }); }
 
 async function listCredentials(args = {}) {
   const payload = structured(await tool('list_credentials', { limit: 200, ...args }));
   return Array.isArray(payload?.data) ? payload.data : [];
 }
 
-const globalRows = await listCredentials({ query: targetCredentialName });
-const projectRows = await listCredentials({ projectId, query: targetCredentialName });
-const allGlobalRows = globalRows.length ? globalRows : await listCredentials({});
-const visibleRows = [...globalRows, ...projectRows, ...allGlobalRows]
-  .filter((row, index, array) => row?.id && array.findIndex((candidate) => candidate?.id === row.id) === index);
-const exactMatches = visibleRows.filter((row) => row?.name === targetCredentialName);
-if (exactMatches.length !== 1) {
-  const visibleSummary = visibleRows.map((row) => ({ name: row?.name || null, type: row?.type || null })).slice(0, 30);
-  throw new Error(`Expected exactly one credential named ${targetCredentialName}; found ${exactMatches.length}; visible=${JSON.stringify(visibleSummary)}`);
+const allRows = await listCredentials({});
+const openAiRows = allRows.filter((row) => /openai/i.test(String(row?.type || '')));
+const preferred = openAiRows.filter((row) => row?.name === preferredCredentialName);
+let credential = null;
+let selectionRule = null;
+if (preferred.length === 1) {
+  credential = preferred[0];
+  selectionRule = 'preferred_exact_name';
+} else if (preferred.length > 1) {
+  throw new Error(`Multiple OpenAI credentials named ${preferredCredentialName}; refusing to guess`);
+} else if (openAiRows.length === 1) {
+  credential = openAiRows[0];
+  selectionRule = 'only_accessible_openai_credential';
+} else {
+  const summary = openAiRows.map((row) => ({ name: row?.name || null, type: row?.type || null }));
+  throw new Error(`Expected one unambiguous OpenAI credential; found ${openAiRows.length}; visible=${JSON.stringify(summary)}`);
 }
-const credential = exactMatches[0];
-const credentialId = credential.id;
-if (!credentialId) throw new Error('Matched OpenAI credential has no id');
-const credentialType = String(credential.type || '');
-if (credentialType && !/openai/i.test(credentialType)) {
-  throw new Error(`Credential ${targetCredentialName} has unexpected type ${credentialType}`);
-}
+
+const credentialId = credential?.id;
+if (!credentialId) throw new Error('Selected OpenAI credential has no id');
+const credentialName = String(credential?.name || '');
+const credentialType = String(credential?.type || '');
 
 const before = structured(await tool('get_agent', { agentId }));
 let configHash = findKey(before, 'configHash');
@@ -102,11 +100,7 @@ if (currentCredential !== credentialId) patch.push({ op: currentCredential ? 're
 
 let changed = false;
 if (patch.length) {
-  const mutation = structured(await tool('mutate_agent', {
-    agentId,
-    baseConfigHash: configHash,
-    operation: { type: 'config.patch', patch },
-  }));
+  const mutation = structured(await tool('mutate_agent', { agentId, baseConfigHash: configHash, operation: { type: 'config.patch', patch } }));
   configHash = findKey(mutation, 'configHash') || configHash;
   changed = true;
 }
@@ -116,8 +110,9 @@ const result = {
   checked_at: new Date().toISOString(),
   agent_id: agentId,
   target_model: targetModel,
-  credential_name: targetCredentialName,
+  credential_name: credentialName,
   credential_type: credentialType || null,
+  credential_selection_rule: selectionRule,
   credential_found: true,
   credential_bound: true,
   changed,
@@ -126,8 +121,8 @@ const result = {
   missing: Array.isArray(validation?.missing) ? validation.missing : [],
   publication_attempted: false,
   execution_attempted: false,
-  note: 'Exact-name credential binding only. Secret values are never read, logged, copied, or persisted. Agent remains unpublished.',
+  note: 'Credential metadata only. Secret values are never read, logged, copied, or persisted. Agent remains unpublished.',
 };
 await fs.mkdir('artifacts', { recursive: true });
 await fs.writeFile('artifacts/n8n-nursery-model-config.json', JSON.stringify(result, null, 2) + '\n');
-console.log(`N8N_NURSERY_MODEL_CONFIG_OK model=${targetModel} credential=${targetCredentialName} changed=${changed} valid=${result.validation_valid} missing=${JSON.stringify(result.missing)}`);
+console.log(`N8N_NURSERY_MODEL_CONFIG_OK model=${targetModel} credential=${credentialName} rule=${selectionRule} changed=${changed} valid=${result.validation_valid} missing=${JSON.stringify(result.missing)}`);
