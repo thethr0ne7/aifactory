@@ -1,0 +1,58 @@
+{
+  "name": "AI Factory Agent Nursery Gateway",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-factory-agent-nursery",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "factory-nursery-webhook",
+      "name": "Nursery Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-320, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allowed = new Set(['spawn_candidate','start_training','submit_evaluation','request_repair','quarantine_candidate','request_promotion_review']);\nconst body = $json.body && typeof $json.body === 'object' ? $json.body : $json;\nconst action = String(body.action || '');\nif (!allowed.has(action)) {\n  return [{ json: { accepted: false, status: 'BLOCKED', reason: 'unmapped nursery action', action } }];\n}\nconst requestedAutonomy = String(body.autonomy_level || 'A3');\nif (!/^A[0-3]$/.test(requestedAutonomy)) {\n  return [{ json: { accepted: false, status: 'BLOCKED', reason: 'nursery autonomy exceeds A3 ceiling', action, requested_autonomy: requestedAutonomy } }];\n}\nreturn [{ json: { accepted: true, status: 'ACCEPTED_FOR_FACTORY_GATE', action, candidate_ref: body.candidate_ref || null, autonomy_level: requestedAutonomy, payload: body.payload && typeof body.payload === 'object' ? body.payload : {}, authority: { root_of_trust_mutation: false, self_promotion: false, production_write_authority: false } } }];"
+      },
+      "id": "factory-nursery-boundary",
+      "name": "Bounded Nursery Boundary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-40, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "factory-nursery-response",
+      "name": "Nursery Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Nursery Webhook": {
+      "main": [[{"node": "Bounded Nursery Boundary", "type": "main", "index": 0}]]
+    },
+    "Bounded Nursery Boundary": {
+      "main": [[{"node": "Nursery Response", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "factoryContract": "registry/agent-nursery.json",
+    "deploymentState": "INACTIVE_UNTIL_AUTH_AND_GATEWAY_VERIFIED",
+    "authorityBoundary": "n8n may orchestrate candidate lifecycle but may not promote to production or mutate Root of Trust"
+  },
+  "tags": []
+}
