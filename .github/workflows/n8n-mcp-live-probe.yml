@@ -6,12 +6,19 @@ on:
     branches: [main]
     paths:
       - 'ops/n8n/mcp-probe-request.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ops/n8n/mcp-probe-request.json'
+      - '.github/workflows/n8n-mcp-live-probe.yml'
+      - 'scripts/probe-n8n-mcp.mjs'
+      - 'scripts/validate-n8n-mcp-live-probe.mjs'
 
 permissions:
   contents: read
 
 concurrency:
-  group: n8n-mcp-live-probe
+  group: n8n-mcp-live-probe-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -32,6 +39,11 @@ jobs:
 
       - name: Validate MCP probe contract
         run: node scripts/validate-n8n-mcp-live-probe.mjs
+
+      - name: Require same-repository secret context
+        if: github.event_name == 'pull_request'
+        run: |
+          test "${{ github.event.pull_request.head.repo.full_name }}" = "${{ github.repository }}"
 
       - name: Probe authenticated n8n MCP
         run: node scripts/probe-n8n-mcp.mjs
