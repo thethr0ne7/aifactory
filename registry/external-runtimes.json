@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "runtimes": [
+    {
+      "id": "n8n-agent-nursery",
+      "kind": "workflow-orchestrator",
+      "provider": "n8n-cloud",
+      "instanceUrl": "https://thethr0ne7.app.n8n.cloud",
+      "apiBasePath": "/api/v1",
+      "status": "URL_BOUND_AUTH_PENDING",
+      "authority": {
+        "maxAutonomy": "A3",
+        "rootOfTrustMutation": false,
+        "selfPromotion": false,
+        "productionWriteAuthority": false,
+        "secretScopeExpansion": false
+      },
+      "deployment": {
+        "workflowSource": "integrations/n8n/workflows/ai-factory-agent-nursery.json",
+        "deploymentScript": "scripts/deploy-n8n-agent-nursery.mjs",
+        "githubWorkflow": ".github/workflows/n8n-agent-nursery-deploy.yml",
+        "activateAutomatically": false,
+        "requiredSecretNames": ["N8N_API_KEY"]
+      },
+      "notes": [
+        "The instance URL is not a secret and is pinned here as deployment configuration.",
+        "The API key must exist only in a secret store; never commit it to this repository.",
+        "The nursery ingress workflow is deployed inactive until webhook authentication and the Factory gateway are explicitly completed and verified."
+      ]
+    }
+  ]
+}
