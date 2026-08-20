@@ -1,0 +1,64 @@
+name: Visible Agent Organization
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'registry/agent-organization.json'
+      - 'scripts/agent-organization-worker.mjs'
+      - 'scripts/validate-agent-organization.mjs'
+      - 'infra/supabase/migrations/20260820_343_visible_agent_organization.sql'
+      - 'supabase/functions/ai-factory-agent-org/**'
+      - 'supabase/functions/ai-factory-telegram-hq/**'
+      - '.github/workflows/agent-organization.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'registry/agent-organization.json'
+      - 'scripts/agent-organization-worker.mjs'
+      - 'scripts/validate-agent-organization.mjs'
+      - 'infra/supabase/migrations/20260820_343_visible_agent_organization.sql'
+      - 'supabase/functions/ai-factory-agent-org/**'
+      - 'supabase/functions/ai-factory-telegram-hq/**'
+      - '.github/workflows/agent-organization.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ai-factory-visible-agent-organization
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate visible-agent organization contracts
+        run: node scripts/validate-agent-organization.mjs
+
+  execute:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+      N8N_PROJECT_ID: FP3HOvN6NpEDN0PB
+      FACTORY_AGENT_ORG_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-agent-org
+      FACTORY_TELEGRAM_HQ_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-telegram-hq
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run bounded visible-agent workroom turn
+        run: node scripts/agent-organization-worker.mjs
