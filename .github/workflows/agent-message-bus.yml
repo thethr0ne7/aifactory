@@ -31,6 +31,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  statuses: write
 
 concurrency:
   group: ai-factory-message-bus
@@ -78,6 +79,28 @@ jobs:
       - name: Verify Research→Evidence→Build→Audit→Birth acceptance
         if: github.event_name == 'pull_request'
         run: node scripts/verify-synergy-birth.mjs
+      - name: Mark Message Bus healthy
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d '{"state":"success","context":"ai-factory/message-bus","description":"AF-HANDOFF Message Bus completed bounded turn"}'
+      - name: Mark Message Bus failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d '{"state":"failure","context":"ai-factory/message-bus","description":"AF-HANDOFF Message Bus turn failed; inspect Actions"}'
       - name: Upload sanitized synergy evidence
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
