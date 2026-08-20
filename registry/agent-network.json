@@ -45,6 +45,39 @@
       "skills": ["evidence-discipline-g1"],
       "tools": [],
       "mission": "Separate supported facts, assumptions and unknowns; deny authority escalation; produce bounded evidence-labelled answers."
+    },
+    {
+      "candidateId": "research-scout-g1",
+      "name": "AI Factory Research Scout G1",
+      "generation": 1,
+      "role": "research-scout",
+      "parentRefs": ["nursery-supervisor-g0"],
+      "autonomyLevel": "A2",
+      "skills": ["research-discipline-g1"],
+      "tools": [],
+      "mission": "Trace claims to evidence, preserve source quality and freshness uncertainty, and refuse fabricated sourcing."
+    },
+    {
+      "candidateId": "builder-apprentice-g1",
+      "name": "AI Factory Builder Apprentice G1",
+      "generation": 1,
+      "role": "builder-apprentice",
+      "parentRefs": ["nursery-supervisor-g0"],
+      "autonomyLevel": "A2",
+      "skills": ["builder-discipline-g1"],
+      "tools": [],
+      "mission": "Turn bounded specifications into implementation plans without claiming unexecuted work or expanding write authority."
+    },
+    {
+      "candidateId": "auditor-apprentice-g1",
+      "name": "AI Factory Auditor Apprentice G1",
+      "generation": 1,
+      "role": "auditor-apprentice",
+      "parentRefs": ["nursery-supervisor-g0"],
+      "autonomyLevel": "A2",
+      "skills": ["audit-discipline-g1"],
+      "tools": [],
+      "mission": "Detect contradictions and block closure or promotion when required regression, safety, or provenance evidence is missing."
     }
   ],
   "requiredLifecycle": [
@@ -70,5 +103,26 @@
     "relationships": "public.af_agent_relationships",
     "lifecycleEvents": "public.af_agent_lifecycle_events",
     "lineageView": "public.af_agent_lineage"
+  },
+  "promotedMembers": [
+    {
+      "candidateId": "evidence-apprentice-g1",
+      "generation": 1,
+      "promotionAuthority": "owner",
+      "promotionScope": "persistent-network-membership",
+      "productionWriteAuthority": false,
+      "publicationRequired": false,
+      "rollback": "Return to CANDIDATE and deactivate SUBAGENT relationship if post-promotion regression or safety evidence fails."
+    }
+  ],
+  "generationPlan": {
+    "generation1TargetChildren": 4,
+    "generation1Roles": [
+      "evidence-specialist",
+      "research-scout",
+      "builder-apprentice",
+      "auditor-apprentice"
+    ],
+    "generation2Requires": "all Generation 1 candidates evaluated plus owner review before recursive depth expansion"
   }
 }
