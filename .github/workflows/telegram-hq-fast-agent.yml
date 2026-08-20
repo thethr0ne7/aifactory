@@ -1,0 +1,37 @@
+name: Telegram HQ native-agent fast lane
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/telegram-native-agent-worker.mjs'
+      - 'supabase/functions/ai-factory-telegram-agent-broker/**'
+      - 'infra/supabase/migrations/20260820_310_telegram_native_agent_fast_lane.sql'
+      - '.github/workflows/telegram-hq-fast-agent.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ai-factory-telegram-native-agent
+  cancel-in-progress: false
+
+jobs:
+  telegram-native-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+      FACTORY_TELEGRAM_AGENT_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-telegram-agent-broker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Claim high-priority Telegram task and run native n8n Agent network
+        run: node scripts/telegram-native-agent-worker.mjs
