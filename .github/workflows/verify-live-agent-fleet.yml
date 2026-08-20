@@ -1,0 +1,36 @@
+name: Verify live agent fleet
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/verify-20-agent-live-fleet.mjs'
+      - '.github/workflows/verify-live-agent-fleet.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-fleet:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify twenty live operational agents, excluding maintenance automations
+        run: node scripts/verify-20-agent-live-fleet.mjs
+      - name: Upload sanitized fleet evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-agent-fleet
+          path: artifacts/live-agent-fleet.json
+          if-no-files-found: ignore
+          retention-days: 14
