@@ -15,12 +15,31 @@ function parse(text,type=''){if(!text.trim())return null;if(!type.includes('text
 async function mcp(message){let last;for(let attempt=1;attempt<=5;attempt++){const r=await fetch(endpoint,{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json',accept:'application/json, text/event-stream'},body:JSON.stringify(message)});const raw=await r.text();if(r.status===429){last=new Error(`MCP 429 ${raw.slice(0,500)}`);await new Promise(x=>setTimeout(x,Math.min(10000,1000*2**(attempt-1))));continue;}const p=parse(raw,r.headers.get('content-type')||'');if(!r.ok||p?.error)throw new Error(`MCP ${r.status}: ${JSON.stringify(p).slice(0,1200)}`);return p;}throw last||new Error('MCP retry exhausted');}
 function structured(p){if(p?.result?.structuredContent)return p.result.structuredContent;const t=p?.result?.content?.find?.(x=>x?.type==='text')?.text;if(!t)return null;try{return JSON.parse(t);}catch{return{text:t};}}
 function strings(v,out=[]){if(typeof v==='string')out.push(v);else if(Array.isArray(v))v.forEach(x=>strings(x,out));else if(v&&typeof v==='object')Object.values(v).forEach(x=>strings(x,out));return out;}
-function cleanAgentText(payload){const all=strings(payload).map(x=>String(x).trim()).filter(Boolean);let text=all.find(x=>x.length>80&&!/^https?:\/\//i.test(x))||all.at(-1)||'';text=text.replace(/^completed\s*/i,'').replace(/^success\s*/i,'').trim();return text.slice(0,12000);}
+function candidateStrings(v,out=[],key=''){if(typeof v==='string'){const s=v.trim();if(s)out.push({key,text:s});}else if(Array.isArray(v))v.forEach(x=>candidateStrings(x,out,key));else if(v&&typeof v==='object')for(const [k,x] of Object.entries(v))candidateStrings(x,out,k);return out;}
+function cleanAgentText(rawPayload){
+  const candidates=[];
+  for(const item of rawPayload?.result?.content||[]){
+    if(item?.type!=='text'||typeof item.text!=='string')continue;
+    const t=item.text.trim();
+    try{candidateStrings(JSON.parse(t),candidates);}catch{if(t)candidates.push({key:'content',text:t});}
+  }
+  candidateStrings(rawPayload?.result?.structuredContent,candidates);
+  const preferredKeys=/^(output|response|answer|message|text|content|final|result)$/i;
+  const isNoise=(s)=>/^https?:\/\//i.test(s)||/^[A-Za-z0-9_-]{12,40}$/.test(s)||/^(completed|success|ok|running|queued)$/i.test(s);
+  const ranked=candidates.filter(x=>!isNoise(x.text)).sort((a,b)=>{
+    const ak=preferredKeys.test(a.key)?1:0,bk=preferredKeys.test(b.key)?1:0;
+    if(ak!==bk)return bk-ak;
+    return b.text.length-a.text.length;
+  });
+  let text=ranked[0]?.text||'';
+  text=text.replace(/^completed\s*/i,'').replace(/^success\s*/i,'').trim();
+  return text.slice(0,12000);
+}
 function providerFailure(text){return /execution_failed|AI_APICallError|rate limit reached|too many requests|insufficient quota|service unavailable|MCP 429/i.test(String(text));}
 function retrySeconds(text){const m=String(text).match(/try again in\s+(?:(\d+(?:\.\d+)?)m)?(?:(\d+(?:\.\d+)?)s)?/i);return Math.max(30,Math.min(600,Math.ceil((Number(m?.[1])||0)*60+(Number(m?.[2])||0)+30)||60));}
 function compactContext(input){const rows=input?.telegram?.thread_context;if(!Array.isArray(rows))return'';return rows.slice(-4).map(x=>`USER: ${String(x?.user_message||'').slice(0,700)}\nFACTORY: ${String(x?.assistant_response||'').slice(0,900)}`).join('\n\n');}
 
-await mcp({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'ai-factory-telegram-native-worker',version:'1.0.0'}}});await mcp({jsonrpc:'2.0',method:'notifications/initialized'});let rpcId=2;async function tool(name,args={}){return structured(await mcp({jsonrpc:'2.0',id:rpcId++,method:'tools/call',params:{name,arguments:args}}));}
+await mcp({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'ai-factory-telegram-native-worker',version:'1.1.0'}}});await mcp({jsonrpc:'2.0',method:'notifications/initialized'});let rpcId=2;async function tool(name,args={}){return structured(await mcp({jsonrpc:'2.0',id:rpcId++,method:'tools/call',params:{name,arguments:args}}));}async function toolRaw(name,args={}){return mcp({jsonrpc:'2.0',id:rpcId++,method:'tools/call',params:{name,arguments:args}});}
 
 await broker('recover').catch(()=>null);
 const claimed=await broker('claim');
@@ -43,8 +62,8 @@ const prompt=[
 
 try{
   await broker('touch',{task_id:task.id}).catch(()=>null);
-  const response=await tool('call_agent',{agentId:supervisorId,request:{type:'message',message:prompt,sessionId}});
-  const text=cleanAgentText(response);
+  const rawResponse=await toolRaw('call_agent',{agentId:supervisorId,request:{type:'message',message:prompt,sessionId}});
+  const text=cleanAgentText(rawResponse);
   if(!text||providerFailure(text))throw new Error(text||'empty_agent_response');
   const result={
     decision:'Native n8n agent network completed Telegram turn.',
@@ -55,7 +74,7 @@ try{
     telegram_runtime:{transport:'n8n-native-agent',subagents_available:true,session_id:sessionId}
   };
   const finished=await broker('finish',{task_id:task.id,status:'COMPLETE',result,activated_agents:['nursery-supervisor-g0'],selected_skills:[]});
-  console.log(`TELEGRAM_NATIVE_AGENT_COMPLETE task=${task.id} run=${finished.run_id} delivery=${finished?.delivery?.state||'unknown'}`);
+  console.log(`TELEGRAM_NATIVE_AGENT_COMPLETE task=${task.id} run=${finished.run_id} delivery=${finished?.delivery?.state||'unknown'} chars=${text.length}`);
 }catch(error){
   const message=error instanceof Error?error.message:String(error);
   const retry=await broker('retry',{task_id:task.id,retry_seconds:retrySeconds(message),result:{error:'native_agent_turn_failed',summary:message.slice(0,900)}}).catch(e=>({status:'BROKER_RETRY_FAILED',error:String(e)}));
