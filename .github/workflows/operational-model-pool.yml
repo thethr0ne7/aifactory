@@ -1,0 +1,41 @@
+name: Operational model pool
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'registry/agent-routing.json'
+      - 'scripts/configure-operational-model-pool.mjs'
+      - '.github/workflows/operational-model-pool.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-operational-model-pool
+  cancel-in-progress: true
+
+jobs:
+  configure:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Move twenty operational agents to the separate GPT-OSS 20B quota pool
+        run: node scripts/configure-operational-model-pool.mjs
+      - name: Upload sanitized model-pool evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operational-model-pool
+          path: artifacts/operational-model-pool.json
+          if-no-files-found: ignore
+          retention-days: 14
