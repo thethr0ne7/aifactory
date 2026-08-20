@@ -16,6 +16,7 @@
     "controlledTools": ["REQUEST_TOOL", "NORMALIZE", "TRACE", "DEDUPLICATE", "WAITING_TOOLS", "CLAIM_TOOL", "EXECUTE_ALLOWLISTED", "RECORD_RESULT", "REQUEUE", "CONTINUE"],
     "maintenance": ["LOAD_CRITICAL_MEMORY", "CONSIDER_FULL_SKILL_CATALOG", "REPRODUCE", "ROOT_CAUSE", "REPAIR", "REGRESSION_EVAL", "RECORD_INCIDENT", "LEARN", "SELF_CHECK"],
     "agentNursery": ["DRAFT", "SPAWN", "TRAIN", "EVALUATE", "BASELINE_COMPARE", "REGRESSION_GATE", "REPAIR_OR_CANDIDATE", "HUMAN_PROMOTION_REVIEW"],
+    "agentNetwork": ["BLUEPRINT", "SPAWN", "TRAIN", "EVALUATE", "BOUNDED_REPAIR", "CANDIDATE", "DRAFT_NETWORK_ADMISSION", "HUMAN_PROMOTION_REVIEW"],
     "intelligenceSweep": ["SOURCE_SWEEP", "SOURCE_HEALTH", "NORMALIZE", "TEMPORAL_DELTA", "SIGNIFICANCE_ROUTE", "EVIDENCE_CHECK", "ALERT_OR_STOP"]
   },
   "coreContours": [
@@ -45,6 +46,8 @@
     "terminal-agent-reconciliation",
     "telegram-thread-context",
     "bounded-agent-nursery",
+    "bounded-agent-network",
+    "durable-agent-lineage",
     "external-evaluation-evidence",
     "document-extraction-routing",
     "multi-source-intelligence-sweep",
@@ -83,6 +86,7 @@
     "runtimeTruthGate": "runtime/truth-gate.mjs",
     "openAIOrchestrationPatterns": "registry/upstreams/openai-orchestration-patterns.json",
     "agentNursery": "registry/agent-nursery.json",
+    "agentNetwork": "registry/agent-network.json",
     "agentNurseryUpstreamAudit": "registry/upstreams/agent-nursery-intelligence-pack.json",
     "externalRuntimes": "registry/external-runtimes.json"
   },
@@ -102,6 +106,8 @@
   "n8nNurseryWorkflow": "integrations/n8n/workflows/ai-factory-agent-nursery.json",
   "n8nNurseryDeploymentScript": "scripts/deploy-n8n-agent-nursery.mjs",
   "n8nNurseryDeploymentWorkflow": ".github/workflows/n8n-agent-nursery-deploy.yml",
+  "firstAgentGenerationScript": "scripts/seed-first-agent-generation.mjs",
+  "firstAgentGenerationWorkflow": ".github/workflows/first-agent-generation.yml",
   "orchestrationWorkflow": "WORKFLOW.md",
   "workflowContract": "registry/workflow-contract.json",
   "runtimeTruthGate": "runtime/truth-gate.mjs",
@@ -109,6 +115,7 @@
   "toolAdapterRegistry": "registry/tool-adapters.json",
   "traceTimelineView": "public.af_trace_timeline",
   "runObservabilityView": "public.af_run_observability",
+  "agentLineageView": "public.af_agent_lineage",
   "executableMemoryRuntime": "runtime/executable-memory.mjs",
   "structuredOutputRuntime": "runtime/structured-output.mjs",
   "selfImprovementRuntime": "runtime/self-improvement.mjs",
@@ -145,5 +152,6 @@
   "toolContinuationBudgetPersistence": "infra/supabase/migrations/20260818_285_tool_continuation_budget.sql",
   "telegramInteractivePriorityPersistence": "infra/supabase/migrations/20260818_286_telegram_interactive_priority.sql",
   "terminalAgentReconciliationPersistence": "infra/supabase/migrations/20260818_287_terminal_agent_reconciliation.sql",
-  "telegramThreadContextPersistence": "infra/supabase/migrations/20260818_288_telegram_thread_context.sql"
+  "telegramThreadContextPersistence": "infra/supabase/migrations/20260818_288_telegram_thread_context.sql",
+  "agentPopulationLifecyclePersistence": "infra/supabase/migrations/20260820_289_agent_population_lifecycle.sql"
 }

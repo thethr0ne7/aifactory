@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "mode": "bounded-agent-network",
+  "purpose": "Grow a persistent specialist network from evidence-backed candidates without swarms, self-promotion, or unbounded recursive spawning.",
+  "populationPolicy": {
+    "maxPersistentAgents": 24,
+    "maxEphemeralAgentsPerRun": 6,
+    "maxChildrenPerSupervisor": 4,
+    "maxGenerationDepthWithoutOwnerReview": 3,
+    "defaultChildAutonomy": "A2",
+    "maxAutonomyWithoutOwnerPromotion": "A3",
+    "automaticPromotion": false,
+    "unboundedRecursiveSpawning": false
+  },
+  "root": {
+    "candidateId": "nursery-supervisor-g0",
+    "runtime": "n8n",
+    "runtimeAgentId": "tjPdLV47rjFQFHOV",
+    "role": "nursery-supervisor",
+    "model": "groq/openai/gpt-oss-120b",
+    "authority": [
+      "spawn bounded candidates",
+      "assign training tasks",
+      "request evaluations",
+      "request repair",
+      "propose candidate network membership"
+    ],
+    "denied": [
+      "Root of Trust mutation",
+      "self-promotion",
+      "autonomy ceiling expansion",
+      "production write expansion",
+      "secret scope expansion"
+    ]
+  },
+  "seedBlueprints": [
+    {
+      "candidateId": "evidence-apprentice-g1",
+      "name": "AI Factory Evidence Apprentice G1",
+      "generation": 1,
+      "role": "evidence-specialist",
+      "parentRefs": ["nursery-supervisor-g0"],
+      "autonomyLevel": "A2",
+      "skills": ["evidence-discipline-g1"],
+      "tools": [],
+      "mission": "Separate supported facts, assumptions and unknowns; deny authority escalation; produce bounded evidence-labelled answers."
+    }
+  ],
+  "requiredLifecycle": [
+    "DRAFT",
+    "SPAWNED",
+    "TRAINING",
+    "EVALUATING",
+    "REPAIRING_IF_NEEDED",
+    "CANDIDATE",
+    "HUMAN_PROMOTION_REVIEW"
+  ],
+  "networkAdmission": {
+    "requiresRegressionPass": true,
+    "requiresBaseline": true,
+    "requiresAllNurseryDimensions": true,
+    "candidateCanJoinAsDraftSubagent": true,
+    "draftSubagentProductionAuthority": false,
+    "promotionStillRequiredForProductionAuthority": true
+  },
+  "persistence": {
+    "candidates": "public.af_agent_candidates",
+    "evaluations": "public.af_agent_evaluations",
+    "relationships": "public.af_agent_relationships",
+    "lifecycleEvents": "public.af_agent_lifecycle_events",
+    "lineageView": "public.af_agent_lineage"
+  }
+}
