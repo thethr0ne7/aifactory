@@ -4,6 +4,16 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '*/5 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'registry/agent-routing.json'
+      - 'registry/agent-network.json'
+      - 'infra/supabase/migrations/20260820_290_agent_message_bus.sql'
+      - 'supabase/functions/ai-factory-agent-bus/**'
+      - 'scripts/agent-message-bus-worker-v2.mjs'
+      - 'scripts/agent-message-bus-worker-v3.mjs'
+      - '.github/workflows/agent-message-bus.yml'
   pull_request:
     branches: [main]
     paths:
@@ -12,6 +22,7 @@ on:
       - 'infra/supabase/migrations/20260820_290_agent_message_bus.sql'
       - 'supabase/functions/ai-factory-agent-bus/**'
       - 'scripts/agent-message-bus-worker-v2.mjs'
+      - 'scripts/agent-message-bus-worker-v3.mjs'
       - 'scripts/seed-synergy-birth.mjs'
       - 'scripts/verify-synergy-birth.mjs'
       - 'scripts/validate-agent-message-bus.mjs'
@@ -50,20 +61,20 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           FACTORY_BUS_SYNC_DIRECTORY: 'true'
-        run: node scripts/agent-message-bus-worker-v2.mjs
+        run: node scripts/agent-message-bus-worker-v3.mjs
       - name: Drain bounded cross-cell chain on PR acceptance
         if: github.event_name == 'pull_request'
         env:
           FACTORY_BUS_SYNC_DIRECTORY: 'false'
         run: |
           for i in 1 2 3 4 5; do
-            node scripts/agent-message-bus-worker-v2.mjs
+            node scripts/agent-message-bus-worker-v3.mjs
           done
-      - name: Run one bounded bus worker turn
+      - name: Run one resilient bus worker turn
         if: github.event_name != 'pull_request'
         env:
           FACTORY_BUS_SYNC_DIRECTORY: 'false'
-        run: node scripts/agent-message-bus-worker-v2.mjs
+        run: node scripts/agent-message-bus-worker-v3.mjs
       - name: Verify Research→Evidence→Build→Audit→Birth acceptance
         if: github.event_name == 'pull_request'
         run: node scripts/verify-synergy-birth.mjs
