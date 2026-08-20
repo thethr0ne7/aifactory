@@ -1,26 +1,34 @@
-name: Repair n8n sub-agent graph
+name: Activate n8n agent network
 
 on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'registry/agent-network.json'
+      - 'scripts/activate-n8n-agent-network.mjs'
+      - 'scripts/repair-n8n-subagent-graph.mjs'
+      - '.github/workflows/repair-n8n-subagent-graph.yml'
   pull_request:
     branches: [main]
     paths:
       - 'registry/agent-network.json'
+      - 'scripts/activate-n8n-agent-network.mjs'
       - 'scripts/repair-n8n-subagent-graph.mjs'
       - '.github/workflows/repair-n8n-subagent-graph.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: n8n-agent-graph-repair
+  group: n8n-agent-network-activation
   cancel-in-progress: false
 
 jobs:
-  repair-native-graph:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+  activate-native-graph:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
       N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
@@ -29,13 +37,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Persist and read back native sub-agent graph
-        run: node scripts/repair-n8n-subagent-graph.mjs
+      - name: Publish internal agents and persist native sub-agent graph
+        run: node scripts/activate-n8n-agent-network.mjs
       - name: Upload sanitized graph evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: n8n-subagent-graph
-          path: artifacts/n8n-subagent-graph.json
+          name: n8n-agent-network-activation
+          path: artifacts/n8n-agent-network-activation.json
           if-no-files-found: ignore
           retention-days: 14
