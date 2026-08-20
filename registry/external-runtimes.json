@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "factoryVersion": "2.4.0",
   "runtimes": [
     {
@@ -9,7 +9,16 @@
       "instanceUrl": "https://thethr0ne7.app.n8n.cloud",
       "apiBasePath": "/api/v1",
       "mcpServerUrl": "https://thethr0ne7.app.n8n.cloud/mcp-server/http",
-      "status": "MCP_URL_BOUND_AUTH_PENDING",
+      "status": "MCP_AUTHENTICATED_MODEL_LIVE",
+      "liveState": {
+        "mcpAuthenticated": true,
+        "supervisorAgentId": "tjPdLV47rjFQFHOV",
+        "supervisorValidation": "valid",
+        "model": "groq/openai/gpt-oss-120b",
+        "providerCredentialType": "groq",
+        "previewSmoke": "passed",
+        "lastVerifiedEvidence": "GitHub Actions Smoke n8n nursery agent / NURSERY_SUPERVISOR_SMOKE_OK"
+      },
       "transports": {
         "mcp": {
           "priority": "primary",
@@ -25,6 +34,7 @@
             "read workflow details",
             "execute and test exposed workflows",
             "create and edit workflows when granted by n8n",
+            "create, mutate, validate and preview Agent drafts when granted by n8n",
             "publish or unpublish workflows when granted by n8n"
           ]
         },
@@ -51,10 +61,11 @@
       },
       "notes": [
         "The instance and MCP URLs are deployment configuration, not secrets.",
-        "MCP is the preferred interactive management surface because n8n exposes workflow discovery, execution and workflow editing through instance-level MCP subject to n8n permissions.",
-        "OAuth is preferred for interactive MCP clients. A bearer access token may be used only from a secret store for non-interactive clients.",
-        "REST API deployment remains a bootstrap fallback until an authenticated MCP client is available to the Factory runtime.",
-        "The nursery ingress workflow must remain unpublished until authentication, scope and end-to-end evidence are verified."
+        "Authenticated non-interactive MCP has been live-tested through GitHub Actions with N8N_MCP_TOKEN.",
+        "The Nursery Supervisor draft is valid and its Groq-backed Preview smoke passed; this proves model/credential connectivity but does not grant production write authority.",
+        "OAuth remains preferred for interactive MCP clients. The bearer access token remains isolated in a secret store for non-interactive clients.",
+        "REST API deployment remains a bootstrap fallback and is not required for the live Agent MCP lifecycle.",
+        "Agent publication and production authority remain gated; passing Preview does not equal promotion."
       ]
     }
   ]
