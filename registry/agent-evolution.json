@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "mode": "evolutionary-agent-ecology",
+  "purpose": "Let proven specialist capabilities recombine into new agents and self-organising venture cells while keeping authority bounded and evidence traceable.",
+  "structuralGrowth": {
+    "minimumOperationalAgents": 20,
+    "factoryImposedTotalAgentCeiling": null,
+    "factoryImposedGenerationCeiling": null,
+    "factoryImposedLifetimeChildCeiling": null,
+    "n8nNativeChildrenPerParentPlatformLimit": 20,
+    "platformLimitStrategy": "When one native parent reaches the platform child limit, create or select an intermediate cell lead and continue the lineage through another branch. Never treat a platform fan-out limit as a total population limit.",
+    "growthGovernor": "workload-and-fitness",
+    "spawnOnlyFor": [
+      "measured specialization gap",
+      "repeated task demand",
+      "complementary champion crossover",
+      "validated value-chain bottleneck",
+      "capacity isolation"
+    ],
+    "antiBloat": [
+      "archive dominated lineages",
+      "quarantine unsafe lineages",
+      "reuse an existing capable agent before spawning a redundant clone",
+      "require evidence of expected capability gain"
+    ]
+  },
+  "authorityBoundary": {
+    "defaultChildAutonomy": "A2",
+    "maximumAutonomyWithoutSeparateAuthorityReview": "A3",
+    "rootOfTrustMutable": false,
+    "selfPromotion": false,
+    "secretScopeExpansion": false,
+    "productionWriteExpansionWithoutOwnerApproval": false,
+    "internalN8nPublicationAfterAuditedBirth": true,
+    "externalPublication": false,
+    "principle": "Unlimited structural growth; bounded authority."
+  },
+  "valueChainEcology": {
+    "stages": [
+      {
+        "id": "RESOURCE",
+        "question": "What economically and legally accessible resource is proven to exist?",
+        "proof": ["resource existence", "location", "availability", "rights or access path", "quantity or capacity", "cost and logistics uncertainty"]
+      },
+      {
+        "id": "MATERIAL",
+        "question": "What usable raw material or intermediate can be proven to come from that resource?",
+        "proof": ["transformation path", "yield", "required process", "quality", "energy and equipment", "waste", "unit economics"]
+      },
+      {
+        "id": "GLOBAL_NEED",
+        "question": "Which current or emerging world need makes this material strategically valuable?",
+        "proof": ["demand evidence", "technology trend", "regulatory trend", "supply gap", "customer pain", "timing"]
+      },
+      {
+        "id": "PRODUCT",
+        "question": "Which product converts the material and need into the strongest opportunity?",
+        "proof": ["product-market hypothesis", "technical feasibility", "differentiation", "substitution risk", "value to user"]
+      },
+      {
+        "id": "MANUFACTURING",
+        "question": "What design and production path can create the product better than alternatives?",
+        "proof": ["architecture", "process", "cost", "quality", "scalability", "time to market", "failure modes"]
+      },
+      {
+        "id": "GO_TO_MARKET",
+        "question": "What route delivers the product to the user with the strongest adoption and economics?",
+        "proof": ["segment", "positioning", "pricing", "channel", "distribution", "sales motion", "unit economics", "retention"]
+      },
+      {
+        "id": "USER_FEEDBACK",
+        "question": "What does real-world response prove or falsify about the full chain?",
+        "proof": ["adoption", "usage", "willingness to pay", "failure evidence", "returns", "margin", "retention", "new constraints"]
+      }
+    ],
+    "feedbackDirection": "bidirectional",
+    "chainSelection": "Compete full compatible chains as well as individual agents. The best individual specialists do not automatically form the best chain."
+  },
+  "fitness": {
+    "requiredDimensions": [
+      "task_success",
+      "evidence_quality",
+      "truthfulness",
+      "contradiction_detection",
+      "downstream_value",
+      "latency",
+      "cost_efficiency",
+      "tool_discipline",
+      "safety_compliance"
+    ],
+    "selectionMethod": "pareto-plus-context",
+    "rules": [
+      "No single aggregate score may erase a safety, evidence, or truthfulness failure.",
+      "A champion must pass repeated comparable trials, not one lucky answer.",
+      "Maintain a Pareto frontier when candidates trade quality, latency and cost.",
+      "Select the champion for the current niche and project context, not a universal permanent winner.",
+      "A reigning lead may be replaced by a descendant after independent repeated superiority evidence."
+    ]
+  },
+  "breeding": {
+    "parentSelection": "Select proven complementary traits, not merely the highest overall scores.",
+    "compatibilityFactors": [
+      "complementarity",
+      "expected capability gain",
+      "task demand",
+      "lineage diversity",
+      "parent evidence strength",
+      "context compatibility",
+      "regression risk",
+      "compute cost"
+    ],
+    "genome": [
+      "mission",
+      "reasoning protocol",
+      "system instructions",
+      "skills",
+      "tool policy",
+      "source hierarchy",
+      "evidence policy",
+      "memory strategy",
+      "context strategy",
+      "routing preferences",
+      "failure handling",
+      "evaluation profile",
+      "promoted lessons",
+      "specialization traits"
+    ],
+    "crossover": "Choose trait-level inheritance from each parent and preserve immutable Factory genes separately.",
+    "mutation": "Generate bounded alternative strategies only when an explicit hypothesis predicts a measurable gain.",
+    "offspringAdmission": "Research -> Evidence -> Build -> Audit -> SPAWN -> internal publish -> native attach -> train -> evaluate -> retain/reject/quarantine.",
+    "automaticAuthorityPromotion": false
+  },
+  "championToCell": {
+    "rule": "When a descendant repeatedly wins an economically meaningful domain and its workload is persistent, it may become a new domain lead and form a dedicated cell.",
+    "examples": [
+      "Public Funding Architect",
+      "Resource-to-Material Architect",
+      "Global Need Analyst",
+      "Product Architecture Lead",
+      "Manufacturing Strategy Lead",
+      "Go-to-Market Architect"
+    ]
+  },
+  "firstCrossCellBirth": {
+    "candidateId": "handoff-coordinator-g3",
+    "name": "AI Factory Handoff Coordinator G3",
+    "parents": [
+      "research-scout-g1",
+      "evidence-apprentice-g1",
+      "builder-apprentice-g1",
+      "auditor-apprentice-g1"
+    ],
+    "meaning": "First durable proof that multiple functional lineages can jointly research, evidence-check, design and audit a child before it is spawned."
+  }
+}
