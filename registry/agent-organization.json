@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.7.0",
+  "mode": "visible-owner-controlled-agent-organization",
+  "purpose": "Keep bounded agent work visible in Telegram while allowing agents to create and delegate low-risk internal tasks inside their own domains.",
+  "telegram": {
+    "surface": "AI Factory HQ",
+    "visibility": "event-stream",
+    "oneBotManyAgents": true,
+    "note": "Telegram Bot API does not provide a reliable bot-to-bot event bus. Durable communication remains in Supabase/n8n; the HQ bot renders each real agent event as a separate visible Telegram message.",
+    "show": [
+      "session start",
+      "task creation",
+      "agent message",
+      "delegation",
+      "evidence",
+      "blocker",
+      "initiative",
+      "owner gate",
+      "completion",
+      "failure",
+      "pause/resume/stop"
+    ],
+    "ownerControls": ["SUPPORT","REJECT","PAUSE","RESUME","STOP","SET_PRIORITY","SET_INITIATIVE_MODE","FOCUS","STATUS"]
+  },
+  "initiative": {
+    "defaultMode": "AUTO_INTERNAL",
+    "modes": {
+      "AUTO_INTERNAL": "Agents may automatically create and execute bounded LOW-risk internal analysis/research/review tasks.",
+      "SUGGEST": "Agents may propose tasks but owner approval is required before execution.",
+      "OFF": "No agent-created follow-up tasks."
+    },
+    "maximumAutoTasksPerSession": 16,
+    "maximumActiveTasks": 4,
+    "maximumTaskDepth": 6,
+    "minimumExpectedValue": 35,
+    "idleInitiativeCooldownMinutes": 15,
+    "duplicateFingerprintScope": "session"
+  },
+  "risk": {
+    "autoExecutable": ["LOW"],
+    "ownerGate": ["MEDIUM","HIGH","ROOT"],
+    "alwaysOwnerGateIf": [
+      "external publication",
+      "production write",
+      "money/spend/procurement",
+      "secret or credential access expansion",
+      "authority or autonomy expansion",
+      "account or permission mutation",
+      "irreversible external side effect"
+    ],
+    "rootOfTrustImmutable": true,
+    "agentSelfPromotion": false
+  },
+  "responseContract": {
+    "format": "strict-json",
+    "status": ["DONE","DELEGATE","BLOCKED","WAIT_OWNER"],
+    "evidenceClass": ["CONFIRMED","OBSERVED","MEASURED","DERIVED","ASSUMPTION","UNKNOWN","BLOCKER"],
+    "maximumDelegationsPerTurn": 2,
+    "maximumMessageCharacters": 1800
+  },
+  "runtime": {
+    "workflow": ".github/workflows/agent-organization.yml",
+    "broker": "ai-factory-agent-org",
+    "worker": "scripts/agent-organization-worker.mjs",
+    "claimBatch": 4,
+    "drainPassesPerRun": 4,
+    "providerFailureStopsDrain": true,
+    "telegramDeliveryAfterEveryDrainPass": true
+  }
+}
