@@ -1,25 +1,17 @@
 name: Complete first agent generation
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'registry/agent-network.json'
-      - 'scripts/continue-first-agent-generation-v2.mjs'
-      - 'scripts/validate-agent-network.mjs'
-      - '.github/workflows/complete-first-agent-generation.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: n8n-agent-nursery-mutator
+  group: n8n-agent-nursery-g1-mutator
   cancel-in-progress: true
 
 jobs:
   complete-generation:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
