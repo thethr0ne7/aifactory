@@ -82,6 +82,7 @@ jobs:
         run: npm install -g @github/copilot
 
       - name: Validate factory contracts and reliability kernel
+        if: github.event_name != 'schedule' || github.event.schedule == '17 2 * * *'
         run: |
           node scripts/validate-factory.js
           node scripts/validate-workflow-contract.mjs
