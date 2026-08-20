@@ -30,6 +30,7 @@ jobs:
       N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
       N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
       FACTORY_TELEGRAM_AGENT_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-telegram-agent-broker
+      FACTORY_TELEGRAM_FAST_LANE_VERSION: '1.1.0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
