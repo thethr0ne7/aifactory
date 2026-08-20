@@ -53,16 +53,16 @@
   },
   "patchPolicy": {
     "MEMORY_GUIDANCE": "may be promoted automatically at A4 after gates pass",
-    "ROUTING_HEURISTIC": "representation allowed; passing candidates require explicit reviewed repository workflow dispatch and never auto-merge",
-    "SKILL_PATCH": "representation allowed; passing candidates require explicit reviewed repository workflow dispatch and never auto-merge",
-    "WORKFLOW_PATCH": "representation allowed; passing candidates require explicit reviewed repository workflow dispatch and never auto-merge"
+    "ROUTING_HEURISTIC": "representation allowed; passing low-risk candidates require explicit reviewed repository workflow dispatch and never auto-merge",
+    "SKILL_PATCH": "representation allowed; passing low-risk candidates require explicit reviewed repository workflow dispatch and never auto-merge",
+    "WORKFLOW_PATCH": "representation allowed; passing low-risk candidates require explicit reviewed repository workflow dispatch and never auto-merge"
   },
   "reviewedRepositoryPatches": {
     "workflow": ".github/workflows/reviewed-self-improvement-patch.yml",
     "requiresManualWorkflowDispatch": true,
     "requiresExactPatchCandidateId": true,
     "allowedTargetTypes": ["ROUTING_HEURISTIC", "SKILL_PATCH", "WORKFLOW_PATCH"],
-    "allowedRiskClasses": ["LOW", "MEDIUM"],
+    "allowedRiskClasses": ["LOW"],
     "maxContentCharacters": 100000,
     "routingPaths": ["registry/agent-routing.json"],
     "skillPathPrefix": "skills/",
