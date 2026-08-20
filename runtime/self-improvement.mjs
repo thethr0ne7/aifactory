@@ -25,6 +25,19 @@ const LOW_RISK_CLASSES = new Set([
   'QUALITY_REGRESSION',
 ]);
 
+const REVIEWED_REPOSITORY_TARGETS = new Set(['ROUTING_HEURISTIC', 'SKILL_PATCH', 'WORKFLOW_PATCH']);
+const WORKFLOW_PRIVILEGE_EXPANSION = [
+  /\bcontents:\s*write\b/i,
+  /\bpull-requests:\s*write\b/i,
+  /\bactions:\s*write\b/i,
+  /\bchecks:\s*write\b/i,
+  /\bdeployments:\s*write\b/i,
+  /\bpackages:\s*write\b/i,
+  /\bsecurity-events:\s*write\b/i,
+  /\bstatuses:\s*write\b/i,
+  /\bid-token:\s*write\b/i,
+];
+
 export function classifyImprovementRisk(candidate = {}) {
   const text = [
     candidate.statement,
@@ -77,7 +90,7 @@ export function normalizeEvaluation(raw = {}) {
   };
 }
 
-export function decidePromotion({ risk, evaluation, policy }) {
+export function decidePromotion({ risk, evaluation, policy, targetType = 'MEMORY_GUIDANCE' }) {
   const cfg = policy?.evaluation || {};
   if (risk?.risk_class !== 'LOW') return { action: 'REVIEW_REQUIRED', reason: `risk=${risk?.risk_class || 'UNKNOWN'}` };
   if (!evaluation?.no_protected_boundary_violation) return { action: 'REJECT', reason: 'protected boundary violation' };
@@ -95,6 +108,11 @@ export function decidePromotion({ risk, evaluation, policy }) {
   if (evaluation.candidate_score - evaluation.baseline_score < minDelta) return { action: 'REJECT', reason: 'insufficient improvement over baseline' };
   if (dimensions.some((score) => score < minDimension)) return { action: 'REJECT', reason: 'one or more dimensions below threshold' };
 
+  const autoTargets = new Set(policy?.automaticPromotion?.allowedTargetTypes || ['MEMORY_GUIDANCE']);
+  if (!autoTargets.has(String(targetType || ''))) {
+    return { action: 'REVIEW_REQUIRED', reason: `target=${targetType || 'UNKNOWN'} requires explicit reviewed repository path` };
+  }
+
   return { action: 'PROMOTE', reason: 'A4 low-risk gates passed' };
 }
 
@@ -105,6 +123,70 @@ export function reconcilePromotion(observations = [], policy = {}) {
   const passCount = observations.filter((x) => x.outcome === 'PASS' && x.regression_detected !== true).length;
   if (passCount >= minPass) return { action: 'RETAIN', reason: `${passCount} pass observations` };
   return { action: 'OBSERVE', reason: `${passCount}/${minPass} pass observations` };
+}
+
+export function buildImprovementPatch(candidate = {}) {
+  const change = candidate?.candidate_change && typeof candidate.candidate_change === 'object' && !Array.isArray(candidate.candidate_change)
+    ? candidate.candidate_change
+    : {};
+  const targetType = String(change.target_type || change.targetType || '').trim().toUpperCase();
+
+  if (REVIEWED_REPOSITORY_TARGETS.has(targetType)) {
+    const repoPath = String(change.path || change.target_ref || '').replace(/\\/g, '/').trim();
+    return {
+      target_type: targetType,
+      target_ref: repoPath || null,
+      patch: {
+        operation: 'reviewed-repository-candidate',
+        path: repoPath,
+        content: typeof change.content === 'string' ? change.content : '',
+        expected_blob_sha: String(change.expected_blob_sha || '').trim() || null,
+        reason: String(change.reason || candidate.statement || '').trim().slice(0, 2000),
+      },
+      rollback: {
+        operation: 'discard-candidate-branch',
+        path: repoPath || null,
+        restore_blob_sha: String(change.expected_blob_sha || '').trim() || null,
+      },
+      rollback_ref: `review-only:${candidate.lesson_id || 'unknown'}:${repoPath || 'missing-path'}`,
+    };
+  }
+
+  return buildMemoryPatch(candidate);
+}
+
+export function validateReviewedRepositoryPatch(candidate = {}, policy = {}) {
+  const targetType = String(candidate.target_type || '').toUpperCase();
+  const patch = candidate.patch && typeof candidate.patch === 'object' && !Array.isArray(candidate.patch) ? candidate.patch : {};
+  const cfg = policy?.reviewedRepositoryPatches || {};
+  const allowedTypes = new Set(cfg.allowedTargetTypes || ['ROUTING_HEURISTIC','SKILL_PATCH','WORKFLOW_PATCH']);
+  if (!allowedTypes.has(targetType)) return { ok: false, code: 'TARGET_TYPE_NOT_REVIEWABLE' };
+  if (!new Set(['LOW','MEDIUM']).has(String(candidate.risk_class || '').toUpperCase())) return { ok: false, code: 'RISK_REQUIRES_HIGHER_AUTHORITY' };
+
+  const repoPath = normalizeRepoPath(patch.path || candidate.target_ref);
+  if (!repoPath) return { ok: false, code: 'INVALID_PATH' };
+  const content = typeof patch.content === 'string' ? patch.content : '';
+  const maxChars = Math.max(1, Math.min(Number(cfg.maxContentCharacters) || 100000, 100000));
+  if (!content || content.length > maxChars) return { ok: false, code: 'CONTENT_SIZE_INVALID', path: repoPath };
+  if (!String(patch.reason || '').trim()) return { ok: false, code: 'REASON_REQUIRED', path: repoPath };
+  if (patch.expected_blob_sha && !/^[0-9a-f]{40}$/i.test(String(patch.expected_blob_sha))) {
+    return { ok: false, code: 'INVALID_EXPECTED_BLOB_SHA', path: repoPath };
+  }
+
+  const denied = new Set(cfg.deniedPaths || []);
+  if (denied.has(repoPath)) return { ok: false, code: 'PROTECTED_PATH', path: repoPath };
+
+  if (targetType === 'SKILL_PATCH' && !repoPath.startsWith('skills/')) return { ok: false, code: 'SKILL_PATH_NOT_ALLOWLISTED', path: repoPath };
+  if (targetType === 'ROUTING_HEURISTIC' && !(cfg.routingPaths || ['registry/agent-routing.json']).includes(repoPath)) {
+    return { ok: false, code: 'ROUTING_PATH_NOT_ALLOWLISTED', path: repoPath };
+  }
+  if (targetType === 'WORKFLOW_PATCH') {
+    if (!repoPath.startsWith('.github/workflows/')) return { ok: false, code: 'WORKFLOW_PATH_NOT_ALLOWLISTED', path: repoPath };
+    const privilegeHit = WORKFLOW_PRIVILEGE_EXPANSION.find((pattern) => pattern.test(content));
+    if (privilegeHit) return { ok: false, code: 'WORKFLOW_PRIVILEGE_EXPANSION_DENIED', path: repoPath, protected_hit: privilegeHit.source };
+  }
+
+  return { ok: true, path: repoPath, target_type: targetType, content, expected_blob_sha: patch.expected_blob_sha || null, reason: String(patch.reason).trim().slice(0, 2000) };
 }
 
 export function buildMemoryPatch(candidate) {
@@ -124,6 +206,15 @@ export function buildMemoryPatch(candidate) {
     },
     rollback_ref: `lesson:${candidate.lesson_id}:PROMOTED->SUPERSEDED`,
   };
+}
+
+function normalizeRepoPath(value) {
+  const raw = String(value || '').replace(/\\/g, '/').trim();
+  if (!raw || raw.startsWith('/') || raw.includes('\u0000')) return null;
+  const parts = raw.split('/');
+  if (parts.some((part) => part === '..' || part === '')) return null;
+  if (raw === '.git' || raw.startsWith('.git/')) return null;
+  return parts.filter((part) => part !== '.').join('/');
 }
 
 function clampScore(value) {

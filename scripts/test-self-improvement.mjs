@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
-import { classifyImprovementRisk, normalizeEvaluation, decidePromotion, reconcilePromotion, buildMemoryPatch } from '../runtime/self-improvement.mjs';
+import {
+  classifyImprovementRisk,
+  normalizeEvaluation,
+  decidePromotion,
+  reconcilePromotion,
+  buildMemoryPatch,
+  buildImprovementPatch,
+  validateReviewedRepositoryPatch,
+} from '../runtime/self-improvement.mjs';
 import policy from '../registry/self-improvement.json' with { type: 'json' };
 
 const lowCandidate = {
@@ -74,6 +82,46 @@ assert.equal(decidePromotion({ risk: autonomyRoutingRisk, evaluation: evalResult
 const patch = buildMemoryPatch(lowCandidate);
 assert.equal(patch.target_type, 'MEMORY_GUIDANCE');
 assert.match(patch.rollback_ref, /PROMOTED->SUPERSEDED/);
+
+const reviewedCandidate = {
+  ...lowCandidate,
+  candidate_change: {
+    target_type: 'SKILL_PATCH',
+    path: 'skills/evidence-quality/SKILL.md',
+    content: '# Evidence Quality\nUse exact source references before conclusions.\n',
+    expected_blob_sha: '0123456789abcdef0123456789abcdef01234567',
+    reason: 'Production regression showed missing evidence citations.',
+  },
+};
+const reviewedPatch = buildImprovementPatch(reviewedCandidate);
+assert.equal(reviewedPatch.target_type, 'SKILL_PATCH');
+assert.equal(reviewedPatch.patch.path, 'skills/evidence-quality/SKILL.md');
+assert.equal(decidePromotion({ risk: classifyImprovementRisk(reviewedCandidate), evaluation: evalResult, policy, targetType: reviewedPatch.target_type }).action, 'REVIEW_REQUIRED');
+assert.equal(validateReviewedRepositoryPatch({ ...reviewedPatch, risk_class: 'LOW' }, policy).ok, true);
+
+const privilegedWorkflowPatch = buildImprovementPatch({
+  ...lowCandidate,
+  candidate_change: {
+    target_type: 'WORKFLOW_PATCH',
+    path: '.github/workflows/low-risk-maintenance.yml',
+    content: 'name: unsafe\npermissions:\n  contents: write\n',
+    reason: 'test privilege gate',
+  },
+});
+const privilegeDecision = validateReviewedRepositoryPatch({ ...privilegedWorkflowPatch, risk_class: 'LOW' }, policy);
+assert.equal(privilegeDecision.ok, false);
+assert.equal(privilegeDecision.code, 'WORKFLOW_PRIVILEGE_EXPANSION_DENIED');
+
+const badRoutingPatch = buildImprovementPatch({
+  ...lowCandidate,
+  candidate_change: {
+    target_type: 'ROUTING_HEURISTIC',
+    path: 'registry/autonomy-levels.json',
+    content: '{}',
+    reason: 'test routing allowlist',
+  },
+});
+assert.equal(validateReviewedRepositoryPatch({ ...badRoutingPatch, risk_class: 'LOW' }, policy).code, 'PROTECTED_PATH');
 
 assert.equal(reconcilePromotion([{ outcome: 'PASS', regression_detected: false }], policy).action, 'OBSERVE');
 assert.equal(reconcilePromotion([
