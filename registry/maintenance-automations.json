@@ -1,0 +1,204 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "purpose": "Separate maintenance automations for error handling, queue health, latency control and backlog prevention. These automations are infrastructure and never count toward the operational-agent minimum.",
+  "countTowardOperationalAgentMinimum": false,
+  "cadence": {
+    "defaultMinutes": 10,
+    "minimumMinutes": 5
+  },
+  "globalDenials": [
+    "Root of Trust mutation",
+    "automatic agent promotion",
+    "unbounded retries",
+    "unbounded concurrency",
+    "secret value logging",
+    "destructive queue deletion without an explicit repair contract",
+    "production authority expansion"
+  ],
+  "queueSloPolicy": {
+    "factoryTasks": {
+      "warnOldestReadyMinutes": 10,
+      "criticalOldestReadyMinutes": 30,
+      "warnBacklog": 25,
+      "criticalBacklog": 100
+    },
+    "ingestionQueue": {
+      "warnOldestReadyMinutes": 60,
+      "criticalOldestReadyMinutes": 360,
+      "warnBacklog": 1000,
+      "criticalBacklog": 5000
+    },
+    "ingestionJobs": {
+      "warnOldestReadyMinutes": 60,
+      "criticalOldestReadyMinutes": 360,
+      "warnBacklog": 1000,
+      "criticalBacklog": 5000
+    },
+    "crawlJobs": {
+      "warnDeadLetter": 1,
+      "criticalDeadLetter": 20
+    }
+  },
+  "automations": [
+    {
+      "id": "fault-intake-deduper",
+      "name": "Fault Intake & Deduper",
+      "mission": "Normalize real runtime failures, deduplicate by failure fingerprint and route only substantive new incidents to the incident ledger.",
+      "trigger": [
+        "workflow failure",
+        "tool failure",
+        "provider failure"
+      ],
+      "actions": [
+        "normalize error",
+        "fingerprint failure",
+        "link existing incident cluster",
+        "open a new incident only when evidence is substantively new"
+      ],
+      "prevents": [
+        "duplicate incident storms",
+        "silent failures",
+        "unbounded confirmation incidents"
+      ]
+    },
+    {
+      "id": "queue-latency-sentinel",
+      "name": "Queue Latency Sentinel",
+      "mission": "Continuously measure backlog size and oldest-ready age for Factory, ingestion and crawl queues and raise a degraded signal before latency becomes invisible.",
+      "trigger": [
+        "scheduled every 10 minutes"
+      ],
+      "actions": [
+        "measure backlog",
+        "measure oldest-ready age",
+        "classify OK/WARN/CRITICAL",
+        "emit observable queue-health summary"
+      ],
+      "prevents": [
+        "unnoticed long queues",
+        "silent starvation",
+        "unknown queue age"
+      ]
+    },
+    {
+      "id": "stale-work-reaper",
+      "name": "Stale Work Reaper",
+      "mission": "Recover stale Factory run leases and stale tool claims using bounded existing recovery RPCs.",
+      "trigger": [
+        "scheduled every 10 minutes",
+        "stale heartbeat"
+      ],
+      "actions": [
+        "call af_recover_stale",
+        "call af_recover_stale_tools",
+        "verify terminal consistency after recovery"
+      ],
+      "prevents": [
+        "stuck RUNNING states",
+        "orphaned locks",
+        "permanent worker starvation"
+      ]
+    },
+    {
+      "id": "retry-storm-breaker",
+      "name": "Retry Storm Breaker",
+      "mission": "Detect repeated identical failure fingerprints or exhausted attempt budgets and stop uncontrolled retries.",
+      "trigger": [
+        "repeated error fingerprint",
+        "attempt budget exhaustion"
+      ],
+      "actions": [
+        "classify retryability",
+        "stop retry when max attempts is reached",
+        "route to BLOCKED/dead-letter review according to the owning queue contract"
+      ],
+      "prevents": [
+        "retry storms",
+        "provider hammering",
+        "queue amplification"
+      ]
+    },
+    {
+      "id": "backpressure-governor",
+      "name": "Backpressure Governor",
+      "mission": "Protect interactive and high-priority work when queues exceed critical backlog or latency thresholds.",
+      "trigger": [
+        "critical backlog",
+        "critical oldest-ready age"
+      ],
+      "actions": [
+        "signal DEGRADED queue mode",
+        "recommend pausing low-priority admission",
+        "preserve high-priority and interactive capacity",
+        "require explicit producer hook before mutation"
+      ],
+      "prevents": [
+        "priority inversion",
+        "interactive starvation",
+        "runaway admission during degraded capacity"
+      ]
+    },
+    {
+      "id": "dead-letter-sweeper",
+      "name": "Dead Letter Sweeper",
+      "mission": "Surface dead-letter and failed queue entries, group them by root-cause fingerprint and prevent forgotten failure piles.",
+      "trigger": [
+        "dead-letter count > 0",
+        "failed queue growth"
+      ],
+      "actions": [
+        "group failure fingerprints",
+        "rank recurring root causes",
+        "link incidents and regression evidence",
+        "request bounded repair"
+      ],
+      "prevents": [
+        "forgotten dead letters",
+        "repeated known failures",
+        "manual failure archaeology"
+      ]
+    },
+    {
+      "id": "provider-latency-circuit",
+      "name": "Provider Latency Circuit",
+      "mission": "Detect provider latency and availability degradation and prevent repeated slow calls from monopolizing workers.",
+      "trigger": [
+        "provider timeout growth",
+        "latency regression",
+        "availability incident"
+      ],
+      "actions": [
+        "mark provider path degraded",
+        "prefer verified healthy provider route when policy allows",
+        "reduce retry pressure",
+        "require live smoke before recovery claim"
+      ],
+      "prevents": [
+        "worker pileups on slow providers",
+        "timeout cascades",
+        "false recovery claims"
+      ]
+    },
+    {
+      "id": "capacity-planner",
+      "name": "Queue Capacity Planner",
+      "mission": "Use observed throughput, backlog and oldest-ready age to recommend bounded concurrency changes without autonomous infrastructure sprawl.",
+      "trigger": [
+        "persistent WARN/CRITICAL queue state",
+        "scheduled daily review"
+      ],
+      "actions": [
+        "estimate drain time",
+        "compare arrival and completion rates",
+        "recommend bounded worker/concurrency adjustment",
+        "require owner or release gate for persistent capacity expansion"
+      ],
+      "prevents": [
+        "permanent under-capacity",
+        "blind scaling",
+        "unbounded worker growth"
+      ]
+    }
+  ]
+}

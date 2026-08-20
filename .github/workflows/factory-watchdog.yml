@@ -11,11 +11,13 @@ on:
       - 'skills/**'
       - 'scripts/validate-autonomous-runtime.js'
       - 'scripts/validate-reliability-kernel.js'
+      - 'scripts/validate-maintenance-automations.mjs'
       - 'scripts/test-reliability-kernel.mjs'
       - 'scripts/copilot-autonomous-worker-v2.mjs'
       - 'scripts/copilot-autonomous-worker-v3.mjs'
       - 'scripts/record-workflow-failure.mjs'
       - 'scripts/watchdog.mjs'
+      - 'scripts/queue-guardian.mjs'
       - 'supabase/functions/ai-factory-broker/**'
       - 'supabase/functions/ai-factory-fault-sink/**'
       - 'infra/supabase/**'
@@ -37,6 +39,7 @@ jobs:
       - run: node scripts/validate-factory.js
       - run: node scripts/validate-autonomous-runtime.js
       - run: node scripts/validate-reliability-kernel.js
+      - run: node scripts/validate-maintenance-automations.mjs
       - run: node scripts/test-reliability-kernel.mjs
 
   watchdog:
@@ -58,9 +61,17 @@ jobs:
           FACTORY_STALE_TOOL_MINUTES: '5'
         run: node scripts/watchdog.mjs
 
+      - name: Guard queue latency, backlog and stale work
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FACTORY_STALE_RUN_MINUTES: '5'
+          FACTORY_STALE_TOOL_MINUTES: '5'
+        run: node scripts/queue-guardian.mjs
+
       - name: Persist watchdog failure to Factory memory
         if: failure()
         env:
           FACTORY_FAILURE_SCOPE: watchdog
-          FACTORY_FAILURE_SUMMARY: AI Factory watchdog failed while recovering leases, tool claims or incident memory; maintenance crew must inspect the run before assuming recovery is healthy.
+          FACTORY_FAILURE_SUMMARY: AI Factory watchdog or queue guardian failed while recovering stale work or checking queue health; maintenance automation must inspect the run before assuming recovery is healthy.
         run: node scripts/record-workflow-failure.mjs

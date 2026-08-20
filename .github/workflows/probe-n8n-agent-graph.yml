@@ -1,0 +1,28 @@
+name: Probe n8n agent graph
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/probe-n8n-agent-graph.mjs'
+      - '.github/workflows/probe-n8n-agent-graph.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe get_agent/mutate_agent graph contract
+        run: node scripts/probe-n8n-agent-graph.mjs

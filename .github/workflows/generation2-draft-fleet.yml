@@ -1,0 +1,36 @@
+name: Generation 2 draft fleet
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-agent-nursery-mutator
+  cancel-in-progress: false
+
+jobs:
+  seed-generation2-drafts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate 20-agent topology and maintenance separation
+        run: node scripts/validate-maintenance-automations.mjs
+      - name: Create or reconcile sixteen Generation 2 draft agents
+        run: node scripts/seed-generation2-drafts.mjs
+      - name: Upload sanitized Generation 2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generation2-drafts
+          path: artifacts/generation2-drafts.json
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,23 +1,23 @@
-name: First agent generation
+name: Repair n8n sub-agent graph
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'scripts/seed-first-agent-generation.mjs'
-      - 'runtime/agent-nursery.mjs'
-      - 'registry/agent-nursery.json'
+      - 'registry/agent-network.json'
+      - 'scripts/repair-n8n-subagent-graph.mjs'
+      - '.github/workflows/repair-n8n-subagent-graph.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: n8n-agent-nursery-mutator
+  group: n8n-agent-graph-repair
   cancel-in-progress: false
 
 jobs:
-  seed-and-evaluate:
+  repair-native-graph:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -29,13 +29,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Seed, train, evaluate and attach Generation 1 candidate
-        run: node scripts/seed-first-agent-generation.mjs
-      - name: Upload sanitized lifecycle evidence
+      - name: Persist and read back native sub-agent graph
+        run: node scripts/repair-n8n-subagent-graph.mjs
+      - name: Upload sanitized graph evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: first-agent-generation
-          path: artifacts/first-agent-generation.json
+          name: n8n-subagent-graph
+          path: artifacts/n8n-subagent-graph.json
           if-no-files-found: ignore
           retention-days: 14

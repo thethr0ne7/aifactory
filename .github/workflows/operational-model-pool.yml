@@ -1,23 +1,23 @@
-name: First agent generation
+name: Operational model pool
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
-      - 'scripts/seed-first-agent-generation.mjs'
-      - 'runtime/agent-nursery.mjs'
-      - 'registry/agent-nursery.json'
-  workflow_dispatch:
+      - 'registry/agent-routing.json'
+      - 'scripts/configure-operational-model-pool.mjs'
+      - '.github/workflows/operational-model-pool.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: n8n-agent-nursery-mutator
-  cancel-in-progress: false
+  group: n8n-operational-model-pool
+  cancel-in-progress: true
 
 jobs:
-  seed-and-evaluate:
+  configure:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -29,13 +29,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Seed, train, evaluate and attach Generation 1 candidate
-        run: node scripts/seed-first-agent-generation.mjs
-      - name: Upload sanitized lifecycle evidence
+      - name: Move twenty operational agents to the separate GPT-OSS 20B quota pool
+        run: node scripts/configure-operational-model-pool.mjs
+      - name: Upload sanitized model-pool evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: first-agent-generation
-          path: artifacts/first-agent-generation.json
+          name: operational-model-pool
+          path: artifacts/operational-model-pool.json
           if-no-files-found: ignore
           retention-days: 14

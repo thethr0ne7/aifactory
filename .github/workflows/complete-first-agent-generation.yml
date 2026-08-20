@@ -1,0 +1,36 @@
+name: Complete first agent generation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-agent-nursery-g1-mutator
+  cancel-in-progress: true
+
+jobs:
+  complete-generation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bounded Generation 1 network
+        run: node scripts/validate-agent-network.mjs
+      - name: Train, evaluate and attach remaining Generation 1 specialists
+        run: node scripts/continue-first-agent-generation-v2.mjs
+      - name: Upload sanitized Generation 1 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: complete-first-agent-generation
+          path: artifacts/complete-first-agent-generation.json
+          if-no-files-found: ignore
+          retention-days: 14
