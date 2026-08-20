@@ -6,13 +6,15 @@ on:
     paths:
       - 'scripts/seed-first-agent-generation.mjs'
       - 'runtime/agent-nursery.mjs'
-      - 'registry/agent-network.json'
       - 'registry/agent-nursery.json'
-      - '.github/workflows/first-agent-generation.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: n8n-agent-nursery-mutator
+  cancel-in-progress: false
 
 jobs:
   seed-and-evaluate:
