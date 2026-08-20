@@ -1,0 +1,74 @@
+name: Agent Message Bus
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'registry/agent-routing.json'
+      - 'registry/agent-network.json'
+      - 'infra/supabase/migrations/20260820_290_agent_message_bus.sql'
+      - 'scripts/agent-message-bus-worker.mjs'
+      - 'scripts/seed-synergy-birth.mjs'
+      - 'scripts/verify-synergy-birth.mjs'
+      - 'scripts/validate-agent-message-bus.mjs'
+      - '.github/workflows/agent-message-bus.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-factory-message-bus
+  cancel-in-progress: false
+
+jobs:
+  message-bus:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+      FACTORY_BUS_MAX_CLAIMS: '4'
+      FACTORY_SYNERGY_CORRELATION_ID: a1f4c7e0-2026-4820-8420-000000000001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate message-bus contracts
+        run: node scripts/validate-agent-message-bus.mjs
+      - name: Seed audited synergy birth on PR acceptance
+        if: github.event_name == 'pull_request'
+        run: node scripts/seed-synergy-birth.mjs
+      - name: Drain bounded cross-cell chain on PR acceptance
+        if: github.event_name == 'pull_request'
+        run: |
+          for i in 1 2 3 4 5 6; do
+            node scripts/agent-message-bus-worker.mjs
+          done
+      - name: Run one bounded bus worker turn
+        if: github.event_name != 'pull_request'
+        run: node scripts/agent-message-bus-worker.mjs
+      - name: Verify Research→Evidence→Build→Audit→Birth acceptance
+        if: github.event_name == 'pull_request'
+        run: node scripts/verify-synergy-birth.mjs
+      - name: Upload sanitized synergy evidence
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: synergy-birth
+          path: artifacts/synergy-birth.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Persist bus workflow failure to Factory memory
+        if: failure()
+        env:
+          FACTORY_FAILURE_SCOPE: agent-message-bus
+          FACTORY_FAILURE_SUMMARY: Agent Message Bus failed while routing a bounded Research-Evidence-Build-Audit handoff or synergy birth; inspect durable messages and dead letters before retrying.
+          FACTORY_FAULT_SINK_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-fault-sink
+        run: node scripts/record-workflow-failure.mjs
