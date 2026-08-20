@@ -23,11 +23,14 @@ const learning = readJson('registry/learning-policy.json');
 for (const rel of [
   'runtime/self-improvement.mjs',
   'scripts/self-improvement-worker.mjs',
+  'scripts/reviewed-self-improvement-patch.mjs',
   'scripts/test-self-improvement.mjs',
   '.github/workflows/factory-self-improvement.yml',
+  '.github/workflows/reviewed-self-improvement-patch.yml',
   'infra/supabase/migrations/20260815_250_controlled_self_improvement.sql',
   'infra/supabase/migrations/20260815_251_incident_lesson_linkage.sql',
   'supabase/functions/ai-factory-broker/index.ts',
+  'supabase/functions/ai-factory-reviewed-patch/index.ts',
 ]) exists(rel);
 
 if (manifest) {
@@ -55,6 +58,18 @@ if (policy) {
   if (Number(policy.evaluation?.maxCandidatesPerRun) !== 1) errors.push('self-improvement must evaluate at most one candidate per run');
   if (Number(policy.evaluation?.maxModelEvaluationsPerRun) !== 1) errors.push('self-improvement must allow at most one model eval per run');
   if (Number(policy.observation?.minimumPassObservationsToRetain) < 2) errors.push('retention requires at least two pass observations');
+
+  const reviewed = policy.reviewedRepositoryPatches || {};
+  if (reviewed.requiresManualWorkflowDispatch !== true) errors.push('repository patches must require manual workflow dispatch');
+  if (reviewed.requiresExactPatchCandidateId !== true) errors.push('repository review must bind exact patch candidate id');
+  if (JSON.stringify(reviewed.allowedTargetTypes || []) !== JSON.stringify(['ROUTING_HEURISTIC','SKILL_PATCH','WORKFLOW_PATCH'])) errors.push('reviewed repository target allowlist mismatch');
+  if (JSON.stringify(reviewed.allowedRiskClasses || []) !== JSON.stringify(['LOW'])) errors.push('reviewed repository patch must remain LOW risk');
+  if (reviewed.directMainWrite !== false) errors.push('reviewed repository patch must deny direct main writes');
+  if (reviewed.automaticMerge !== false) errors.push('reviewed repository patch must deny automatic merge');
+  if (reviewed.requiresExpectedBlobShaForExistingFiles !== true) errors.push('reviewed repository patch must require exact blob freshness');
+  if (reviewed.singleFilePerCandidate !== true) errors.push('reviewed repository patch must remain single-file');
+  if (!(reviewed.deniedPaths || []).includes('.github/workflows/factory-self-improvement.yml')) errors.push('reviewed path must protect A4 workflow');
+  if (!(reviewed.deniedPaths || []).includes('registry/factory-constitution.json')) errors.push('reviewed path must protect Root of Trust');
 }
 
 if (autonomy) {
@@ -76,6 +91,9 @@ if (fs.existsSync(runtimePath)) {
   for (const token of ['patch_faithful','unsupported_assumptions','evaluation is not faithful to represented patch','evaluation relies on unsupported candidate changes','score_scale_valid','evaluation score scale is missing or not 0-100']) {
     if (!runtime.includes(token)) errors.push(`A4 decision kernel missing evaluation-honesty gate: ${token}`);
   }
+  for (const token of ['buildImprovementPatch','validateReviewedRepositoryPatch','reviewed-repository-candidate','WORKFLOW_PRIVILEGE_EXPANSION_DENIED','requires explicit reviewed repository path']) {
+    if (!runtime.includes(token)) errors.push(`reviewed repository kernel missing boundary: ${token}`);
+  }
 }
 
 const workerPath = path.join(root, 'scripts/self-improvement-worker.mjs');
@@ -84,6 +102,8 @@ if (fs.existsSync(workerPath)) {
   for (const token of ['PATCH-FIDELITY CONTRACT','Do NOT assume a new validator','unsupported_assumptions','patch_faithful','SCORE CONTRACT','score_scale','0-100']) {
     if (!worker.includes(token)) errors.push(`A4 evaluator missing evaluation-honesty contract: ${token}`);
   }
+  if (!worker.includes('buildImprovementPatch(candidate)')) errors.push('A4 worker must represent repo candidates before review');
+  if (!worker.includes('targetType: patch.target_type')) errors.push('A4 decision must bind target type so repo patches cannot auto-promote');
 }
 
 const brokerPath = path.join(root, 'supabase/functions/ai-factory-broker/index.ts');
@@ -93,6 +113,23 @@ if (fs.existsSync(brokerPath)) {
     if (!broker.includes(token)) errors.push(`broker missing action: ${token}`);
   }
   if (!broker.includes('factory-self-improvement.yml@refs/heads/main')) errors.push('broker must pin self-improvement workflow identity');
+}
+
+const reviewGatePath = path.join(root, 'supabase/functions/ai-factory-reviewed-patch/index.ts');
+if (fs.existsSync(reviewGatePath)) {
+  const gate = fs.readFileSync(reviewGatePath, 'utf8');
+  for (const token of ['workflow_dispatch','reviewed-self-improvement-patch.yml@refs/heads/main','refs/heads/main','candidate.status !== "REVIEW_REQUIRED"','candidate.risk_class !== "LOW"','candidate_evaluation_not_passed','exact_patch_candidate_id','direct_main_write: false','automatic_merge: false']) {
+    if (!gate.includes(token)) errors.push(`reviewed patch OIDC gate missing boundary: ${token}`);
+  }
+}
+
+const reviewScriptPath = path.join(root, 'scripts/reviewed-self-improvement-patch.mjs');
+if (fs.existsSync(reviewScriptPath)) {
+  const script = fs.readFileSync(reviewScriptPath, 'utf8');
+  for (const token of ['PATCH_CANDIDATE_ID','GITHUB_REF','workflow_dispatch','expected_blob_sha required','stale candidate','single-file boundary','runCoreValidators','git([\'push\'','automatic_merge: false']) {
+    if (!script.includes(token)) errors.push(`reviewed patch executor missing boundary: ${token}`);
+  }
+  if (script.includes("git(['switch', 'main'])")) errors.push('reviewed patch executor must never switch to main for mutation');
 }
 
 const migrationPath = path.join(root, 'infra/supabase/migrations/20260815_250_controlled_self_improvement.sql');
@@ -128,6 +165,17 @@ if (fs.existsSync(workflowPath)) {
   if (!workflow.includes('node scripts/self-improvement-worker.mjs')) errors.push('workflow must execute A4 worker');
 }
 
+const reviewedWorkflowPath = path.join(root, '.github/workflows/reviewed-self-improvement-patch.yml');
+if (fs.existsSync(reviewedWorkflowPath)) {
+  const workflow = fs.readFileSync(reviewedWorkflowPath, 'utf8');
+  for (const token of ['workflow_dispatch:','patch_candidate_id:','contents: write','pull-requests: write','id-token: write','ref: main','node scripts/reviewed-self-improvement-patch.mjs']) {
+    if (!workflow.includes(token)) errors.push(`reviewed patch workflow missing contract: ${token}`);
+  }
+  for (const forbidden of ['schedule:', 'push:', 'pull_request:']) {
+    if (workflow.includes(forbidden)) errors.push(`reviewed patch workflow must not have automatic trigger: ${forbidden}`);
+  }
+}
+
 const test = spawnSync(process.execPath, ['scripts/test-self-improvement.mjs'], { cwd: root, encoding: 'utf8' });
 if (test.status !== 0) errors.push(`self-improvement state-machine tests failed: ${(test.stderr || test.stdout || '').trim()}`);
 
@@ -136,4 +184,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.log('AI Factory controlled self-improvement validation OK: A4 score scale, patch fidelity, promotion, incident linkage, autonomy boundary, observation and rollback are coherent');
+console.log('AI Factory controlled self-improvement validation OK: A4 memory promotion, reviewed low-risk repo patches, exact review identity, score scale, patch fidelity, incident linkage, autonomy boundary, observation and rollback are coherent');
