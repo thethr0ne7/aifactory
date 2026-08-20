@@ -29,11 +29,14 @@ expect(gateway.includes('TELEGRAM_BOT_TOKEN'), 'bot token must come from Edge Fu
 expect(gateway.includes('x-telegram-bot-api-secret-token'), 'Telegram webhook secret validation missing');
 expect(gateway.includes('webhookSecret(BOT_TOKEN)'), 'deterministic webhook secret derivation missing');
 expect(gateway.includes('owner_user_id'), 'owner allowlist enforcement missing');
-expect(gateway.includes('af_enqueue_run'), 'Factory enqueue path missing');
+expect(gateway.includes('af_enqueue_run'), 'legacy Factory enqueue path missing');
 expect(gateway.includes('23505'), 'idempotent Telegram update handling missing');
 expect(gateway.includes('delivered_post_count'), 'partial-delivery resume missing');
 expect(gateway.includes('authenticateGitHub'), 'outbound delivery GitHub OIDC authentication missing');
-expect(gateway.includes('EXPECTED_REF = "refs/heads/main"'), 'main-only outbound authority missing');
+expect(/EXPECTED_REF\s*=\s*["']refs\/heads\/main["']/.test(gateway), 'main-only outbound authority missing');
+expect(gateway.includes('assertWorkflow'), 'per-workflow outbound authority gate missing');
+expect(gateway.includes('agent_live_mode'), 'visible-agent live mode missing');
+expect(gateway.includes('deliver_agent_activity'), 'visible agent activity delivery missing');
 expect(!/\d{8,}:AA[A-Za-z0-9_-]+/.test(gateway), 'Telegram bot token literal detected');
 
 expect(sweep.includes("audience = 'aifactory-supabase-runtime'"), 'delivery sweep OIDC audience missing');
