@@ -2,377 +2,121 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "npm:jose@6";
 
-type GitHubClaims = JWTPayload & {
-  repository?: string;
-  repository_id?: string;
-  ref?: string;
-  event_name?: string;
-  workflow_ref?: string;
-  job_workflow_ref?: string;
-  run_id?: string;
-};
+type GitHubClaims=JWTPayload&{repository?:string;repository_id?:string;ref?:string;event_name?:string;workflow_ref?:string;job_workflow_ref?:string;run_id?:string};
+type TgUser={id?:number;is_bot?:boolean;username?:string;first_name?:string};
+type TgChat={id?:number;title?:string;type?:string};
+type TgMessage={message_id?:number;message_thread_id?:number;text?:string;caption?:string;chat?:TgChat;from?:TgUser};
+type TgCallback={id?:string;from?:TgUser;data?:string;message?:TgMessage};
+type TelegramUpdate={update_id?:number;message?:TgMessage;edited_message?:TgMessage;callback_query?:TgCallback};
+type OutboundRequest={action?:string;limit?:number;worker?:string};
 
-type TelegramMessage = {
-  message_id?: number;
-  message_thread_id?: number;
-  text?: string;
-  caption?: string;
-  chat?: { id?: number; title?: string; type?: string };
-  from?: { id?: number; is_bot?: boolean; username?: string; first_name?: string };
-};
+const SUPABASE_URL=mustEnv("SUPABASE_URL");
+const BOT_TOKEN=mustEnv("TELEGRAM_BOT_TOKEN");
+const db=createClient(SUPABASE_URL,adminKey(),{auth:{persistSession:false,autoRefreshToken:false}});
+const ISSUER="https://token.actions.githubusercontent.com";
+const AUDIENCE="aifactory-supabase-runtime";
+const EXPECTED_REPOSITORY="thethr0ne7/aifactory";
+const EXPECTED_REPOSITORY_ID="1334997374";
+const EXPECTED_REF="refs/heads/main";
+const AUTONOMOUS_WORKFLOW="thethr0ne7/aifactory/.github/workflows/factory-autonomous-worker.yml@refs/heads/main";
+const AGENT_ORG_WORKFLOW="thethr0ne7/aifactory/.github/workflows/agent-organization.yml@refs/heads/main";
+const JWKS=createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks`));
+const TERMINAL=new Set(["COMPLETE","BLOCKED","FAILED"]);
+const WEBHOOK_SECRET=await webhookSecret(BOT_TOKEN);
 
-type TelegramUpdate = { update_id?: number; message?: TelegramMessage; edited_message?: TelegramMessage };
-
-type OutboundRequest = { action?: string; limit?: number };
-
-const SUPABASE_URL = mustEnv("SUPABASE_URL");
-const BOT_TOKEN = mustEnv("TELEGRAM_BOT_TOKEN");
-const db = createClient(SUPABASE_URL, adminKey(), { auth: { persistSession: false, autoRefreshToken: false } });
-
-const ISSUER = "https://token.actions.githubusercontent.com";
-const AUDIENCE = "aifactory-supabase-runtime";
-const EXPECTED_REPOSITORY = "thethr0ne7/aifactory";
-const EXPECTED_REPOSITORY_ID = "1334997374";
-const EXPECTED_REF = "refs/heads/main";
-const AUTONOMOUS_WORKFLOW = "thethr0ne7/aifactory/.github/workflows/factory-autonomous-worker.yml@refs/heads/main";
-const JWKS = createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks`));
-const TERMINAL = new Set(["COMPLETE", "BLOCKED", "FAILED"]);
-const WEBHOOK_SECRET = await webhookSecret(BOT_TOKEN);
-
-Deno.serve(async (request: Request) => {
-  if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
-
-  try {
-    const telegramSecret = request.headers.get("x-telegram-bot-api-secret-token") || "";
-    if (telegramSecret) {
-      if (!constantTimeEqual(telegramSecret, WEBHOOK_SECRET)) return json({ error: "invalid_telegram_secret" }, 401);
-      const update = await safeJson<TelegramUpdate>(request);
-      return await handleInbound(update);
-    }
-
-    const claims = await authenticateGitHub(request);
-    const body = await safeJson<OutboundRequest>(request);
-    if (body.action !== "deliver_pending") return json({ error: "invalid_action" }, 400);
-    const limit = Math.max(1, Math.min(Number(body.limit) || 10, 20));
-    const result = await deliverPending(limit, claims);
-    return json(result);
-  } catch (error) {
-    console.error("ai-factory-telegram-hq", safeError(error));
-    return json({ error: "telegram_hq_failure", detail: safeError(error) }, 500);
-  }
+Deno.serve(async(request:Request)=>{
+  if(request.method!=="POST")return json({error:"method_not_allowed"},405);
+  try{
+    const telegramSecret=request.headers.get("x-telegram-bot-api-secret-token")||"";
+    if(telegramSecret){if(!constantTimeEqual(telegramSecret,WEBHOOK_SECRET))return json({error:"invalid_telegram_secret"},401);return await handleInbound(await safeJson<TelegramUpdate>(request));}
+    const claims=await authenticateGitHub(request);const body=await safeJson<OutboundRequest>(request);
+    if(body.action==="deliver_pending"){assertWorkflow(claims,[AUTONOMOUS_WORKFLOW]);return json(await deliverPending(Math.max(1,Math.min(Number(body.limit)||10,20)),claims));}
+    if(body.action==="deliver_agent_activity"){assertWorkflow(claims,[AGENT_ORG_WORKFLOW]);return json(await deliverAgentActivity(Math.max(1,Math.min(Number(body.limit)||40,50)),clean(body.worker||`tg-org:${claims.run_id||"unknown"}`,200)));}
+    return json({error:"invalid_action"},400);
+  }catch(error){console.error("ai-factory-telegram-hq",safeError(error));return json({error:"telegram_hq_failure",detail:safeError(error)},500);}
 });
 
-async function handleInbound(update: TelegramUpdate) {
-  const message = update.message ?? update.edited_message;
-  if (!message || !Number.isSafeInteger(update.update_id)) return json({ ok: true, ignored: "unsupported_update" });
-  if (message.from?.is_bot) return json({ ok: true, ignored: "bot_message" });
-
-  const userId = numberId(message.from?.id, "user_id");
-  const chatId = numberId(message.chat?.id, "chat_id");
-  const messageId = numberId(message.message_id, "message_id");
-  const threadId = Number.isSafeInteger(message.message_thread_id) ? Number(message.message_thread_id) : 1;
-  const text = clean(message.text ?? message.caption ?? "", 12000);
-  if (!text) return json({ ok: true, ignored: "empty_message" });
-
-  const { data: workspace, error: workspaceError } = await db
-    .from("af_telegram_workspaces")
-    .select("id,chat_id,owner_user_id,title,enabled")
-    .eq("chat_id", chatId)
-    .eq("enabled", true)
-    .maybeSingle();
-  if (workspaceError) throw workspaceError;
-  if (!workspace) return json({ ok: true, ignored: "workspace_not_registered" });
-  if (Number(workspace.owner_user_id) !== userId) return json({ ok: true, ignored: "user_not_owner" });
-
-  const { data: topic, error: topicError } = await db
-    .from("af_telegram_topics")
-    .select("id,topic_key,telegram_thread_id,display_name,route_kind,route_instruction,enabled")
-    .eq("workspace_id", workspace.id)
-    .eq("telegram_thread_id", threadId)
-    .eq("enabled", true)
-    .maybeSingle();
-  if (topicError) throw topicError;
-  if (!topic) {
-    await sendTelegram(chatId, threadId, "⚠️ Эта тема пока не подключена к AI Factory.");
-    return json({ ok: true, ignored: "topic_not_registered" });
-  }
-
-  const raw = JSON.parse(JSON.stringify(update));
-  const { error: insertError } = await db.from("af_telegram_messages").insert({
-    update_id: update.update_id,
-    workspace_id: workspace.id,
-    topic_id: topic.id,
-    telegram_user_id: userId,
-    telegram_chat_id: chatId,
-    telegram_message_id: messageId,
-    telegram_thread_id: threadId,
-    message_text: text,
-    status: "RECEIVED",
-    raw_update: raw,
-  });
-
-  if (insertError) {
-    if (String(insertError.code) === "23505") return json({ ok: true, duplicate: true });
-    throw insertError;
-  }
-
-  const objective = buildObjective({ topic, text, messageId });
-  const payload = {
-    source: "telegram-hq",
-    telegram: {
-      update_id: update.update_id,
-      chat_id: chatId,
-      message_id: messageId,
-      thread_id: threadId,
-      topic_key: topic.topic_key,
-      topic_name: topic.display_name,
-      owner_user_id: userId,
-    },
-    response_contract: {
-      output_key: "telegram_posts",
-      max_posts: 6,
-      post_shape: { agent: "string", text: "string" },
-    },
-  };
-
-  const { data: runId, error: enqueueError } = await db.rpc("af_enqueue_run", {
-    p_objective: objective,
-    p_payload: payload,
-    p_kind: topic.route_kind,
-    p_autonomy_level: "A3",
-  });
-  if (enqueueError) {
-    await db.from("af_telegram_messages").update({ status: "FAILED", delivery_error: { stage: "enqueue", message: enqueueError.message } }).eq("update_id", update.update_id);
-    throw enqueueError;
-  }
-
-  const { error: linkError } = await db.from("af_telegram_messages")
-    .update({ run_id: runId, status: "QUEUED" })
-    .eq("update_id", update.update_id);
-  if (linkError) throw linkError;
-
-  await sendTelegram(chatId, threadId, `⏳ Принято · ${topic.display_name}\nFactory run: ${String(runId).slice(0, 8)}`);
-  return json({ ok: true, queued: true, run_id: runId, topic: topic.topic_key });
+async function handleInbound(update:TelegramUpdate){
+  if(update.callback_query)return handleCallback(update.callback_query);
+  const message=update.message??update.edited_message;if(!message||!Number.isSafeInteger(update.update_id))return json({ok:true,ignored:"unsupported_update"});
+  if(message.from?.is_bot)return json({ok:true,ignored:"bot_message"});
+  const userId=numberId(message.from?.id,"user_id"),chatId=numberId(message.chat?.id,"chat_id"),messageId=numberId(message.message_id,"message_id"),threadId=Number.isSafeInteger(message.message_thread_id)?Number(message.message_thread_id):1;
+  const text=clean(message.text??message.caption??"",12000);if(!text)return json({ok:true,ignored:"empty_message"});
+  const {workspace,topic}=await resolveWorkspaceTopic(chatId,threadId,userId);if(!workspace)return json({ok:true,ignored:"workspace_not_registered"});if(!topic){await sendTelegram(chatId,threadId,"⚠️ Эта тема пока не подключена к AI Factory.");return json({ok:true,ignored:"topic_not_registered"});}
+  const {error:insertError}=await db.from("af_telegram_messages").insert({update_id:update.update_id,workspace_id:workspace.id,topic_id:topic.id,telegram_user_id:userId,telegram_chat_id:chatId,telegram_message_id:messageId,telegram_thread_id:threadId,message_text:text,status:"RECEIVED",raw_update:JSON.parse(JSON.stringify(update))});
+  if(insertError){if(String(insertError.code)==="23505")return json({ok:true,duplicate:true});throw insertError;}
+  if(topic.agent_live_mode===true){const result=await handleLiveText({workspace,topic,userId,chatId,threadId,messageId,text});await db.from("af_telegram_messages").update({status:"DELIVERED",delivered_at:new Date().toISOString(),delivered_post_count:1}).eq("update_id",update.update_id);return json({ok:true,live:true,...result});}
+  return legacyEnqueue({update,workspace,topic,userId,chatId,threadId,messageId,text});
 }
 
-function buildObjective({ topic, text, messageId }: { topic: any; text: string; messageId: number }) {
-  return [
-    "You are responding inside the owner's private Telegram AI FACTORY HQ.",
-    `ROOM: ${topic.display_name} (${topic.topic_key}).`,
-    `ROUTING POLICY: ${topic.route_instruction}`,
-    "Use the existing AI Factory executive router, registered agents, skills, evidence rules, memory and bounded autonomy. Activate only the smallest sufficient set of real registered agents/skills; do not stage a fake council.",
-    "The owner wants a working-room interaction: agents may disagree, inspect evidence, assign next tasks, propose repairs or product changes, and clearly identify blockers. Preserve Root of Trust and existing autonomy/security gates.",
-    "For the Telegram response, put 1-6 concise member contributions in output.telegram_posts. Each item must be {agent:string,text:string}. Only use agents that were actually activated. The final post should state the decision/next action when one exists.",
-    `TELEGRAM_MESSAGE_ID: ${messageId}`,
-    "USER MESSAGE:",
-    text,
-  ].join("\n\n");
+async function handleLiveText({workspace,topic,userId,chatId,threadId,messageId,text}:any){
+  if(text.startsWith('/'))return handleCommand({workspace,topic,userId,chatId,threadId,messageId,text});
+  let session=await activeSession(workspace.id,threadId);
+  if(!session){const {data,error}=await db.from("af_agent_sessions").insert({workspace_id:workspace.id,topic_id:topic.id,telegram_chat_id:chatId,telegram_thread_id:threadId,root_objective:text,state:"RUNNING",initiative_mode:topic.default_initiative_mode||"AUTO_INTERNAL",provenance:{source:"telegram-hq",topic_key:topic.topic_key,route_kind:topic.route_kind}}).select("*").single();if(error)throw error;session=data;await addActivity(session.id,null,"SESSION_STARTED","nursery-supervisor-g0",null,"Рабочая сессия открыта",`Цель: ${text}`);}
+  const status=session.state==="PAUSED"?"PAUSED":"QUEUED";const assigned=initialAgent(topic);const fp=await fingerprint(`${session.id}|owner|${messageId}|${text}`);
+  const {data:task,error:tError}=await db.from("af_agent_tasks").insert({session_id:session.id,correlation_id:session.correlation_id,created_by_agent_ref:"owner",assigned_agent_ref:assigned,domain:clean(topic.route_kind||"general",120),objective:text,rationale:`Owner directive in Telegram topic ${topic.display_name}`,expected_value:100,risk_class:"LOW",requires_owner_approval:false,owner_decision:"APPROVED",status,priority:900,depth:0,fingerprint:fp,provenance:{source:"telegram-owner",telegram_message_id:messageId}}).select("*").single();if(tError)throw tError;
+  await addActivity(session.id,task.id,"OWNER_DIRECTIVE","owner",assigned,"Новая директива владельца",`Владелец → ${assigned}\n${text}`);
+  await db.from("af_agent_sessions").update({owner_last_command:text,last_activity_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",session.id);
+  const controls=session.state==="PAUSED"?[[{text:"▶️ Продолжить",callback_data:`af:resume:${session.id}`},{text:"🛑 Стоп",callback_data:`af:stop:${session.id}`}]]:[[{text:"⏸ Пауза",callback_data:`af:pause:${session.id}`},{text:"🛑 Стоп",callback_data:`af:stop:${session.id}`}]];
+  await sendTelegram(chatId,threadId,`${session.state==="PAUSED"?'⏸':'🟢'} Сессия ${shortId(session.id)} · задача ${shortId(task.id)}\nНазначено: ${assigned}\n${session.state==="PAUSED"?'Сессия на паузе — задача сохранена, но не исполняется.':'Агенты будут писать сюда по мере работы.'}`,controls);
+  return{session_id:session.id,task_id:task.id,assigned_agent:assigned};
 }
 
-async function deliverPending(limit: number, claims: GitHubClaims) {
-  const { data: rows, error } = await db
-    .from("af_telegram_messages")
-    .select("update_id,telegram_chat_id,telegram_thread_id,telegram_message_id,run_id,status,delivery_attempts,delivered_post_count")
-    .eq("status", "QUEUED")
-    .not("run_id", "is", null)
-    .order("created_at", { ascending: true })
-    .limit(limit);
-  if (error) throw error;
+async function handleCommand(ctx:any){const parts=ctx.text.trim().split(/\s+/);const command=parts[0].toLowerCase();const session=await activeSession(ctx.workspace.id,ctx.threadId,true);
+  if(command==='/status'){await sendStatus(ctx.chatId,ctx.threadId,session);return{command:"status"};}
+  if(command==='/new'){if(session&&!["STOPPED","COMPLETE"].includes(session.state))await stopSession(session,ctx.userId,ctx.messageId,"owner_new_session");const objective=clean(parts.slice(1).join(' '),10000)||"Новая рабочая сессия";return handleLiveText({...ctx,text:objective});}
+  if(!session){await sendTelegram(ctx.chatId,ctx.threadId,"Нет активной сессии. Напиши обычное сообщение — я открою рабочую сессию.");return{command,ignored:"no_session"};}
+  if(command==='/pause'){await applySessionAction(session,'PAUSE',ctx.userId,ctx.messageId);await sendTelegram(ctx.chatId,ctx.threadId,`⏸ Сессия ${shortId(session.id)} приостановлена.`);return{command:"pause"};}
+  if(command==='/resume'){await applySessionAction(session,'RESUME',ctx.userId,ctx.messageId);await sendTelegram(ctx.chatId,ctx.threadId,`▶️ Сессия ${shortId(session.id)} продолжена.`);return{command:"resume"};}
+  if(command==='/stop'){await applySessionAction(session,'STOP',ctx.userId,ctx.messageId);await sendTelegram(ctx.chatId,ctx.threadId,`🛑 Сессия ${shortId(session.id)} остановлена. Новые задачи из неё не выполняются.`);return{command:"stop"};}
+  if(command==='/initiative'){const raw=(parts[1]||'').toLowerCase();const mode=raw==='on'||raw==='auto'?'AUTO_INTERNAL':raw==='suggest'?'SUGGEST':raw==='off'?'OFF':null;if(!mode){await sendTelegram(ctx.chatId,ctx.threadId,"Используй: /initiative on | suggest | off");return{command:"initiative",error:"mode"};}await db.from("af_agent_sessions").update({initiative_mode:mode,updated_at:new Date().toISOString()}).eq("id",session.id);await logControl(session.id,null,'SET_INITIATIVE_MODE',{mode},ctx.userId,ctx.messageId,true);await addActivity(session.id,null,'SYSTEM','owner',null,'Режим инициатив изменён',`initiative_mode=${mode}`);await sendTelegram(ctx.chatId,ctx.threadId,`⚙️ Инициативы: ${mode}`);return{command:"initiative",mode};}
+  if(command==='/focus'){const objective=clean(parts.slice(1).join(' '),8000);if(!objective){await sendTelegram(ctx.chatId,ctx.threadId,"Используй: /focus <что именно сделать или проверить>");return{command:"focus",error:"objective"};}return createOwnerFocus(session,objective,ctx);}
+  if(command==='/support'||command==='/reject'){const id=parts[1];if(!id){await sendTelegram(ctx.chatId,ctx.threadId,`Используй: ${command} <task UUID>`);return{command,error:"task_id"};}const task=await resolveTaskRef(session.id,id);if(!task){await sendTelegram(ctx.chatId,ctx.threadId,"Задача не найдена в этой сессии.");return{command,error:"not_found"};}await applyTaskDecision(task,command==='/support'?'SUPPORT':'REJECT',ctx.userId,ctx.messageId);await sendTelegram(ctx.chatId,ctx.threadId,`${command==='/support'?'👍 Поддержано':'❌ Отклонено'} · ${shortId(task.id)}`);return{command,task_id:task.id};}
+  if(command==='/priority'){const task=await resolveTaskRef(session.id,parts[1]||'');const priority=Number(parts[2]);if(!task||!Number.isFinite(priority)){await sendTelegram(ctx.chatId,ctx.threadId,"Используй: /priority <task UUID> <0..1000>");return{command:"priority",error:"arguments"};}const p=Math.max(0,Math.min(Math.round(priority),1000));await db.from("af_agent_tasks").update({priority:p,updated_at:new Date().toISOString()}).eq("id",task.id);await logControl(session.id,task.id,'SET_PRIORITY',{priority:p},ctx.userId,ctx.messageId,true);await sendTelegram(ctx.chatId,ctx.threadId,`🎚 Приоритет ${shortId(task.id)} = ${p}`);return{command:"priority",priority:p};}
+  await sendTelegram(ctx.chatId,ctx.threadId,"Команды: /status · /pause · /resume · /stop · /initiative on|suggest|off · /focus <задача> · /support <task> · /reject <task> · /priority <task> <0..1000> · /new <цель>");return{command:"help"};}
 
-  const results: any[] = [];
-  for (const row of rows ?? []) {
-    const { data: run, error: runError } = await db
-      .from("af_runs")
-      .select("id,status,output,activated_agents,selected_skills,completed_at")
-      .eq("id", row.run_id)
-      .maybeSingle();
-    if (runError) throw runError;
-    if (!run || !TERMINAL.has(run.status)) {
-      results.push({ update_id: row.update_id, state: "not_terminal" });
-      continue;
-    }
+async function handleCallback(cb:TgCallback){const data=clean(cb.data,64);if(!cb.id||!cb.message||!cb.from?.id)return json({ok:true,ignored:"invalid_callback"});const chatId=numberId(cb.message.chat?.id,"chat_id"),threadId=Number.isSafeInteger(cb.message.message_thread_id)?Number(cb.message.message_thread_id):1,userId=numberId(cb.from.id,"user_id");const {workspace}=await resolveWorkspaceTopic(chatId,threadId,userId);if(!workspace){await answerCallback(cb.id,"Недоступно");return json({ok:false});}
+  const [prefix,action,id]=data.split(':');if(prefix!=="af"||!action||!id){await answerCallback(cb.id,"Неизвестное действие");return json({ok:false});}
+  if(action==='pause'||action==='resume'||action==='stop'){const session=await sessionById(id,workspace.id);if(!session){await answerCallback(cb.id,"Сессия не найдена");return json({ok:false});}await applySessionAction(session,action.toUpperCase(),userId,cb.message.message_id||null);await answerCallback(cb.id,action==='pause'?'Пауза':action==='resume'?'Продолжено':'Остановлено');return json({ok:true});}
+  if(action==='status'){const session=await sessionById(id,workspace.id);await answerCallback(cb.id,"Статус отправлен");await sendStatus(chatId,threadId,session);return json({ok:true});}
+  if(action==='support'||action==='reject'){const {data:task,error}=await db.from("af_agent_tasks").select("*").eq("id",id).maybeSingle();if(error)throw error;if(!task){await answerCallback(cb.id,"Задача не найдена");return json({ok:false});}const session=await sessionById(task.session_id,workspace.id);if(!session){await answerCallback(cb.id,"Сессия недоступна");return json({ok:false});}await applyTaskDecision(task,action==='support'?'SUPPORT':'REJECT',userId,cb.message.message_id||null);await answerCallback(cb.id,action==='support'?'Поддержано':'Отклонено');return json({ok:true});}
+  await answerCallback(cb.id,"Неизвестное действие");return json({ok:false});}
 
-    const posts = formatPosts(run).slice(0, 6);
-    const startAt = Math.max(0, Math.min(Number(row.delivered_post_count) || 0, posts.length));
-    const attempts = (Number(row.delivery_attempts) || 0) + 1;
-    await db.from("af_telegram_messages").update({ delivery_attempts: attempts, last_delivery_attempt_at: new Date().toISOString() }).eq("update_id", row.update_id);
+async function applySessionAction(session:any,action:string,userId:number,messageId:any){if(action==='PAUSE'){await db.from("af_agent_sessions").update({state:"PAUSED",owner_last_command:"PAUSE",updated_at:new Date().toISOString()}).eq("id",session.id).eq("state","RUNNING");await db.from("af_agent_tasks").update({status:"PAUSED",updated_at:new Date().toISOString()}).eq("session_id",session.id).eq("status","QUEUED");await addActivity(session.id,null,'SESSION_PAUSED','owner',null,'Сессия приостановлена','Владелец поставил работу на паузу.');}
+  else if(action==='RESUME'){await db.from("af_agent_sessions").update({state:"RUNNING",owner_last_command:"RESUME",updated_at:new Date().toISOString()}).eq("id",session.id).eq("state","PAUSED");await db.from("af_agent_tasks").update({status:"QUEUED",available_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("session_id",session.id).eq("status","PAUSED");await addActivity(session.id,null,'SESSION_RESUMED','owner',null,'Сессия продолжена','Владелец возобновил работу.');}
+  else if(action==='STOP'){await stopSession(session,userId,messageId,'owner_stop');}
+  await logControl(session.id,null,action,{},userId,messageId,true);}
+async function stopSession(session:any,userId:number,messageId:any,reason:string){await db.from("af_agent_sessions").update({state:"STOPPED",owner_last_command:"STOP",updated_at:new Date().toISOString(),completed_at:new Date().toISOString()}).eq("id",session.id).in("state",["RUNNING","PAUSED","BLOCKED"]);await db.from("af_agent_tasks").update({status:"CANCELLED",updated_at:new Date().toISOString(),completed_at:new Date().toISOString()}).eq("session_id",session.id).in("status",["PROPOSED","QUEUED","PAUSED","WAIT_OWNER","CLAIMED","WORKING"]);await addActivity(session.id,null,'SESSION_STOPPED','owner',null,'Сессия остановлена',`Владелец остановил работу (${reason}).`);}
+async function applyTaskDecision(task:any,action:'SUPPORT'|'REJECT',userId:number,messageId:any){if(action==='SUPPORT'){await db.from("af_agent_tasks").update({owner_decision:"APPROVED",status:"QUEUED",available_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",task.id).in("status",["WAIT_OWNER","PROPOSED"]);await addActivity(task.session_id,task.id,'TASK_APPROVED','owner',task.assigned_agent_ref,'Задача поддержана владельцем',`👍 ${shortId(task.id)} → ${task.assigned_agent_ref}`);}else{await db.from("af_agent_tasks").update({owner_decision:"REJECTED",status:"REJECTED",updated_at:new Date().toISOString(),completed_at:new Date().toISOString()}).eq("id",task.id).in("status",["WAIT_OWNER","PROPOSED","QUEUED","PAUSED"]);await addActivity(task.session_id,task.id,'TASK_REJECTED','owner',task.assigned_agent_ref,'Задача отклонена владельцем',`❌ ${shortId(task.id)}`);}await logControl(task.session_id,task.id,action,{},userId,messageId,true);}
+async function createOwnerFocus(session:any,objective:string,ctx:any){const fp=await fingerprint(`${session.id}|focus|${ctx.messageId}|${objective}`);const status=session.state==='PAUSED'?'PAUSED':'QUEUED';const {data:task,error}=await db.from("af_agent_tasks").insert({session_id:session.id,correlation_id:session.correlation_id,created_by_agent_ref:'owner',assigned_agent_ref:'nursery-supervisor-g0',domain:'owner-focus',objective,rationale:'Explicit owner focus command',expected_value:100,risk_class:'LOW',requires_owner_approval:false,owner_decision:'APPROVED',status,priority:1000,depth:0,fingerprint:fp,provenance:{source:'telegram-focus'}}).select('*').single();if(error)throw error;await addActivity(session.id,task.id,'OWNER_DIRECTIVE','owner','nursery-supervisor-g0','Фокус владельца',objective);await logControl(session.id,task.id,'FOCUS',{objective},ctx.userId,ctx.messageId,true);await sendTelegram(ctx.chatId,ctx.threadId,`🎯 Фокус добавлен · ${shortId(task.id)} · priority=1000`);return{command:'focus',task_id:task.id};}
 
-    let delivered = startAt;
-    try {
-      for (let i = startAt; i < posts.length; i++) {
-        await sendTelegram(Number(row.telegram_chat_id), Number(row.telegram_thread_id), posts[i]);
-        delivered = i + 1;
-        await db.from("af_telegram_messages").update({ delivered_post_count: delivered, delivery_error: null }).eq("update_id", row.update_id);
-      }
+async function deliverAgentActivity(limit:number,worker:string){const {data:rows,error}=await db.rpc("af_claim_agent_activity",{p_worker:worker,p_limit:limit});if(error)throw error;const results:any[]=[];for(const row of rows??[]){try{const {data:session,error:sError}=await db.from("af_agent_sessions").select("id,telegram_chat_id,telegram_thread_id,state").eq("id",row.session_id).single();if(sError)throw sError;const text=formatActivity(row);const keyboard=activityKeyboard(row,session);const sent=await sendTelegram(Number(session.telegram_chat_id),Number(session.telegram_thread_id),text,keyboard);const {data:done,error:dError}=await db.rpc("af_complete_agent_activity",{p_activity_id:row.id,p_worker:worker,p_telegram_message_id:sent??null});if(dError)throw dError;results.push({id:row.id,state:done?'delivered':'not_completed'});}catch(e){const detail=safeError(e);await db.rpc("af_fail_agent_activity",{p_activity_id:row.id,p_worker:worker,p_error:{message:detail}});results.push({id:row.id,state:'retry',error:detail});}}return{ok:true,scanned:rows?.length??0,results};}
+function formatActivity(row:any){const agent=row.agent_ref?agentPrefix(row.agent_ref):'🏭 AI Factory';const target=row.target_agent_ref?` → ${row.target_agent_ref}`:'';const eventEmoji:any={TASK_STARTED:'▶️',DELEGATED:'🔁',OWNER_GATE:'🟠',BLOCKER:'🚧',TASK_DONE:'✅',TASK_FAILED:'⚠️',INITIATIVE:'💡',EVIDENCE:'📎',SESSION_PAUSED:'⏸',SESSION_RESUMED:'▶️',SESSION_STOPPED:'🛑',OWNER_DIRECTIVE:'👤',TASK_APPROVED:'👍',TASK_REJECTED:'❌'};return `${eventEmoji[row.event_type]||'💬'} ${agent}${target}\n${row.title?`${row.title}\n`:''}${clean(row.message,5000)}${row.task_id?`\n\nTask: ${row.task_id}`:''}`;}
+function activityKeyboard(row:any,session:any){const rows:any[]=[];if(row.event_type==='OWNER_GATE'&&row.task_id)rows.push([{text:'👍 Поддержать',callback_data:`af:support:${row.task_id}`},{text:'❌ Отклонить',callback_data:`af:reject:${row.task_id}`}]);if(session.state==='RUNNING')rows.push([{text:'⏸ Пауза',callback_data:`af:pause:${session.id}`},{text:'🛑 Стоп',callback_data:`af:stop:${session.id}`},{text:'📊 Статус',callback_data:`af:status:${session.id}`}]);else if(session.state==='PAUSED')rows.push([{text:'▶️ Продолжить',callback_data:`af:resume:${session.id}`},{text:'🛑 Стоп',callback_data:`af:stop:${session.id}`},{text:'📊 Статус',callback_data:`af:status:${session.id}`}]);return rows.length?rows:undefined;}
 
-      await db.from("af_telegram_messages").update({
-        status: "DELIVERED",
-        delivered_at: new Date().toISOString(),
-        delivered_post_count: delivered,
-        delivery_error: null,
-      }).eq("update_id", row.update_id);
-      results.push({ update_id: row.update_id, state: "delivered", posts: posts.length, run_status: run.status });
-    } catch (sendError) {
-      const detail = safeError(sendError);
-      const terminalFailure = attempts >= 5;
-      await db.from("af_telegram_messages").update({
-        status: terminalFailure ? "FAILED" : "QUEUED",
-        delivered_post_count: delivered,
-        delivery_error: {
-          code: "TELEGRAM_DELIVERY_FAILURE",
-          message: detail,
-          attempt: attempts,
-          github_run_id: claims.run_id ?? null,
-        },
-      }).eq("update_id", row.update_id);
-      results.push({ update_id: row.update_id, state: terminalFailure ? "failed" : "retry", delivered, error: detail });
-    }
-  }
+async function sendStatus(chatId:number,threadId:number,session:any){if(!session){await sendTelegram(chatId,threadId,'Нет активной рабочей сессии.');return;}const {data:tasks,error}=await db.from("af_agent_tasks").select("id,assigned_agent_ref,status,priority,objective,created_at").eq("session_id",session.id).order("created_at",{ascending:false}).limit(12);if(error)throw error;const counts:any={};for(const t of tasks??[])counts[t.status]=(counts[t.status]||0)+1;const lines=[`📊 Сессия ${shortId(session.id)} · ${session.state}`,`Инициативы: ${session.initiative_mode}`,`Авто-задачи: ${session.auto_task_count}/${session.max_auto_tasks}`,`Состояния: ${Object.entries(counts).map(([k,v])=>`${k}:${v}`).join(' · ')||'нет задач'}`,''];for(const t of (tasks??[]).slice(0,6))lines.push(`${shortId(t.id)} · ${t.status} · P${t.priority} · ${t.assigned_agent_ref}\n${clean(t.objective,220)}`);await sendTelegram(chatId,threadId,lines.join('\n'));}
 
-  return { ok: true, scanned: rows?.length ?? 0, results };
-}
+async function legacyEnqueue({update,workspace,topic,userId,chatId,threadId,messageId,text}:any){const payload={source:"telegram-hq",telegram:{update_id:update.update_id,chat_id:chatId,message_id:messageId,thread_id:threadId,topic_key:topic.topic_key,topic_name:topic.display_name,owner_user_id:userId},response_contract:{output_key:"telegram_posts",max_posts:6,post_shape:{agent:"string",text:"string"}}};const {data:runId,error:enqueueError}=await db.rpc("af_enqueue_run",{p_objective:buildObjective({topic,text,messageId}),p_payload:payload,p_kind:topic.route_kind,p_autonomy_level:"A3"});if(enqueueError)throw enqueueError;await db.from("af_telegram_messages").update({run_id:runId,status:"QUEUED"}).eq("update_id",update.update_id);await sendTelegram(chatId,threadId,`⏳ Принято · ${topic.display_name}\nFactory run: ${String(runId).slice(0,8)}`);return json({ok:true,queued:true,run_id:runId});}
+function buildObjective({topic,text,messageId}:any){return["You are responding inside the owner's private Telegram AI FACTORY HQ.",`ROOM: ${topic.display_name} (${topic.topic_key}).`,`ROUTING POLICY: ${topic.route_instruction}`,"Use the existing AI Factory executive router, registered agents, skills, evidence rules, memory and bounded autonomy. Activate only the smallest sufficient set of real registered agents/skills; do not stage a fake council.",`TELEGRAM_MESSAGE_ID: ${messageId}`,"USER MESSAGE:",text].join("\n\n");}
+async function deliverPending(limit:number,claims:GitHubClaims){const {data:rows,error}=await db.from("af_telegram_messages").select("update_id,telegram_chat_id,telegram_thread_id,run_id,delivery_attempts,delivered_post_count").eq("status","QUEUED").not("run_id","is",null).order("created_at",{ascending:true}).limit(limit);if(error)throw error;const results:any[]=[];for(const row of rows??[]){const {data:run,error:rError}=await db.from("af_runs").select("id,status,output,activated_agents").eq("id",row.run_id).maybeSingle();if(rError)throw rError;if(!run||!TERMINAL.has(run.status)){results.push({update_id:row.update_id,state:"not_terminal"});continue;}const posts=formatPosts(run).slice(0,6);let delivered=Math.max(0,Math.min(Number(row.delivered_post_count)||0,posts.length));const attempts=(Number(row.delivery_attempts)||0)+1;await db.from("af_telegram_messages").update({delivery_attempts:attempts,last_delivery_attempt_at:new Date().toISOString()}).eq("update_id",row.update_id);try{for(let i=delivered;i<posts.length;i++){await sendTelegram(Number(row.telegram_chat_id),Number(row.telegram_thread_id),posts[i]);delivered=i+1;}await db.from("af_telegram_messages").update({status:"DELIVERED",delivered_at:new Date().toISOString(),delivered_post_count:delivered,delivery_error:null}).eq("update_id",row.update_id);results.push({update_id:row.update_id,state:"delivered"});}catch(e){const terminal=attempts>=5;await db.from("af_telegram_messages").update({status:terminal?"FAILED":"QUEUED",delivered_post_count:delivered,delivery_error:{message:safeError(e),github_run_id:claims.run_id??null}}).eq("update_id",row.update_id);results.push({update_id:row.update_id,state:terminal?'failed':'retry'});}}return{ok:true,results};}
+function formatPosts(run:any){const root=objectOrEmpty(run.output),inner=objectOrEmpty(root.output),provided=Array.isArray(inner.telegram_posts)?inner.telegram_posts:[];const posts=provided.filter((x:any)=>x&&typeof x==='object'&&clean(x.text,6000)).slice(0,6).map((x:any)=>`${agentPrefix(clean(x.agent,80))}\n${clean(x.text,6000)}`);if(posts.length)return posts.flatMap(splitTelegramText);const lines=[`🏭 AI Factory · ${clean(run.status,20)}`];if(root.decision)lines.push('',clean(root.decision,7000));if(root.next_action)lines.push('',`Следующее действие: ${clean(root.next_action,4000)}`);return splitTelegramText(lines.join('\n'));}
 
-function formatPosts(run: any): string[] {
-  const root = objectOrEmpty(run.output);
-  const inner = objectOrEmpty(root.output);
-  const provided = Array.isArray(inner.telegram_posts) ? inner.telegram_posts : [];
-  const posts = provided
-    .filter((x: any) => x && typeof x === "object" && clean(x.text, 6000))
-    .slice(0, 6)
-    .map((x: any) => `${agentPrefix(clean(x.agent, 80))}\n${clean(x.text, 6000)}`);
-  if (posts.length) return posts.flatMap(splitTelegramText);
-
-  const decision = clean(root.decision, 7000);
-  const nextAction = clean(root.next_action, 4000);
-  const status = clean(run.status, 20);
-  const agents = Array.isArray(run.activated_agents) ? run.activated_agents.map((x: unknown) => clean(x, 80)).filter(Boolean) : [];
-  const lines = [`🏭 AI Factory · ${status}`];
-  if (agents.length) lines.push(`Участники: ${agents.join(", ")}`);
-  if (decision) lines.push("", decision);
-  if (nextAction) lines.push("", `Следующее действие: ${nextAction}`);
-  return splitTelegramText(lines.join("\n"));
-}
-
-function agentPrefix(agent: string) {
-  const a = agent || "AI Factory";
-  const lower = a.toLowerCase();
-  let emoji = "🤖";
-  if (lower.includes("ceo") || lower.includes("executive")) emoji = "🧠";
-  else if (lower.includes("research")) emoji = "🔬";
-  else if (lower.includes("engineer") || lower.includes("cio") || lower.includes("architect")) emoji = "💻";
-  else if (lower.includes("review")) emoji = "🔍";
-  else if (lower.includes("sre") || lower.includes("mechanic") || lower.includes("maintenance")) emoji = "🔧";
-  else if (lower.includes("memory")) emoji = "📚";
-  else if (lower.includes("incident") || lower.includes("risk")) emoji = "🚨";
-  else if (lower.includes("cfo")) emoji = "💰";
-  else if (lower.includes("product")) emoji = "📦";
-  return `${emoji} ${a}`;
-}
-
-async function sendTelegram(chatId: number, threadId: number, text: string) {
-  const parts = splitTelegramText(text);
-  for (const part of parts) {
-    const payload: Record<string, unknown> = {
-      chat_id: chatId,
-      text: part,
-      disable_web_page_preview: true,
-    };
-    if (threadId > 1) payload.message_thread_id = threadId;
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const body = await response.text();
-    if (!response.ok) throw new Error(`Telegram sendMessage ${response.status}: ${body.slice(0, 800)}`);
-  }
-}
-
-function splitTelegramText(value: string): string[] {
-  const text = clean(value, 24000);
-  if (!text) return [];
-  const max = 3900;
-  const out: string[] = [];
-  let rest = text;
-  while (rest.length > max) {
-    let cut = rest.lastIndexOf("\n", max);
-    if (cut < Math.floor(max * 0.6)) cut = rest.lastIndexOf(" ", max);
-    if (cut < Math.floor(max * 0.6)) cut = max;
-    out.push(rest.slice(0, cut).trim());
-    rest = rest.slice(cut).trim();
-  }
-  if (rest) out.push(rest);
-  return out;
-}
-
-async function authenticateGitHub(request: Request): Promise<GitHubClaims> {
-  const auth = request.headers.get("authorization") || "";
-  const match = auth.match(/^Bearer\s+(.+)$/i);
-  if (!match) throw new Error("authorization_required");
-  const { payload } = await jwtVerify(match[1], JWKS, { issuer: ISSUER, audience: AUDIENCE });
-  const claims = payload as GitHubClaims;
-  if (claims.repository !== EXPECTED_REPOSITORY || claims.repository_id !== EXPECTED_REPOSITORY_ID) throw new Error("repository_not_allowed");
-  if (claims.ref !== EXPECTED_REF) throw new Error("ref_not_allowed");
-  const workflow = claims.job_workflow_ref || claims.workflow_ref;
-  if (workflow !== AUTONOMOUS_WORKFLOW) throw new Error("workflow_not_allowed");
-  if (!new Set(["schedule", "workflow_dispatch", "push"]).has(String(claims.event_name || ""))) throw new Error("event_not_allowed");
-  return claims;
-}
-
-async function webhookSecret(token: string) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
-  const bytes = Array.from(new Uint8Array(digest));
-  const binary = bytes.map((b) => String.fromCharCode(b)).join("");
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function constantTimeEqual(a: string, b: string) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-function adminKey() {
-  const modern = Deno.env.get("SUPABASE_SECRET_KEYS");
-  if (modern) {
-    try {
-      const keys = JSON.parse(modern);
-      if (keys?.default) return String(keys.default);
-    } catch {}
-  }
-  return mustEnv("SUPABASE_SERVICE_ROLE_KEY");
-}
-
-async function safeJson<T>(request: Request): Promise<T> {
-  try { return await request.json() as T; }
-  catch { throw new Error("invalid_json"); }
-}
-
-function objectOrEmpty(value: unknown): Record<string, any> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : {};
-}
-
-function numberId(value: unknown, name: string) {
-  const n = Number(value);
-  if (!Number.isSafeInteger(n)) throw new Error(`${name}_required`);
-  return n;
-}
-
-function clean(value: unknown, max = 4000) {
-  return String(value ?? "").replace(/\u0000/g, "").trim().slice(0, max);
-}
-
-function mustEnv(name: string) {
-  const value = Deno.env.get(name);
-  if (!value) throw new Error(`${name}_required`);
-  return value;
-}
-
-function safeError(error: unknown) {
-  return error instanceof Error ? error.message : String(error ?? "unknown_error");
-}
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-}
+async function resolveWorkspaceTopic(chatId:number,threadId:number,userId:number){const {data:workspace,error:wError}=await db.from("af_telegram_workspaces").select("id,chat_id,owner_user_id,title,enabled").eq("chat_id",chatId).eq("enabled",true).maybeSingle();if(wError)throw wError;if(!workspace||Number(workspace.owner_user_id)!==userId)return{workspace:null,topic:null};const {data:topic,error:tError}=await db.from("af_telegram_topics").select("id,topic_key,telegram_thread_id,display_name,route_kind,route_instruction,enabled,agent_live_mode,default_initiative_mode").eq("workspace_id",workspace.id).eq("telegram_thread_id",threadId).eq("enabled",true).maybeSingle();if(tError)throw tError;return{workspace,topic};}
+async function activeSession(workspaceId:string,threadId:number,includePaused=false){let q=db.from("af_agent_sessions").select("*").eq("workspace_id",workspaceId).eq("telegram_thread_id",threadId).order("created_at",{ascending:false}).limit(1);q=includePaused?q.in("state",["RUNNING","PAUSED","BLOCKED"]):q.eq("state","RUNNING");const {data,error}=await q.maybeSingle();if(error)throw error;return data??null;}
+async function sessionById(id:string,workspaceId:string){if(!isUuid(id))return null;const {data,error}=await db.from("af_agent_sessions").select("*").eq("id",id).eq("workspace_id",workspaceId).maybeSingle();if(error)throw error;return data??null;}
+async function resolveTaskRef(sessionId:string,ref:string){if(!ref)return null;let q=db.from("af_agent_tasks").select("*").eq("session_id",sessionId);if(isUuid(ref))q=q.eq("id",ref);else q=q.like("id",`${ref}%`);const {data,error}=await q.order("created_at",{ascending:false}).limit(1).maybeSingle();if(error)throw error;return data??null;}
+async function addActivity(sessionId:string,taskId:any,eventType:string,agentRef:any,target:any,title:string,message:string){const {error}=await db.from("af_agent_activity").insert({session_id:sessionId,task_id:taskId,event_type:eventType,agent_ref:agentRef,target_agent_ref:target,title,message,metadata:{source:"telegram-hq"}});if(error)throw error;}
+async function logControl(sessionId:string,taskId:any,action:string,value:any,userId:number,messageId:any,applied:boolean){await db.from("af_agent_controls").insert({session_id:sessionId,task_id:taskId,action,value,telegram_user_id:userId,telegram_message_id:messageId,applied,result:{ok:applied},applied_at:applied?new Date().toISOString():null});}
+function initialAgent(topic:any){const text=`${topic.route_kind||''} ${topic.route_instruction||''}`.toLowerCase();if(/разработ|build|code|интеграц|runtime/.test(text))return'builder-apprentice-g1';if(/аудит|провер|risk|безопас/.test(text))return'auditor-apprentice-g1';if(/источник|evidence|доказ/.test(text))return'evidence-apprentice-g1';if(/исслед|research|рын|грант|закон/.test(text))return'research-scout-g1';return'nursery-supervisor-g0';}
+function agentPrefix(agent:string){const a=agent||"AI Factory",lower=a.toLowerCase();let emoji="🤖";if(lower.includes("research"))emoji="🔬";else if(lower.includes("engineer")||lower.includes("builder"))emoji="💻";else if(lower.includes("audit")||lower.includes("review"))emoji="🔍";else if(lower.includes("evidence")||lower.includes("source"))emoji="📎";else if(lower.includes("security")||lower.includes("risk"))emoji="🛡";else if(lower.includes("market"))emoji="📈";else if(lower.includes("government"))emoji="🏛";else if(lower.includes("nursery")||lower.includes("supervisor"))emoji="🧠";return`${emoji} ${a}`;}
+async function sendTelegram(chatId:number,threadId:number,text:string,inlineKeyboard?:any[][]){let last:number|null=null;const parts=splitTelegramText(text);for(let i=0;i<parts.length;i++){const payload:any={chat_id:chatId,text:parts[i],disable_web_page_preview:true};if(threadId>1)payload.message_thread_id=threadId;if(inlineKeyboard&&i===parts.length-1)payload.reply_markup={inline_keyboard:inlineKeyboard};const r=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const body=await r.json().catch(()=>({}));if(!r.ok||body?.ok!==true)throw new Error(`Telegram sendMessage ${r.status}: ${JSON.stringify(body).slice(0,800)}`);last=Number(body?.result?.message_id)||last;}return last;}
+async function answerCallback(id:string,text:string){const r=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({callback_query_id:id,text:clean(text,180),show_alert:false})});if(!r.ok)throw new Error(`answerCallbackQuery ${r.status}`);}
+function splitTelegramText(value:string){const text=clean(value,24000);if(!text)return[];const out:string[]=[];let rest=text;while(rest.length>3900){let cut=rest.lastIndexOf('\n',3900);if(cut<2500)cut=rest.lastIndexOf(' ',3900);if(cut<2500)cut=3900;out.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim();}if(rest)out.push(rest);return out;}
+async function authenticateGitHub(request:Request):Promise<GitHubClaims>{const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];if(!token)throw new Error("authorization_required");const{payload}=await jwtVerify(token,JWKS,{issuer:ISSUER,audience:AUDIENCE,algorithms:["RS256"],clockTolerance:10});const c=payload as GitHubClaims;if(c.repository!==EXPECTED_REPOSITORY||c.repository_id!==EXPECTED_REPOSITORY_ID)throw new Error("repository_not_allowed");if(c.ref!==EXPECTED_REF)throw new Error("ref_not_allowed");if(!new Set(["schedule","workflow_dispatch","push"]).has(String(c.event_name||"")))throw new Error("event_not_allowed");return c;}
+function assertWorkflow(c:GitHubClaims,allowed:string[]){const w=String(c.job_workflow_ref||c.workflow_ref||'');if(!allowed.includes(w))throw new Error("workflow_not_allowed");}
+async function webhookSecret(token:string){const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(token));const bytes=Array.from(new Uint8Array(digest));const binary=bytes.map(b=>String.fromCharCode(b)).join("");return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");}
+function constantTimeEqual(a:string,b:string){if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0;}
+function adminKey(){const modern=Deno.env.get("SUPABASE_SECRET_KEYS");if(modern){try{const keys=JSON.parse(modern);if(keys?.default)return String(keys.default);}catch{}}return mustEnv("SUPABASE_SERVICE_ROLE_KEY");}
+async function fingerprint(v:string){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function safeJson<T>(request:Request):Promise<T>{try{return await request.json() as T;}catch{throw new Error("invalid_json");}}
+function objectOrEmpty(v:unknown):Record<string,any>{return v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,any>:{};}function numberId(v:unknown,n:string){const x=Number(v);if(!Number.isSafeInteger(x))throw new Error(`${n}_required`);return x;}function clean(v:unknown,max=4000){return String(v??'').replace(/\u0000/g,'').trim().slice(0,max);}function mustEnv(n:string){const v=Deno.env.get(n);if(!v)throw new Error(`${n}_required`);return v;}function safeError(e:unknown){return e instanceof Error?e.message:String(e??'unknown_error');}function json(body:unknown,status=200){return new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});}function shortId(v:string){return String(v).slice(0,8);}function isUuid(v:string){return/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||''));}
