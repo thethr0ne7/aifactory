@@ -4,7 +4,6 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'registry/agent-network.json'
       - 'scripts/seed-generation2-drafts.mjs'
       - '.github/workflows/generation2-draft-fleet.yml'
   workflow_dispatch:
