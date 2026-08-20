@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.4.0",
+  "mode": "durable-message-bus",
+  "transport": {
+    "ledger": "public.af_agent_messages",
+    "sharedEvidence": "public.af_shared_evidence",
+    "handoffs": "public.af_agent_handoffs",
+    "claimRpc": "af_bus_claim",
+    "completeRpc": "af_bus_complete",
+    "failRpc": "af_bus_fail",
+    "maxClaimBatch": 4,
+    "maxAttempts": 3,
+    "allToAllChat": false
+  },
+  "protocol": {
+    "envelopeVersion": "AF-HANDOFF/1",
+    "requiredFields": ["correlation_id", "stage", "objective", "from_agent", "to_agent", "evidence_refs", "constraints", "expected_output"],
+    "evidenceClasses": ["CONFIRMED", "OBSERVED", "MEASURED", "DERIVED", "ASSUMPTION", "UNKNOWN", "BLOCKER"],
+    "stages": ["RESEARCH", "EVIDENCE", "BUILD", "AUDIT", "BIRTH"],
+    "route": ["RESEARCH", "EVIDENCE", "BUILD", "AUDIT"],
+    "auditPassRequiredForBirth": true,
+    "automaticPromotion": false,
+    "automaticPublication": false
+  },
+  "cells": {
+    "RESEARCH": {
+      "lead": {"candidateId": "research-scout-g1", "name": "AI Factory Research Scout G1"},
+      "specialists": [
+        {"candidateId": "government-researcher-g2", "name": "AI Factory Government Researcher G2"},
+        {"candidateId": "market-researcher-g2", "name": "AI Factory Market Researcher G2"},
+        {"candidateId": "technical-researcher-g2", "name": "AI Factory Technical Researcher G2"},
+        {"candidateId": "synthesis-analyst-g2", "name": "AI Factory Synthesis Analyst G2"}
+      ],
+      "next": "EVIDENCE"
+    },
+    "EVIDENCE": {
+      "lead": {"candidateId": "evidence-apprentice-g1", "name": "AI Factory Evidence Apprentice G1"},
+      "specialists": [
+        {"candidateId": "source-verifier-g2", "name": "AI Factory Source Verifier G2"},
+        {"candidateId": "claim-classifier-g2", "name": "AI Factory Claim Classifier G2"},
+        {"candidateId": "provenance-analyst-g2", "name": "AI Factory Provenance Analyst G2"},
+        {"candidateId": "freshness-analyst-g2", "name": "AI Factory Freshness Analyst G2"}
+      ],
+      "next": "BUILD"
+    },
+    "BUILD": {
+      "lead": {"candidateId": "builder-apprentice-g1", "name": "AI Factory Builder Apprentice G1"},
+      "specialists": [
+        {"candidateId": "runtime-engineer-g2", "name": "AI Factory Runtime Engineer G2"},
+        {"candidateId": "integration-engineer-g2", "name": "AI Factory Integration Engineer G2"},
+        {"candidateId": "test-engineer-g2", "name": "AI Factory Test Engineer G2"},
+        {"candidateId": "release-engineer-g2", "name": "AI Factory Release Engineer G2"}
+      ],
+      "next": "AUDIT"
+    },
+    "AUDIT": {
+      "lead": {"candidateId": "auditor-apprentice-g1", "name": "AI Factory Auditor Apprentice G1"},
+      "specialists": [
+        {"candidateId": "security-reviewer-g2", "name": "AI Factory Security Reviewer G2"},
+        {"candidateId": "contradiction-auditor-g2", "name": "AI Factory Contradiction Auditor G2"},
+        {"candidateId": "regression-auditor-g2", "name": "AI Factory Regression Auditor G2"},
+        {"candidateId": "policy-authority-auditor-g2", "name": "AI Factory Policy Authority Auditor G2"}
+      ],
+      "next": "BIRTH"
+    }
+  },
+  "birthPolicy": {
+    "purpose": "Allow a cross-cell evidence trail to propose and spawn one bounded draft specialist when a durable capability gap is independently identified, evidenced, designed and audited.",
+    "requiredSponsorCells": ["RESEARCH", "EVIDENCE", "BUILD", "AUDIT"],
+    "defaultGeneration": 3,
+    "defaultAutonomy": "A2",
+    "initialTools": [],
+    "publication": false,
+    "productionWriteAuthority": false,
+    "promotionAuthority": "owner",
+    "maxBirthsPerCorrelation": 1,
+    "denied": ["Root of Trust mutation", "self-promotion", "automatic publication", "production-write expansion", "secret-scope expansion", "recursive birth without a new audited correlation"]
+  }
+}
