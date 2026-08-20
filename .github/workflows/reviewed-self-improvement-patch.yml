@@ -1,0 +1,50 @@
+name: AI Factory reviewed self-improvement patch
+
+on:
+  workflow_dispatch:
+    inputs:
+      patch_candidate_id:
+        description: Exact af_patch_candidates UUID to review
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: ai-factory-reviewed-patch-${{ inputs.patch_candidate_id }}
+  cancel-in-progress: false
+
+jobs:
+  create-review-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      FACTORY_REVIEW_GATE_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-reviewed-patch
+      PATCH_CANDIDATE_ID: ${{ inputs.patch_candidate_id }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate review path before mutation
+        run: |
+          node scripts/validate-factory.js
+          node scripts/validate-autonomous-runtime.js
+          node scripts/validate-self-improvement.js
+          node scripts/validate-tool-runtime.js
+          node scripts/validate-reliability-kernel.js
+
+      - name: Create reviewed candidate branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/reviewed-self-improvement-patch.mjs
