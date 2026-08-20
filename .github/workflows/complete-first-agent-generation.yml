@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'registry/agent-network.json'
-      - 'scripts/continue-first-agent-generation.mjs'
+      - 'scripts/continue-first-agent-generation-v2.mjs'
       - 'scripts/validate-agent-network.mjs'
       - '.github/workflows/complete-first-agent-generation.yml'
   workflow_dispatch:
@@ -33,7 +33,7 @@ jobs:
       - name: Validate bounded Generation 1 network
         run: node scripts/validate-agent-network.mjs
       - name: Train, evaluate and attach remaining Generation 1 specialists
-        run: node scripts/continue-first-agent-generation.mjs
+        run: node scripts/continue-first-agent-generation-v2.mjs
       - name: Upload sanitized Generation 1 evidence
         if: always()
         uses: actions/upload-artifact@v4
