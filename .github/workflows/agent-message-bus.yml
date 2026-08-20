@@ -10,6 +10,7 @@ on:
       - 'registry/agent-routing.json'
       - 'registry/agent-network.json'
       - 'infra/supabase/migrations/20260820_290_agent_message_bus.sql'
+      - 'supabase/functions/ai-factory-agent-bus/**'
       - 'scripts/agent-message-bus-worker.mjs'
       - 'scripts/seed-synergy-birth.mjs'
       - 'scripts/verify-synergy-birth.mjs'
@@ -18,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: ai-factory-message-bus
@@ -29,10 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
       N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+      FACTORY_BUS_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-agent-bus
       FACTORY_BUS_MAX_CLAIMS: '4'
       FACTORY_SYNERGY_CORRELATION_ID: a1f4c7e0-2026-4820-8420-000000000001
     steps:
@@ -65,10 +66,3 @@ jobs:
           path: artifacts/synergy-birth.json
           if-no-files-found: ignore
           retention-days: 14
-      - name: Persist bus workflow failure to Factory memory
-        if: failure()
-        env:
-          FACTORY_FAILURE_SCOPE: agent-message-bus
-          FACTORY_FAILURE_SUMMARY: Agent Message Bus failed while routing a bounded Research-Evidence-Build-Audit handoff or synergy birth; inspect durable messages and dead letters before retrying.
-          FACTORY_FAULT_SINK_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-fault-sink
-        run: node scripts/record-workflow-failure.mjs
