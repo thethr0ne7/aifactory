@@ -1,17 +1,20 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "factoryVersion": "2.4.0",
   "mode": "bounded-agent-network",
   "purpose": "Grow a persistent specialist network from evidence-backed candidates without swarms, self-promotion, or unbounded recursive spawning.",
   "populationPolicy": {
-    "maxPersistentAgents": 24,
+    "minimumOperationalAgents": 20,
+    "maxPersistentAgents": 32,
     "maxEphemeralAgentsPerRun": 6,
     "maxChildrenPerSupervisor": 4,
     "maxGenerationDepthWithoutOwnerReview": 3,
     "defaultChildAutonomy": "A2",
     "maxAutonomyWithoutOwnerPromotion": "A3",
     "automaticPromotion": false,
-    "unboundedRecursiveSpawning": false
+    "unboundedRecursiveSpawning": false,
+    "maintenanceAutomationsCountTowardAgentMinimum": false,
+    "maintenanceAgentsCountTowardOperationalMinimum": false
   },
   "root": {
     "candidateId": "nursery-supervisor-g0",
@@ -40,9 +43,13 @@
       "name": "AI Factory Evidence Apprentice G1",
       "generation": 1,
       "role": "evidence-specialist",
-      "parentRefs": ["nursery-supervisor-g0"],
+      "parentRefs": [
+        "nursery-supervisor-g0"
+      ],
       "autonomyLevel": "A2",
-      "skills": ["evidence-discipline-g1"],
+      "skills": [
+        "evidence-discipline-g1"
+      ],
       "tools": [],
       "mission": "Separate supported facts, assumptions and unknowns; deny authority escalation; produce bounded evidence-labelled answers."
     },
@@ -51,9 +58,13 @@
       "name": "AI Factory Research Scout G1",
       "generation": 1,
       "role": "research-scout",
-      "parentRefs": ["nursery-supervisor-g0"],
+      "parentRefs": [
+        "nursery-supervisor-g0"
+      ],
       "autonomyLevel": "A2",
-      "skills": ["research-discipline-g1"],
+      "skills": [
+        "research-discipline-g1"
+      ],
       "tools": [],
       "mission": "Trace claims to evidence, preserve source quality and freshness uncertainty, and refuse fabricated sourcing."
     },
@@ -62,9 +73,13 @@
       "name": "AI Factory Builder Apprentice G1",
       "generation": 1,
       "role": "builder-apprentice",
-      "parentRefs": ["nursery-supervisor-g0"],
+      "parentRefs": [
+        "nursery-supervisor-g0"
+      ],
       "autonomyLevel": "A2",
-      "skills": ["builder-discipline-g1"],
+      "skills": [
+        "builder-discipline-g1"
+      ],
       "tools": [],
       "mission": "Turn bounded specifications into implementation plans without claiming unexecuted work or expanding write authority."
     },
@@ -73,11 +88,257 @@
       "name": "AI Factory Auditor Apprentice G1",
       "generation": 1,
       "role": "auditor-apprentice",
-      "parentRefs": ["nursery-supervisor-g0"],
+      "parentRefs": [
+        "nursery-supervisor-g0"
+      ],
       "autonomyLevel": "A2",
-      "skills": ["audit-discipline-g1"],
+      "skills": [
+        "audit-discipline-g1"
+      ],
       "tools": [],
       "mission": "Detect contradictions and block closure or promotion when required regression, safety, or provenance evidence is missing."
+    }
+  ],
+  "generation2Blueprints": [
+    {
+      "candidateId": "source-verifier-g2",
+      "name": "AI Factory Source Verifier G2",
+      "generation": 2,
+      "role": "source-verifier",
+      "parentRefs": [
+        "evidence-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "source-verification"
+      ],
+      "tools": [],
+      "mission": "Verify provenance, source class, authority and traceability before a claim is accepted."
+    },
+    {
+      "candidateId": "claim-classifier-g2",
+      "name": "AI Factory Claim Classifier G2",
+      "generation": 2,
+      "role": "claim-classifier",
+      "parentRefs": [
+        "evidence-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "claim-checker"
+      ],
+      "tools": [],
+      "mission": "Classify claims as confirmed, observed, assumption, unknown or blocker without inflating certainty."
+    },
+    {
+      "candidateId": "provenance-analyst-g2",
+      "name": "AI Factory Provenance Analyst G2",
+      "generation": 2,
+      "role": "provenance-analyst",
+      "parentRefs": [
+        "evidence-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "verified-provenance-gate"
+      ],
+      "tools": [],
+      "mission": "Maintain traceable evidence chains and reject unsupported transformations or orphaned claims."
+    },
+    {
+      "candidateId": "freshness-analyst-g2",
+      "name": "AI Factory Freshness Analyst G2",
+      "generation": 2,
+      "role": "freshness-analyst",
+      "parentRefs": [
+        "evidence-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "recent-signal-radar"
+      ],
+      "tools": [],
+      "mission": "Detect stale evidence and require current verification for time-sensitive conclusions."
+    },
+    {
+      "candidateId": "government-researcher-g2",
+      "name": "AI Factory Government Researcher G2",
+      "generation": 2,
+      "role": "government-researcher",
+      "parentRefs": [
+        "research-scout-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "grant-analysis"
+      ],
+      "tools": [],
+      "mission": "Research laws, grants, budgets and public-sector programs with source hierarchy and jurisdiction checks."
+    },
+    {
+      "candidateId": "market-researcher-g2",
+      "name": "AI Factory Market Researcher G2",
+      "generation": 2,
+      "role": "market-researcher",
+      "parentRefs": [
+        "research-scout-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "market-research"
+      ],
+      "tools": [],
+      "mission": "Research markets, competitors and demand signals while preserving source quality and uncertainty."
+    },
+    {
+      "candidateId": "technical-researcher-g2",
+      "name": "AI Factory Technical Researcher G2",
+      "generation": 2,
+      "role": "technical-researcher",
+      "parentRefs": [
+        "research-scout-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "research-toolbelt"
+      ],
+      "tools": [],
+      "mission": "Research technical systems, libraries and architectures using primary evidence and reproducible findings."
+    },
+    {
+      "candidateId": "synthesis-analyst-g2",
+      "name": "AI Factory Synthesis Analyst G2",
+      "generation": 2,
+      "role": "synthesis-analyst",
+      "parentRefs": [
+        "research-scout-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "research-truth"
+      ],
+      "tools": [],
+      "mission": "Synthesize multi-source evidence, contradictions, unknowns and decision implications without hiding disagreement."
+    },
+    {
+      "candidateId": "runtime-engineer-g2",
+      "name": "AI Factory Runtime Engineer G2",
+      "generation": 2,
+      "role": "runtime-engineer",
+      "parentRefs": [
+        "builder-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "engineering-kernel"
+      ],
+      "tools": [],
+      "mission": "Design and repair bounded runtime behavior, state machines and execution contracts."
+    },
+    {
+      "candidateId": "integration-engineer-g2",
+      "name": "AI Factory Integration Engineer G2",
+      "generation": 2,
+      "role": "integration-engineer",
+      "parentRefs": [
+        "builder-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "source-driven-development"
+      ],
+      "tools": [],
+      "mission": "Build connector and integration plans with explicit contracts, auth boundaries and rollback paths."
+    },
+    {
+      "candidateId": "test-engineer-g2",
+      "name": "AI Factory Test Engineer G2",
+      "generation": 2,
+      "role": "test-engineer",
+      "parentRefs": [
+        "builder-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "quality-gates"
+      ],
+      "tools": [],
+      "mission": "Design deterministic regression, failure-injection and acceptance coverage before release claims."
+    },
+    {
+      "candidateId": "release-engineer-g2",
+      "name": "AI Factory Release Engineer G2",
+      "generation": 2,
+      "role": "release-engineer",
+      "parentRefs": [
+        "builder-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "deterministic-release-claims"
+      ],
+      "tools": [],
+      "mission": "Prepare bounded releases, verify evidence and refuse deployment-success claims without executed proof."
+    },
+    {
+      "candidateId": "security-reviewer-g2",
+      "name": "AI Factory Security Reviewer G2",
+      "generation": 2,
+      "role": "security-reviewer",
+      "parentRefs": [
+        "auditor-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "defensive-security"
+      ],
+      "tools": [],
+      "mission": "Review security boundaries, secret exposure, permissions and unsafe authority expansion."
+    },
+    {
+      "candidateId": "contradiction-auditor-g2",
+      "name": "AI Factory Contradiction Auditor G2",
+      "generation": 2,
+      "role": "contradiction-auditor",
+      "parentRefs": [
+        "auditor-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "destructive-review"
+      ],
+      "tools": [],
+      "mission": "Actively search for contradictions, unsupported assumptions and evidence gaps before closure."
+    },
+    {
+      "candidateId": "regression-auditor-g2",
+      "name": "AI Factory Regression Auditor G2",
+      "generation": 2,
+      "role": "regression-auditor",
+      "parentRefs": [
+        "auditor-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "scientific-benchmark"
+      ],
+      "tools": [],
+      "mission": "Verify baseline comparisons, regressions and repair evidence before promotion or incident closure."
+    },
+    {
+      "candidateId": "policy-authority-auditor-g2",
+      "name": "AI Factory Policy Authority Auditor G2",
+      "generation": 2,
+      "role": "policy-authority-auditor",
+      "parentRefs": [
+        "auditor-apprentice-g1"
+      ],
+      "autonomyLevel": "A2",
+      "skills": [
+        "root-of-trust"
+      ],
+      "tools": [],
+      "mission": "Audit autonomy, approval and Root-of-Trust boundaries; deny self-promotion and unauthorized authority expansion."
     }
   ],
   "requiredLifecycle": [
@@ -116,6 +377,13 @@
     }
   ],
   "generationPlan": {
+    "operationalAgentMinimum": 20,
+    "operationalAgentTarget": 20,
+    "operationalAgentCountExcludes": [
+      "nursery-supervisor-g0",
+      "maintenance agents",
+      "maintenance automations"
+    ],
     "generation1TargetChildren": 4,
     "generation1Roles": [
       "evidence-specialist",
@@ -123,6 +391,34 @@
       "builder-apprentice",
       "auditor-apprentice"
     ],
-    "generation2Requires": "all Generation 1 candidates evaluated plus owner review before recursive depth expansion"
+    "generation2TargetChildren": 16,
+    "generation2CellSize": 4,
+    "generation2Requires": "all Generation 1 candidates evaluated plus owner review before recursive depth expansion",
+    "cellTopology": {
+      "evidence-apprentice-g1": [
+        "source-verifier-g2",
+        "claim-classifier-g2",
+        "provenance-analyst-g2",
+        "freshness-analyst-g2"
+      ],
+      "research-scout-g1": [
+        "government-researcher-g2",
+        "market-researcher-g2",
+        "technical-researcher-g2",
+        "synthesis-analyst-g2"
+      ],
+      "builder-apprentice-g1": [
+        "runtime-engineer-g2",
+        "integration-engineer-g2",
+        "test-engineer-g2",
+        "release-engineer-g2"
+      ],
+      "auditor-apprentice-g1": [
+        "security-reviewer-g2",
+        "contradiction-auditor-g2",
+        "regression-auditor-g2",
+        "policy-authority-auditor-g2"
+      ]
+    }
   }
 }
