@@ -67,7 +67,7 @@ assert(continueScript.includes('childIds.length!==MAX_CHILDREN'), 'continuation 
 assert(continueWorkflow.includes('scripts/continue-first-agent-generation-v2.mjs'), 'continuation workflow must use restart-safe v2 runner');
 assert(continueWorkflow.includes('N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}'), 'continuation workflow must source MCP token from Actions secrets');
 assert(continueWorkflow.includes('timeout-minutes: 20'), 'continuation workflow needs bounded runtime');
-assert(continueWorkflow.includes('group: n8n-agent-nursery-mutator'), 'continuation workflow must serialize n8n nursery mutation');
+assert(continueWorkflow.includes('group: n8n-agent-nursery-g1-mutator'), 'continuation workflow must serialize n8n nursery mutation');
 
 for (const table of ['af_agent_candidates','af_agent_evaluations','af_agent_relationships','af_agent_lifecycle_events']) {
   assert(migration.includes(`public.${table}`), `migration missing ${table}`);
