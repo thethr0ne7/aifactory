@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 const routing=JSON.parse(await fs.readFile('registry/agent-routing.json','utf8'));
 const migration=await fs.readFile('infra/supabase/migrations/20260820_290_agent_message_bus.sql','utf8');
-const worker=await fs.readFile('scripts/agent-message-bus-worker.mjs','utf8');
+const worker=await fs.readFile('scripts/agent-message-bus-worker-v2.mjs','utf8');
 const seed=await fs.readFile('scripts/seed-synergy-birth.mjs','utf8');
 const verify=await fs.readFile('scripts/verify-synergy-birth.mjs','utf8');
 const broker=await fs.readFile('supabase/functions/ai-factory-agent-bus/index.ts','utf8');
@@ -21,11 +21,14 @@ assert(migration.includes('for update skip locked'),'message claim must use SKIP
 assert(migration.includes('p_limit > 6'),'message bus claim must stay bounded');
 assert(migration.includes('enable row level security'),'message-bus tables require RLS');
 assert(migration.includes('revoke all on public.af_agent_messages from public, anon, authenticated'),'message bus must not be client-readable');
-for(const token of ["broker('claim'","call_agent","broker('add_evidence'","broker('add_handoff'","broker('upsert_birth'","create_agent","validate_agent"])assert(worker.includes(token),`worker missing ${token}`);
+for(const token of ["broker('claim'","callAgent","broker('add_evidence'","broker('add_handoff'","broker('upsert_birth'","create_agent","validate_agent","RetryableProviderError","parseRetryAfterSeconds","latestReusableEvidence"])assert(worker.includes(token),`worker v2 missing ${token}`);
+assert(worker.includes('for (const spec of cell.specialists)'),'specialists must run sequentially to avoid provider-failure fanout');
+assert(!worker.includes('Promise.all(cell.specialists'),'specialists must not fan out concurrently');
+assert(worker.includes('FACTORY_BUS_SYNC_DIRECTORY'),'directory synchronization must be explicitly bounded');
 assert(!worker.includes("tool('publish_agent'"),'worker must never publish a born agent');
-assert(worker.includes("state:'SPAWNED'")||worker.includes("state: 'SPAWNED'"),'born child must stop at SPAWNED');
-assert(worker.includes("autonomy_level:'A2'")||worker.includes("autonomy_level: 'A2'"),'born child must remain A2');
-assert(worker.includes('tools:[]')||worker.includes('tools: []'),'born child must start with zero tools');
+assert(worker.includes("state: 'SPAWNED'")||worker.includes("state:'SPAWNED'"),'born child must stop at SPAWNED');
+assert(worker.includes("autonomy_level: 'A2'")||worker.includes("autonomy_level:'A2'"),'born child must remain A2');
+assert(worker.includes('tools: []')||worker.includes('tools:[]'),'born child must start with zero tools');
 assert(seed.includes('handoff-coordinator-g3'),'synergy seed must name bounded child candidate');
 assert(verify.includes('expectedOperational'),'verification must require all operational contributors');
 assert(broker.includes('aifactory-agent-bus'),'broker must pin dedicated OIDC audience');
@@ -33,5 +36,8 @@ assert(broker.includes('refs/pull/42/merge'),'acceptance broker access must be p
 assert(broker.includes('OWNER_ACTOR_ID'),'PR acceptance must pin owner actor');
 assert(broker.includes('birth_authority_expansion_denied'),'broker must deny birth authority expansion');
 assert(workflow.includes('id-token: write'),'message bus workflow must request GitHub OIDC permission');
+assert(workflow.includes('cancel-in-progress: true'),'message bus must cancel stale workflow turns');
+assert(workflow.includes("FACTORY_BUS_MAX_CLAIMS: '1'"),'message bus acceptance must claim one stage at a time');
+assert(workflow.includes('agent-message-bus-worker-v2.mjs'),'workflow must use quota-aware v2 worker');
 assert(!workflow.includes('SUPABASE_SERVICE_ROLE_KEY'),'message bus workflow must not require a GitHub-stored Supabase service key');
-console.log(`AGENT_MESSAGE_BUS_VALIDATION_OK contributors=${contributors.length} cells=${Object.keys(routing.cells).length} auth=github-oidc`);
+console.log(`AGENT_MESSAGE_BUS_VALIDATION_OK contributors=${contributors.length} cells=${Object.keys(routing.cells).length} auth=github-oidc quota_aware=true`);
