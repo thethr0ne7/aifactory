@@ -1,6 +1,6 @@
 {
-  "schemaVersion": "1.0.0",
-  "factoryVersion": "2.4.0",
+  "schemaVersion": "1.1.0",
+  "factoryVersion": "2.5.0",
   "mode": "controlled-self-improvement",
   "loop": [
     "INCIDENT",
@@ -53,9 +53,39 @@
   },
   "patchPolicy": {
     "MEMORY_GUIDANCE": "may be promoted automatically at A4 after gates pass",
-    "ROUTING_HEURISTIC": "representation allowed, promotion requires separate A5 path",
-    "SKILL_PATCH": "representation allowed, may create reviewed candidate work but no direct merge from A4",
-    "WORKFLOW_PATCH": "representation allowed, may create reviewed candidate work but no direct merge from A4"
+    "ROUTING_HEURISTIC": "representation allowed; passing candidates require explicit reviewed repository workflow dispatch and never auto-merge",
+    "SKILL_PATCH": "representation allowed; passing candidates require explicit reviewed repository workflow dispatch and never auto-merge",
+    "WORKFLOW_PATCH": "representation allowed; passing candidates require explicit reviewed repository workflow dispatch and never auto-merge"
+  },
+  "reviewedRepositoryPatches": {
+    "workflow": ".github/workflows/reviewed-self-improvement-patch.yml",
+    "requiresManualWorkflowDispatch": true,
+    "requiresExactPatchCandidateId": true,
+    "allowedTargetTypes": ["ROUTING_HEURISTIC", "SKILL_PATCH", "WORKFLOW_PATCH"],
+    "allowedRiskClasses": ["LOW", "MEDIUM"],
+    "maxContentCharacters": 100000,
+    "routingPaths": ["registry/agent-routing.json"],
+    "skillPathPrefix": "skills/",
+    "workflowPathPrefix": ".github/workflows/",
+    "deniedPaths": [
+      ".github/workflows/factory-self-improvement.yml",
+      ".github/workflows/factory-tool-executor.yml",
+      ".github/workflows/reviewed-self-improvement-patch.yml",
+      "registry/factory-constitution.json",
+      "registry/autonomy-levels.json",
+      "registry/negative-actions.json",
+      "registry/self-improvement.json",
+      "registry/tool-runtime.json",
+      "factory.manifest.json",
+      "AGENTS.md"
+    ],
+    "denyWorkflowPermissionExpansion": true,
+    "requiresExpectedBlobShaForExistingFiles": true,
+    "singleFilePerCandidate": true,
+    "runAllCoreValidatorsBeforePush": true,
+    "directMainWrite": false,
+    "automaticMerge": false,
+    "candidateBranchIsReviewArtifact": true
   },
   "duplicateControl": {
     "exactStatementDeduplication": true,
@@ -68,6 +98,8 @@
       "REGRESSION_EVAL_CANDIDATE_CREATED",
       "IMPROVEMENT_CANDIDATE_CLAIMED",
       "BASELINE_CANDIDATE_COMPARED",
+      "REPOSITORY_PATCH_REVIEW_REQUIRED",
+      "REPOSITORY_PATCH_REVIEW_BRANCH_CREATED",
       "A4_PROMOTION_ACTIVATED",
       "PROMOTION_OBSERVED",
       "PROMOTION_RETAINED",
