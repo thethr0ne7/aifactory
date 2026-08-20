@@ -1,0 +1,39 @@
+name: First agent generation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/seed-first-agent-generation.mjs'
+      - 'runtime/agent-nursery.mjs'
+      - 'registry/agent-network.json'
+      - 'registry/agent-nursery.json'
+      - '.github/workflows/first-agent-generation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seed-and-evaluate:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Seed, train, evaluate and attach Generation 1 candidate
+        run: node scripts/seed-first-agent-generation.mjs
+      - name: Upload sanitized lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-agent-generation
+          path: artifacts/first-agent-generation.json
+          if-no-files-found: ignore
+          retention-days: 14
