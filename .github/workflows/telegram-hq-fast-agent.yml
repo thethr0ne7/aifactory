@@ -10,11 +10,13 @@ on:
       - 'scripts/telegram-native-agent-worker.mjs'
       - 'supabase/functions/ai-factory-telegram-agent-broker/**'
       - 'infra/supabase/migrations/20260820_310_telegram_native_agent_fast_lane.sql'
+      - 'infra/supabase/migrations/20260820_311_isolate_telegram_fast_lane.sql'
       - '.github/workflows/telegram-hq-fast-agent.yml'
 
 permissions:
   contents: read
   id-token: write
+  statuses: write
 
 concurrency:
   group: ai-factory-telegram-native-agent
@@ -35,3 +37,13 @@ jobs:
           node-version: '22'
       - name: Claim high-priority Telegram task and run native n8n Agent network
         run: node scripts/telegram-native-agent-worker.mjs
+      - name: Mark fast lane healthy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d '{"state":"success","context":"ai-factory/telegram-native-fast-lane","description":"Telegram native-agent worker completed its bounded turn"}'
