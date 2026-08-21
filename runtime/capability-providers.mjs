@@ -49,7 +49,13 @@ export function validatePublicHttpUrl(value) {
 }
 
 export function normalizeCrawlUrls(args = {}, maxUrls = 8) {
-  const source = Array.isArray(args.urls) ? args.urls : args.url ? [args.url] : [];
+  const source = Array.isArray(args)
+    ? args
+    : Array.isArray(args?.urls)
+      ? args.urls
+      : args?.url
+        ? [args.url]
+        : [];
   if (!source.length) return { ok: false, code: 'URL_REQUIRED' };
   if (source.length > maxUrls) return { ok: false, code: 'TOO_MANY_URLS' };
   const urls = [];
