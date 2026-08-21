@@ -16,7 +16,7 @@
     "tiePolicy": "retain-current-champion",
     "authorityExpansion": false
   },
-  "rechallenge": {"cadenceDays": 14, "failureRateTrigger": 0.15, "newProviderTrigger": true, "upstreamMajorReleaseTrigger": true, "securityIncidentTrigger": true},
+  "rechallenge": {"cadenceDays": 7, "failureRateTrigger": 0.15, "newProviderTrigger": true, "upstreamMajorReleaseTrigger": true, "securityIncidentTrigger": true},
   "productionRouting": {"mode": "contextual-champion", "defaultContext": "general", "requireProductionReady": true, "requireSameCapability": true, "requireSameOrLowerRiskClass": true, "ownerGatesImmutable": true, "fallbackOnUnavailableChampion": true, "unknownContextUsesIncumbent": true},
   "arenas": [
     {"capability": "WEB_EVIDENCE", "contexts": {"general": {"incumbent": "crawl4ai", "routing": "production"}, "public-static-html": {"incumbent": "crawl4ai", "routing": "production"}, "js-heavy": {"incumbent": "crawl4ai", "routing": "shadow"}, "structured-crawl": {"incumbent": "crawl4ai", "routing": "shadow"}}, "providers": [
