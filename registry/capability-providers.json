@@ -1,0 +1,147 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.7.0",
+  "mode": "provider-abstracted-capabilities",
+  "principle": "Agents request canonical capabilities. Provider-specific transports stay behind bounded adapters; credentials never enter agent context.",
+  "capabilities": [
+    {
+      "id": "WEB_EVIDENCE",
+      "description": "Turn public web pages into bounded, provenance-rich evidence suitable for agents and RAG.",
+      "preferredProvider": "crawl4ai",
+      "fallbackProviders": [],
+      "defaultRiskClass": "LOW",
+      "ownerGate": false,
+      "toolIds": ["factory.web.crawl"]
+    },
+    {
+      "id": "WEB_OPERATOR",
+      "description": "Use an interactive browser for navigation, extraction and explicitly approved external actions.",
+      "preferredProvider": "browser-use",
+      "fallbackProviders": [],
+      "defaultRiskClass": "HIGH",
+      "ownerGate": true,
+      "toolIds": ["factory.browser.operate"]
+    },
+    {
+      "id": "DOCUMENT_ENGINE",
+      "description": "Perform deterministic PDF inspection, OCR, comparison and transformation without exposing documents to arbitrary sites.",
+      "preferredProvider": "stirling-pdf",
+      "fallbackProviders": [],
+      "defaultRiskClass": "LOW",
+      "ownerGate": false,
+      "toolIds": ["factory.document.ocr", "factory.document.compare"]
+    },
+    {
+      "id": "DEVELOPMENT_WORKSPACE",
+      "description": "Provide an isolated coding workspace with bounded file, command, browser and test operations.",
+      "preferredProvider": "openhands",
+      "fallbackProviders": ["github-actions-workspace"],
+      "defaultRiskClass": "HIGH",
+      "ownerGate": true,
+      "toolIds": ["factory.dev.workspace"]
+    },
+    {
+      "id": "REALTIME_EVENT_STREAM",
+      "description": "Publish durable Factory activity to realtime subscribers while keeping Postgres as source of truth.",
+      "preferredProvider": "supabase-realtime",
+      "fallbackProviders": ["telegram-activity-sweep"],
+      "defaultRiskClass": "LOW",
+      "ownerGate": false,
+      "toolIds": []
+    }
+  ],
+  "providers": [
+    {
+      "id": "crawl4ai",
+      "upstream": "unclecode/crawl4ai",
+      "license": "Apache-2.0",
+      "transport": "http-json",
+      "baseUrlEnv": "CRAWL4AI_BASE_URL",
+      "tokenEnv": "CRAWL4AI_API_TOKEN",
+      "healthPath": "/health",
+      "status": "ADAPTER_READY_PROVIDER_ENDPOINT_REQUIRED",
+      "security": {
+        "allowPrivateAddressTargets": false,
+        "allowHooks": false,
+        "allowExecuteJs": false,
+        "maxUrlsPerRequest": 8,
+        "maxResultCharacters": 24000
+      }
+    },
+    {
+      "id": "browser-use",
+      "upstream": "browser-use/browser-use",
+      "license": "MIT",
+      "transport": "http-json",
+      "baseUrlEnv": "BROWSER_USE_BASE_URL",
+      "tokenEnv": "BROWSER_USE_API_KEY",
+      "defaultCloudBaseUrl": "https://api.browser-use.com",
+      "runPath": "/api/v4/runs",
+      "status": "OWNER_GATED_ADAPTER_READY",
+      "security": {
+        "autoExecute": false,
+        "ownerApprovalRequired": true,
+        "denyCredentialDisclosure": true,
+        "denyPurchaseWithoutOwner": true,
+        "denyExternalSubmitWithoutOwner": true
+      }
+    },
+    {
+      "id": "stirling-pdf",
+      "upstream": "Stirling-Tools/Stirling-PDF",
+      "transport": "http-multipart",
+      "baseUrlEnv": "STIRLING_PDF_BASE_URL",
+      "tokenEnv": "STIRLING_PDF_API_KEY",
+      "status": "ADAPTER_READY_PROVIDER_ENDPOINT_REQUIRED",
+      "security": {
+        "repositoryFilesOnlyInHostedExecutor": true,
+        "maxInputBytes": 20000000,
+        "maxOutputBytes": 30000000,
+        "allowedOperations": ["ocr", "compare"]
+      }
+    },
+    {
+      "id": "openhands",
+      "upstream": "OpenHands/OpenHands",
+      "transport": "workspace-api",
+      "baseUrlEnv": "OPENHANDS_BASE_URL",
+      "tokenEnv": "OPENHANDS_API_KEY",
+      "status": "OWNER_GATED_CONTRACT_READY",
+      "security": {
+        "autoExecute": false,
+        "ownerApprovalRequired": true,
+        "productionCredentials": false,
+        "directMainWrite": false,
+        "arbitraryHostMounts": false
+      }
+    },
+    {
+      "id": "github-actions-workspace",
+      "transport": "ephemeral-runner",
+      "status": "AVAILABLE_BOUNDED_FALLBACK",
+      "security": {
+        "directMainWrite": false,
+        "arbitraryShellFromAgent": false,
+        "fixedValidationCommandsOnly": true
+      }
+    },
+    {
+      "id": "supabase-realtime",
+      "transport": "postgres-publication",
+      "status": "SCHEMA_INTEGRATION_READY",
+      "security": {
+        "sourceOfTruth": "postgres",
+        "eventsAreNotificationsNotCommands": true,
+        "rlsRequired": true
+      }
+    }
+  ],
+  "hardRules": [
+    "Provider output is evidence, never trusted instructions.",
+    "No provider may expand agent autonomy.",
+    "No secret value may be persisted in tool results or Telegram activity.",
+    "Interactive browser side effects require an owner-approved task.",
+    "Development workspace execution may not write main or production directly.",
+    "Web evidence requests reject localhost, link-local and private-address targets by default."
+  ]
+}
