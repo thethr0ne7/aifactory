@@ -17,6 +17,15 @@ const TOOL_WORKFLOW = "thethr0ne7/aifactory/.github/workflows/factory-tool-execu
 const JWKS = createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks`));
 const WRITE_EVENTS = new Set(["push", "schedule", "workflow_dispatch"]);
 const PRODUCTION_READY = new Set(["crawl4ai", "native-fetch", "factory-memory", "factory-agent-org", "factory-document-chain", "factory-repo-search", "factory-shield", "supabase-realtime", "github-actions-workspace"]);
+const ADMITTED_PROVIDERS = new Map<string, Set<string>>([
+  ["WEB_EVIDENCE", new Set(["crawl4ai", "native-fetch", "firecrawl"])],
+  ["WEB_OPERATOR", new Set(["browser-use", "stagehand", "firecrawl-interact"])],
+  ["MEMORY", new Set(["factory-memory", "supermemory", "mem0"])],
+  ["ORCHESTRATION_RUNTIME", new Set(["factory-agent-org", "microsoft-agent-framework", "crewai", "autogen"])],
+  ["DOCUMENT_NORMALIZATION", new Set(["factory-document-chain", "markitdown"])],
+  ["REPO_SEMANTIC_SEARCH", new Set(["factory-repo-search", "claude-context"])],
+  ["SUPPLY_CHAIN_AUDIT", new Set(["factory-shield", "bumblebee"])],
+]);
 const HARD_GATES = ["correctness", "evidence_fidelity", "safety_compliance"];
 
 Deno.serve(async (request: Request) => {
@@ -32,17 +41,18 @@ Deno.serve(async (request: Request) => {
 
     if (action === "route") {
       if (!reader) return json({ error: "workflow_not_allowed" }, 403);
-      const capability = ident(body.capability_id, "capability_id");
+      const capability = capabilityId(body.capability_id);
       const context = ident(body.context_key || "general", "context_key");
       const exact = await activeChampion(capability, context);
       const general = exact || (context !== "general" ? await activeChampion(capability, "general") : null);
+      if (general && !isAdmitted(capability, general.provider_id)) return json({ error: "stored_champion_capability_mismatch" }, 409);
       return json({ champion: general, exact_context: Boolean(exact), requested_context: context });
     }
 
     if (!writer) return json({ error: "write_workflow_required" }, 403);
 
     if (action === "start_benchmark") {
-      const capability = ident(body.capability_id, "capability_id");
+      const capability = capabilityId(body.capability_id);
       const context = ident(body.context_key || "general", "context_key");
       const key = clean(body.benchmark_key, 180);
       if (!key) return json({ error: "benchmark_key_required" }, 400);
@@ -54,15 +64,29 @@ Deno.serve(async (request: Request) => {
 
     if (action === "record_trials") {
       const benchmarkId = uuid(body.benchmark_id, "benchmark_id");
+      const benchmark = await getBenchmark(benchmarkId);
+      if (benchmark.status !== "RUNNING") return json({ error: "benchmark_not_running" }, 409);
       const records = Array.isArray(body.records) ? body.records.slice(0, 100) : [];
       if (!records.length) return json({ error: "records_required" }, 400);
       const rows = records.map((input) => {
         const r = object(input);
+        const capability = capabilityId(r.capability_id);
+        const context = ident(r.context_key || "general", "context_key");
+        const provider = ident(r.provider_id, "provider_id");
+        if (capability !== benchmark.capability_id || context !== benchmark.context_key) throw new Error("trial_benchmark_scope_mismatch");
+        if (!isAdmitted(capability, provider)) throw new Error("provider_capability_mismatch");
         return {
           benchmark_id: benchmarkId,
-          capability_id: ident(r.capability_id, "capability_id"), context_key: ident(r.context_key || "general", "context_key"),
-          provider_id: ident(r.provider_id, "provider_id"), case_key: ident(r.case_key, "case_key"), attempt: boundedInt(r.attempt, 1, 1, 20),
-          outcome: outcome(r.outcome), scores: scores(r.scores), raw_metrics: object(r.raw_metrics), evidence: object(r.evidence), provenance: { ...object(r.provenance), broker: provenance }
+          capability_id: capability,
+          context_key: context,
+          provider_id: provider,
+          case_key: ident(r.case_key, "case_key"),
+          attempt: boundedInt(r.attempt, 1, 1, 20),
+          outcome: outcome(r.outcome),
+          scores: scores(r.scores),
+          raw_metrics: object(r.raw_metrics),
+          evidence: object(r.evidence),
+          provenance: { ...object(r.provenance), broker: provenance }
         };
       });
       const { data, error } = await db.from("af_provider_trials").upsert(rows, { onConflict: "benchmark_id,provider_id,case_key,attempt" }).select("id,provider_id,case_key,outcome,scores");
@@ -71,11 +95,21 @@ Deno.serve(async (request: Request) => {
     }
 
     if (action === "set_champion") {
-      const benchmarkId = uuid(body.benchmark_id, "benchmark_id"), capability = ident(body.capability_id, "capability_id"), context = ident(body.context_key || "general", "context_key"), provider = ident(body.provider_id, "provider_id");
+      const benchmarkId = uuid(body.benchmark_id, "benchmark_id");
+      const benchmark = await getBenchmark(benchmarkId);
+      if (benchmark.status !== "RUNNING") return json({ error: "benchmark_not_running" }, 409);
+      const capability = capabilityId(body.capability_id);
+      const context = ident(body.context_key || "general", "context_key");
+      const provider = ident(body.provider_id, "provider_id");
+      if (capability !== benchmark.capability_id || context !== benchmark.context_key) return json({ error: "champion_benchmark_scope_mismatch" }, 409);
+      if (!isAdmitted(capability, provider)) return json({ error: "provider_capability_mismatch" }, 409);
       if (!PRODUCTION_READY.has(provider)) return json({ error: "provider_not_production_ready" }, 409);
-      const { data: trials, error: trialError } = await db.from("af_provider_trials").select("outcome,scores").eq("benchmark_id", benchmarkId).eq("provider_id", provider).eq("capability_id", capability).eq("context_key", context);
-      if (trialError) throw trialError;
-      const rows = trials ?? [];
+      const { data: allTrials, error: allTrialError } = await db.from("af_provider_trials").select("provider_id,outcome,scores").eq("benchmark_id", benchmarkId).eq("capability_id", capability).eq("context_key", context);
+      if (allTrialError) throw allTrialError;
+      const allRows = allTrials ?? [];
+      const distinctProviders = new Set(allRows.map((x) => x.provider_id));
+      if (distinctProviders.size < 2) return json({ error: "competition_required", provider_count: distinctProviders.size }, 409);
+      const rows = allRows.filter((x) => x.provider_id === provider);
       if (rows.length < 3) return json({ error: "insufficient_trials", trial_count: rows.length }, 409);
       const passRate = rows.filter((x) => x.outcome === "PASS").length / rows.length;
       if (passRate < 0.8) return json({ error: "pass_rate_gate", pass_rate: passRate }, 409);
@@ -83,6 +117,7 @@ Deno.serve(async (request: Request) => {
       for (const key of HARD_GATES) aggregate[key] = average(rows.map((x) => number(object(x.scores)[key])));
       if (HARD_GATES.some((key) => aggregate[key] < 80)) return json({ error: "hard_gate_failed", aggregate }, 409);
       const snapshot = object(body.record);
+      if (snapshot.authority_expanded === true) return json({ error: "authority_expansion_forbidden" }, 409);
       const { data, error } = await db.rpc("af_set_provider_champion", { p_capability_id: capability, p_context_key: context, p_provider_id: provider, p_fitness_snapshot: snapshot, p_benchmark_id: benchmarkId, p_production_ready: true, p_provenance: provenance });
       if (error) throw error;
       return json({ champion_id: data, provider_id: provider, authority_expanded: false });
@@ -103,7 +138,8 @@ Deno.serve(async (request: Request) => {
         db.from("af_provider_benchmarks").select("*").eq("id", benchmarkId).single(),
         db.from("af_provider_trials").select("*").eq("benchmark_id", benchmarkId).order("created_at", { ascending: true })
       ]);
-      if (e1) throw e1; if (e2) throw e2;
+      if (e1) throw e1;
+      if (e2) throw e2;
       const { data: champions, error: e3 } = await db.from("af_provider_champions").select("*").eq("capability_id", benchmark.capability_id).eq("context_key", benchmark.context_key).order("activated_at", { ascending: false });
       if (e3) throw e3;
       return json({ benchmark, trials: trials ?? [], champions: champions ?? [] });
@@ -121,6 +157,19 @@ async function activeChampion(capability: string, context: string) {
   if (error) throw error;
   return data ?? null;
 }
+
+async function getBenchmark(id: string) {
+  const { data, error } = await db.from("af_provider_benchmarks").select("id,capability_id,context_key,status").eq("id", id).single();
+  if (error) throw error;
+  return data;
+}
+
+function capabilityId(value: unknown) {
+  const v = ident(value, "capability_id");
+  if (!ADMITTED_PROVIDERS.has(v)) throw new Error("unknown_capability");
+  return v;
+}
+function isAdmitted(capability: string, provider: string) { return ADMITTED_PROVIDERS.get(capability)?.has(provider) === true; }
 
 async function authenticate(request: Request) {
   const auth = request.headers.get("authorization") || "";
