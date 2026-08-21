@@ -19,8 +19,11 @@ on:
     branches: [main]
     paths:
       - 'registry/provider-evolution.json'
+      - 'registry/tool-runtime.json'
+      - 'registry/capability-providers.json'
       - 'runtime/provider-evolution.mjs'
       - 'scripts/provider-evolution-worker.mjs'
+      - 'scripts/tool-executor.mjs'
       - 'scripts/validate-provider-evolution.mjs'
       - 'evals/runtime/provider-evolution.test.mjs'
       - 'infra/supabase/migrations/20260821_360_provider_evolution.sql'
@@ -30,8 +33,11 @@ on:
     branches: [main]
     paths:
       - 'registry/provider-evolution.json'
+      - 'registry/tool-runtime.json'
+      - 'registry/capability-providers.json'
       - 'runtime/provider-evolution.mjs'
       - 'scripts/provider-evolution-worker.mjs'
+      - 'scripts/tool-executor.mjs'
       - 'scripts/validate-provider-evolution.mjs'
       - 'evals/runtime/provider-evolution.test.mjs'
       - 'infra/supabase/migrations/20260821_360_provider_evolution.sql'
@@ -58,6 +64,7 @@ jobs:
         run: |
           node --check runtime/provider-evolution.mjs
           node --check scripts/provider-evolution-worker.mjs
+          node --check scripts/tool-executor.mjs
           node scripts/validate-provider-evolution.mjs
           node evals/runtime/provider-evolution.test.mjs
 
