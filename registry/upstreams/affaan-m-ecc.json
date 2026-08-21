@@ -1,0 +1,164 @@
+{
+  "schemaVersion": "1.0.0",
+  "intakeId": 10,
+  "source": {
+    "repository": "https://github.com/affaan-m/ECC",
+    "repositoryId": 1136590548,
+    "defaultBranch": "main",
+    "license": "MIT",
+    "auditedCommit": "d8409a4b0813771235555e32e3d8046a73988bfa",
+    "auditedAt": "2026-08-21",
+    "priority": "S+",
+    "category": "CORE_DONOR",
+    "decision": "TAKE_ADAPT_SELECTIVE_INSTALL",
+    "defaultTrust": "pattern-and-skill-candidate-until-factory-validation"
+  },
+  "upstreamFacts": {
+    "readme": {
+      "agents": 68,
+      "skills": 286,
+      "commands": 94,
+      "claimsSkillsFirstDirection": true,
+      "declaresHooksMemoryContinuousLearningAndAgentShield": true
+    },
+    "codexNativePlugin": {
+      "supported": true,
+      "minimumDocumentedCodexVersion": "0.146.0",
+      "installPath": "native-plugin",
+      "manifestSkillCount": 281,
+      "defaultMcp": ["chrome-devtools"],
+      "hooksRequireSeparateTrustReview": true,
+      "legacySyncIsSeparateCompatibilityPath": true,
+      "doNotCombineNativePluginAndLegacySync": true
+    },
+    "countDiscrepancy": "The upstream root README reports 286 skills while .codex-plugin/README.md reports 281. Factory treats counts as informational only and pins decisions to the audited commit."
+  },
+  "components": [
+    {
+      "component": "skills",
+      "decision": "SELECTIVE_TAKE",
+      "targets": ["registry/capabilities.json", "skills/"],
+      "reason": "Use individual workflows only after overlap, security, context-cost and behavioral evaluation. Never bulk-import the catalog."
+    },
+    {
+      "component": "agent-routing",
+      "decision": "ADAPT",
+      "targets": ["executive-router", "agent-routing"],
+      "reason": "Use routing patterns as references while preserving one Factory router and bounded agent activation."
+    },
+    {
+      "component": "continuous-learning-v2",
+      "decision": "ADAPT_STRICTER",
+      "targets": ["compound-skill-loop", "self-improvement", "factory-memory"],
+      "reason": "Adopt project-scoped observations, atomic reusable patterns and confidence as signals; replace direct evolution/auto-promotion with Factory evidence, regression and policy gates."
+    },
+    {
+      "component": "context-management",
+      "decision": "TAKE_ADAPT",
+      "targets": ["context-governor", "factory-memory", "executable-memory"],
+      "reason": "Keep active context small; persist durable project state and archive raw sessions/logs outside the reasoning window."
+    },
+    {
+      "component": "verification-loops",
+      "decision": "TAKE_ADAPT",
+      "targets": ["quality-gates", "repair-loop", "destructive-review"],
+      "reason": "Plan/test/implement/review/verify is useful when producer, reviewer and verifier have genuinely separated evidence/context rather than theatrical role multiplication."
+    },
+    {
+      "component": "AgentShield",
+      "decision": "TAKE_REFERENCE_EVALUATE",
+      "targets": ["third-party-security", "FACTORY_SHIELD"],
+      "reason": "Its agent-infrastructure scan surfaces match Factory needs, but the scanner package/action remains executable third-party code and requires its own pinned security audit before CI enforcement."
+    },
+    {
+      "component": "hooks",
+      "decision": "SELECTIVE_REFERENCE",
+      "targets": ["runtime-observation"],
+      "reason": "Deterministic observation hooks are valuable; arbitrary upstream hooks must never be enabled during initial intake."
+    },
+    {
+      "component": "rules",
+      "decision": "SELECTIVE_REFERENCE",
+      "targets": ["project-policy"],
+      "reason": "Only relevant language/project rule packs may be normalized; no broad always-loaded context."
+    },
+    {
+      "component": "agents",
+      "decision": "REFERENCE_SELECTIVE",
+      "targets": ["agent-nursery"],
+      "reason": "Role prompts may inform specialist design, but agent count is not capability and bulk agent import is prohibited."
+    },
+    {
+      "component": "commands",
+      "decision": "REFERENCE",
+      "targets": ["skill-first-interface"],
+      "reason": "Useful command entry points should become capability/skill routing rather than a second command architecture."
+    },
+    {
+      "component": "mcp-patterns",
+      "decision": "ADAPT",
+      "targets": ["tool-adapters", "third-party-security"],
+      "reason": "Normalize external connectors behind canonical Factory tools; no MCP server gains authority from installation alone."
+    },
+    {
+      "component": "codex-native-plugin",
+      "decision": "DEFER_GLOBAL_INSTALL",
+      "targets": ["Codex project-local evaluation"],
+      "reason": "Do not install the full ECC plugin into the active Factory Codex environment until duplication, hook, MCP, context and routing conflicts are tested."
+    }
+  ],
+  "firstWaveResearch": [
+    "context-budget",
+    "continuous-agent-loop",
+    "agent-eval",
+    "security-and-AgentShield",
+    "regression-testing",
+    "code-review",
+    "architecture-review",
+    "build-repair",
+    "research-first-workflows",
+    "memory-and-session-persistence",
+    "MCP-patterns",
+    "skill-creation-and-evaluation",
+    "TDD",
+    "documentation",
+    "frontend-and-UI-quality"
+  ],
+  "factoryAdaptations": {
+    "skillAcquisition": "RUN -> OBSERVE -> CANDIDATE_SKILL -> EVIDENCE_CHECK -> REGRESSION_TEST -> POLICY_OR_HUMAN_GATE -> PROMOTE -> SKILL_REGISTRY",
+    "contextBudget": {
+      "ACTIVE_CONTEXT": ["current task", "relevant constraints", "current evidence", "active decisions"],
+      "PERSISTENT_MEMORY": ["project state", "architecture decisions", "verified facts", "reusable patterns", "previous outcomes"],
+      "ARCHIVE": ["raw sessions", "logs", "artifacts", "old evidence"]
+    },
+    "verification": "PRODUCE -> VALIDATE -> PASS:SHIP | FAIL:REPAIR -> REVALIDATE -> bounded attempts/escalation",
+    "factoryShieldSurfaces": [
+      "prompt-injection",
+      "MCP-configuration",
+      "tool-permissions",
+      "secrets",
+      "suspicious-hooks",
+      "shell-commands",
+      "external-skills",
+      "AGENTS.md",
+      "dependency-changes",
+      "generated-automation"
+    ]
+  },
+  "risks": [
+    "Bulk importing hundreds of skills would inflate routing and context cost.",
+    "Hooks are executable authority surfaces and require independent review before trust.",
+    "Codex plugin installation may register MCP/hook surfaces and must not be combined with legacy sync.",
+    "ECC continuous learning can evolve/promote patterns more aggressively than Factory policy allows.",
+    "AgentShield itself is third-party executable code and cannot bootstrap its own trust decision.",
+    "Upstream counts and adapter support are volatile and must be snapshot-pinned."
+  ],
+  "promotionRules": [
+    "No ECC component becomes Factory-wide merely because it exists upstream.",
+    "Pattern-only extraction may proceed from static audited source.",
+    "Executable adoption requires pinned source, security review, sandbox and regression evidence.",
+    "Project-local success is not global proof.",
+    "Cross-project promotion requires independent repeated success plus Factory self-improvement gates.",
+    "Never enable upstream hooks, MCP servers, installers or background observers during first-pass repository intake."
+  ]
+}

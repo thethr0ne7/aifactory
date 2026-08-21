@@ -8,6 +8,23 @@
     "incidents": "public.af_incidents",
     "criticalIncidentClusters": "public.af_incident_clusters"
   },
+  "contextHorizons": {
+    "ACTIVE_CONTEXT": {
+      "purpose": "Minimum information required for the current decision/action.",
+      "contents": ["current task", "relevant constraints", "current evidence", "active decisions", "immediate blockers", "next action"],
+      "rule": "Retrieve only state that can materially change the next action or validation result."
+    },
+    "PERSISTENT_MEMORY": {
+      "purpose": "Durable project and Factory state kept outside the active model window.",
+      "contents": ["project state", "architecture decisions", "verified facts", "promoted reusable patterns", "previous outcomes", "anti-regression lessons"],
+      "rule": "Persist explicitly, retrieve selectively, preserve provenance and never inject wholesale as a hidden system prompt."
+    },
+    "ARCHIVE": {
+      "purpose": "High-volume historical material retained for traceability and recovery rather than routine reasoning.",
+      "contents": ["raw sessions", "full logs", "tool traces", "artifacts", "superseded evidence", "source snapshots"],
+      "rule": "Archive material enters ACTIVE_CONTEXT only through relevance/provenance-checked retrieval."
+    }
+  },
   "authority": {
     "PROMOTED": "active learned guidance; may influence routing and decisions but never overrides Constitution, negative actions, security boundaries, or stronger current evidence",
     "CANDIDATE": "hypothesis only; may be considered and tested but must never be represented as established policy or fact",
@@ -42,7 +59,9 @@
     "Unresolved critical incidents must be checked before repeating a related failure path or taking an action that touches their affected invariants.",
     "The mere existence of an unresolved critical incident is not a reason to BLOCK unrelated read-only conversation, acknowledgement, ideation, summarization, or planning with no forbidden side effect.",
     "If relevant memory conflicts with current evidence, return the contradiction in evidence/risks rather than silently choosing one.",
-    "A run with no relevant memory must continue normally and record an empty memory selection."
+    "A run with no relevant memory must continue normally and record an empty memory selection.",
+    "Do not re-inject raw archived sessions or logs wholesale into model context.",
+    "Project-specific learned patterns remain project-scoped until independently promoted through controlled self-improvement gates."
   ],
   "telemetry": {
     "loadEvent": "LEARNING_CONTEXT_LOADED",
