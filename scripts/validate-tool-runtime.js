@@ -95,6 +95,12 @@ expect(!executor.includes("spawnSync('sh'") && !executor.includes('shell: true')
 
 const broker = safeRead('supabase/functions/ai-factory-broker/index.ts');
 for (const token of ['tool_request','tool_context','await_tools','tool_recover','tool_claim','tool_finish','factory-tool-executor.yml@refs/heads/main']) expect(broker.includes(token), `broker missing tool action/identity ${token}`);
+for (const id of ['factory.repo.read_file','factory.repo.list_files','factory.repo.run_validation','factory.repo.candidate_write','factory.web.crawl','factory.document.ocr']) {
+  expect(broker.includes(`"${id}": { required_autonomy: "A3", risk_class: "LOW" }`), `broker LOW/A3 allowlist missing ${id}`);
+}
+for (const id of ['factory.document.compare','factory.browser.operate','factory.dev.workspace']) {
+  expect(!broker.includes(`"${id}": { required_autonomy:`), `broker must not auto-allow ${id}`);
+}
 
 const migration = safeRead('infra/supabase/migrations/20260815_260_controlled_tool_runtime.sql');
 for (const token of ['af_tool_requests','af_tool_results','WAITING_TOOLS','af_request_tool','af_wait_for_tools','af_claim_tool_request','af_finish_tool_request','af_recover_stale_tools']) expect(migration.includes(token), `tool migration missing ${token}`);
@@ -115,6 +121,6 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.log('AI Factory controlled tool runtime validation OK: durable requests, provider-backed LOW tools, owner-gated high-risk capabilities and branch-first repository writes are coherent');
+console.log('AI Factory controlled tool runtime validation OK: registry, broker and SQL LOW/A3 allowlists aligned; owner-gated capabilities remain excluded');
 
 function safeRead(rel) { const full = path.join(root, rel); return fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : ''; }
