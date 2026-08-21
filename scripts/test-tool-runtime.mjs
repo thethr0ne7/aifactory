@@ -33,6 +33,34 @@ const invalidProvidedKeyFallsBack = normalizeToolRequests([
 assert.equal(invalidProvidedKeyFallsBack.length, 1);
 assert.equal(invalidProvidedKeyFallsBack[0].request_key, deterministic[0].request_key);
 
+const toolAliasAndArgs = normalizeToolRequests({
+  tool:'factory.web.crawl',
+  args:{url:'https://example.org/'},
+  why:'bounded schema recovery'
+}, policy, 'A3');
+assert.equal(toolAliasAndArgs.length, 1);
+assert.equal(toolAliasAndArgs[0].tool_id, 'factory.web.crawl');
+assert.deepEqual(toolAliasAndArgs[0].arguments, {url:'https://example.org/'});
+
+const capabilityRecovery = normalizeToolRequests([
+  { capability:'WEB_EVIDENCE', url:'https://example.net/', reason:'single canonical auto tool for capability' },
+], policy, 'A3');
+assert.equal(capabilityRecovery.length, 1);
+assert.equal(capabilityRecovery[0].tool_id, 'factory.web.crawl');
+assert.deepEqual(capabilityRecovery[0].arguments, {url:'https://example.net/'});
+
+const jsonStringRecovery = normalizeToolRequests(JSON.stringify({
+  toolId:'factory.web.crawl', params:{url:'https://iana.org/'}
+}), policy, 'A3');
+assert.equal(jsonStringRecovery.length, 1);
+assert.equal(jsonStringRecovery[0].tool_id, 'factory.web.crawl');
+assert.deepEqual(jsonStringRecovery[0].arguments, {url:'https://iana.org/'});
+
+const ownerGatedCannotRecoverByCapability = normalizeToolRequests([
+  { capability:'WEB_OPERATOR', task:'submit a form' },
+], policy, 'A3');
+assert.equal(ownerGatedCannotRecoverByCapability.length, 0);
+
 const semanticDuplicateBlocked = normalizeToolRequests([
   { tool_id:'factory.web.crawl', arguments:{url:'https://example.com/'} },
 ], policy, 'A3', {
