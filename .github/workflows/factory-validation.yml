@@ -30,6 +30,8 @@ jobs:
           node scripts/test-self-improvement-permissions.mjs
           node scripts/validate-tool-runtime.js
           node scripts/validate-capability-providers.mjs
+          node scripts/validate-provider-evolution.mjs
+          node evals/runtime/provider-evolution.test.mjs
           node scripts/validate-repository-intake.mjs
           node scripts/validate-tool-executor-batch.mjs
           node scripts/validate-tool-observability.mjs
