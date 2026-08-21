@@ -27,6 +27,7 @@ jobs:
           node scripts/validate-workflow-contract.mjs
           node scripts/validate-autonomous-runtime.js
           node scripts/validate-self-improvement.js
+          node scripts/test-self-improvement-permissions.mjs
           node scripts/validate-tool-runtime.js
           node scripts/validate-capability-providers.mjs
           node scripts/validate-repository-intake.mjs
@@ -43,6 +44,9 @@ jobs:
           node scripts/validate-maintenance-automations.mjs
           node scripts/validate-agent-message-bus.mjs
           node scripts/validate-agent-organization.mjs
+          node scripts/validate-venture-economy.mjs
+          node scripts/test-venture-economy.mjs
+          node --check scripts/venture-economy-worker.mjs
           node scripts/validate-live-n8n-binding.mjs
           node scripts/validate-n8n-mcp-binding.mjs
           node scripts/validate-n8n-mcp-live-probe.mjs

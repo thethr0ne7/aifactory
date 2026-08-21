@@ -1,0 +1,100 @@
+name: Venture Economy
+
+on:
+  workflow_dispatch:
+    inputs:
+      objective:
+        description: Optional live venture objective; leave empty to resume queued work
+        required: false
+        type: string
+      hypothesis:
+        description: Optional venture hypothesis
+        required: false
+        type: string
+      run_mode:
+        description: Runtime evidence mode
+        required: false
+        default: LIVE
+        type: choice
+        options:
+          - LIVE
+          - LIVE_RUNTIME_SYNTHETIC_SCENARIO
+  schedule:
+    - cron: '17 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'registry/venture-economy.json'
+      - 'runtime/venture-economy.mjs'
+      - 'scripts/venture-economy-worker.mjs'
+      - 'scripts/validate-venture-economy.mjs'
+      - 'scripts/test-venture-economy.mjs'
+      - 'infra/supabase/migrations/20260820_340_venture_economy_runtime.sql'
+      - 'infra/supabase/migrations/20260820_341_venture_evidence.sql'
+      - 'infra/supabase/migrations/20260820_342_capability_scope_repair.sql'
+      - 'supabase/functions/ai-factory-venture-runtime/**'
+      - '.github/workflows/venture-economy.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'registry/venture-economy.json'
+      - 'runtime/venture-economy.mjs'
+      - 'scripts/venture-economy-worker.mjs'
+      - 'scripts/validate-venture-economy.mjs'
+      - 'scripts/test-venture-economy.mjs'
+      - 'infra/supabase/migrations/20260820_340_venture_economy_runtime.sql'
+      - 'infra/supabase/migrations/20260820_341_venture_evidence.sql'
+      - 'infra/supabase/migrations/20260820_342_capability_scope_repair.sql'
+      - 'supabase/functions/ai-factory-venture-runtime/**'
+      - '.github/workflows/venture-economy.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ai-factory-venture-economy
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Venture Economy contracts
+        run: |
+          node --check scripts/venture-economy-worker.mjs
+          node scripts/validate-venture-economy.mjs
+          node scripts/test-venture-economy.mjs
+
+  execute:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
+      N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+      N8N_PROJECT_ID: FP3HOvN6NpEDN0PB
+      FACTORY_VENTURE_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-venture-runtime
+      VENTURE_OBJECTIVE: ${{ inputs.objective || '' }}
+      VENTURE_HYPOTHESIS: ${{ inputs.hypothesis || '' }}
+      VENTURE_RUN_MODE: ${{ inputs.run_mode || 'LIVE' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute one bounded venture lifecycle turn
+        run: node scripts/venture-economy-worker.mjs
+      - name: Upload sanitized venture trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: venture-economy-run-${{ github.run_id }}
+          path: artifacts/venture-economy-run.json
+          if-no-files-found: ignore
+          retention-days: 30

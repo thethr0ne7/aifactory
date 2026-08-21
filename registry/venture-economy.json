@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.6.0",
+  "mode": "bounded-venture-evolution",
+  "purpose": "Execute evidence-gated resource-to-market value chains, select compatible chains, form venture cells, detect measurable specialization gaps, breed bounded specialists, and promote capabilities only after cross-venture proof.",
+  "authorityBoundary": {
+    "rootOfTrustMutable": false,
+    "automaticAuthorityPromotion": false,
+    "defaultOffspringAutonomy": "A2",
+    "maximumOffspringAutonomy": "A2",
+    "productionWriteExpansion": false,
+    "externalPublication": false,
+    "financialCommitment": false,
+    "realWorldProcurement": false,
+    "principle": "Structural evolution is allowed; authority expansion is not."
+  },
+  "valueChain": {
+    "stages": ["RESOURCE", "MATERIAL", "GLOBAL_NEED", "PRODUCT", "MANUFACTURING", "GO_TO_MARKET", "USER_FEEDBACK", "SELECTION"],
+    "competitiveStages": ["RESOURCE", "MATERIAL", "GLOBAL_NEED", "PRODUCT", "MANUFACTURING", "GO_TO_MARKET", "USER_FEEDBACK"],
+    "minimumCandidatesPerStage": 3,
+    "maximumCandidatesPerStage": 4,
+    "minimumPassingCandidatesPerStage": 1,
+    "requiredEvidenceClasses": ["MEASURED", "OBSERVED", "CONFIRMED", "DERIVED"],
+    "blockedEvidenceClasses": ["ASSUMPTION", "UNKNOWN", "BLOCKER"],
+    "stageTimeoutSeconds": 120,
+    "maximumChains": 128,
+    "selectionTopKPerStage": 2
+  },
+  "stageRouting": {
+    "RESOURCE": ["technical-researcher-g2", "government-researcher-g2", "research-scout-g1"],
+    "MATERIAL": ["technical-researcher-g2", "synthesis-analyst-g2", "evidence-apprentice-g1"],
+    "GLOBAL_NEED": ["market-researcher-g2", "government-researcher-g2", "synthesis-analyst-g2"],
+    "PRODUCT": ["technical-researcher-g2", "builder-apprentice-g1", "integration-engineer-g2"],
+    "MANUFACTURING": ["technical-researcher-g2", "integration-engineer-g2", "builder-apprentice-g1"],
+    "GO_TO_MARKET": ["market-researcher-g2", "synthesis-analyst-g2", "government-researcher-g2"],
+    "USER_FEEDBACK": ["regression-auditor-g2", "contradiction-auditor-g2", "evidence-apprentice-g1"]
+  },
+  "fitness": {
+    "minimumTrialsForChampion": 3,
+    "minimumHardGateScore": 75,
+    "hardGateDimensions": ["evidence_quality", "truthfulness", "safety_compliance"],
+    "dimensions": ["task_success", "evidence_quality", "truthfulness", "contradiction_detection", "downstream_value", "latency", "cost_efficiency", "tool_discipline", "safety_compliance"],
+    "selection": "pareto-plus-context",
+    "utilityWeights": {
+      "task_success": 0.18,
+      "evidence_quality": 0.16,
+      "truthfulness": 0.16,
+      "contradiction_detection": 0.09,
+      "downstream_value": 0.15,
+      "latency": 0.05,
+      "cost_efficiency": 0.07,
+      "tool_discipline": 0.06,
+      "safety_compliance": 0.08
+    }
+  },
+  "chainSelection": {
+    "metrics": ["technical_success_probability", "market_adoption_probability", "capex", "opex", "gross_margin", "time_to_market_months", "regulatory_risk", "supply_risk", "defensibility", "scalability", "expected_enterprise_value"],
+    "hardConstraints": ["material_cost_lte_product_max_input_cost", "capex_lte_gtm_capital_ceiling", "all_stages_evidence_gated"],
+    "weights": {
+      "technical_success_probability": 0.15,
+      "market_adoption_probability": 0.15,
+      "gross_margin": 0.12,
+      "time_to_market_months": 0.08,
+      "regulatory_risk": 0.08,
+      "supply_risk": 0.08,
+      "defensibility": 0.08,
+      "scalability": 0.10,
+      "expected_enterprise_value": 0.16
+    }
+  },
+  "ventureCell": {
+    "statuses": ["FORMING", "ACTIVE", "REPAIRING", "PAUSED", "COMPLETE", "REJECTED"],
+    "requiresSelectedChain": true,
+    "tracks": ["objective", "hypothesis", "champion_chain", "agents", "budget", "kpis", "experiments", "assumptions", "blockers", "suppliers", "customers", "evidence", "feedback"]
+  },
+  "specializationGap": {
+    "minimumBottleneckSeverity": 0.25,
+    "maximumExistingCapabilityScore": 75,
+    "minimumExpectedGain": 5,
+    "minimumParents": 2,
+    "maximumParents": 4,
+    "spawnOnlyFromMeasuredGap": true
+  },
+  "breeding": {
+    "allowedInheritedTraits": ["reasoning_protocol", "skills", "evidence_policy", "tool_strategy", "source_hierarchy", "failure_handling", "context_strategy", "domain_knowledge", "promoted_lessons"],
+    "mutationRequiresHypothesis": true,
+    "maximumMutationHypotheses": 2,
+    "offspringAutonomy": "A2",
+    "offspringInitialTools": [],
+    "offspringExternalPublication": false,
+    "offspringProductionAuthority": false,
+    "admission": ["PROPOSED", "RESEARCHING", "EVIDENCED", "AUDITED", "SPAWNED", "TRAINING", "EVALUATING", "RETAINED", "REJECTED", "QUARANTINED"]
+  },
+  "capabilityPromotion": {
+    "tiers": ["VENTURE_LOCAL", "CROSS_VENTURE_PROVEN", "FACTORY_WIDE_CAPABILITY"],
+    "minimumIndependentVenturesForCrossVenture": 2,
+    "minimumIndependentVenturesForFactoryWide": 3,
+    "minimumWinsPerVenture": 2,
+    "automaticAuthorityExpansion": false
+  },
+  "feedback": {
+    "stageOrderReverse": ["USER_FEEDBACK", "GO_TO_MARKET", "MANUFACTURING", "PRODUCT", "MATERIAL", "RESOURCE"],
+    "actions": ["CONFIRM", "LOWER_CONFIDENCE", "REPAIR", "SUPERSEDE", "BRANCH"],
+    "automaticRollbackOnMeasuredRegression": true
+  },
+  "hostedRuntime": {
+    "workflow": ".github/workflows/venture-economy.yml",
+    "edgeFunction": "ai-factory-venture-runtime",
+    "worker": "scripts/venture-economy-worker.mjs",
+    "controlObjective": "Hosted control: prove a complete evidence-gated venture lifecycle without external spending, publication, procurement, or authority expansion.",
+    "controlMode": "LIVE_RUNTIME_SYNTHETIC_SCENARIO"
+  }
+}
