@@ -1,10 +1,12 @@
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 
 const read = (path) => fs.readFile(path, 'utf8');
-const [policyText, runtime, worker, edge, migration, evidenceMigration, workflow] = await Promise.all([
+const [policyText, runtime, resilience, worker, edge, migration, evidenceMigration, workflow] = await Promise.all([
   read('registry/venture-economy.json'),
   read('runtime/venture-economy.mjs'),
+  read('runtime/venture-agent-resilience.mjs'),
   read('scripts/venture-economy-worker.mjs'),
   read('supabase/functions/ai-factory-venture-runtime/index.ts'),
   read('infra/supabase/migrations/20260820_340_venture_economy_runtime.sql'),
@@ -41,6 +43,10 @@ assert.ok(runtime.includes("autonomy_level: 'A2'"));
 assert.ok(runtime.includes('production_authority_granted: false'));
 assert.ok(runtime.includes('publication_attempted: false'));
 
+for (const symbol of ['extractVentureResult','isRetryableProviderFailure','retryDelayMs','compactScenarioForStage','compactUpstreamResults','compactPurificationScenario']) assert.ok(resilience.includes(`export function ${symbol}`), `resilience runtime missing ${symbol}`);
+assert.ok(resilience.includes('30000'));
+assert.ok(resilience.includes('isVentureResultShape'));
+
 for (const table of ['af_value_chain_candidates','af_venture_cells','af_venture_cell_members','af_venture_experiments','af_venture_metrics','af_venture_bottlenecks','af_specialization_gaps','af_venture_feedback_events','af_capability_proofs','af_capability_promotions']) assert.ok(migration.includes(`public.${table}`), `migration missing ${table}`);
 for (const fn of ['af_claim_venture_run','af_release_venture_run','af_set_active_champion','af_promote_capability_scope']) assert.ok(migration.includes(fn), `migration missing ${fn}`);
 assert.ok(migration.includes("having count(*) >= 2"));
@@ -73,6 +79,12 @@ assert.ok(worker.includes('This exact task is being sent to competing agents'));
 assert.ok(worker.includes('const finalists = primary.slice(0, Math.min(2, primary.length));'));
 assert.ok(worker.includes('for (let roundNo = 2; roundNo <= 3; roundNo += 1)'));
 assert.ok(worker.includes("const rounds = id === child.candidate_id ? 5 : 3"));
+assert.ok(worker.includes('venture_provider_retry'));
+assert.ok(worker.includes('compactScenarioForStage'));
+assert.ok(worker.includes('compactUpstreamResults'));
+assert.ok(worker.includes('extractVentureResult'));
+assert.ok(worker.includes('run = await claimRunnable();'));
+assert.ok(worker.indexOf("run = await claimRunnable();") < worker.indexOf("await broker('start_control')"), 'push path must claim unfinished work before creating a new control run');
 assert.ok(worker.includes("scope.scope !== 'VENTURE_LOCAL'"));
 assert.ok(worker.includes("broker('record_feedback'"));
 assert.ok(worker.includes("broker('add_bottleneck_gap'"));
@@ -90,5 +102,8 @@ assert.ok(workflow.includes("if: github.event_name != 'pull_request'"));
 assert.ok(workflow.includes('N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}'));
 assert.ok(workflow.includes('timeout-minutes: 45'));
 assert.ok(workflow.includes('node scripts/venture-economy-worker.mjs'));
+
+const resilienceTests = spawnSync(process.execPath, ['--test', 'evals/runtime/venture-agent-resilience.test.mjs'], { encoding: 'utf8' });
+assert.equal(resilienceTests.status, 0, resilienceTests.stderr || resilienceTests.stdout);
 
 console.log('Venture Economy contract validation passed');
