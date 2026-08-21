@@ -16,7 +16,7 @@ export function toolMap(policy = {}) {
 export function normalizeToolRequests(raw, policy, autonomyLevel, priorContext = {}) {
   const tools = toolMap(policy);
   const max = Math.max(0, Math.min(Number(policy?.maxToolRequestsPerWorkerTurn) || 3, 6));
-  const source = Array.isArray(raw) ? raw : [];
+  const source = normalizeRequestList(raw);
   const out = [];
   const seenKeys = new Set();
   const seenFingerprints = new Set();
@@ -24,17 +24,17 @@ export function normalizeToolRequests(raw, policy, autonomyLevel, priorContext =
 
   for (const item of source) {
     if (out.length >= max) break;
-    const toolId = String(item?.tool_id || '').trim();
+    const toolId = resolveCanonicalToolId(item, tools);
     if (!toolId) continue;
     const spec = tools.get(toolId);
     if (!spec || spec.autoExecute !== true) continue;
     if (!autonomyAtLeast(autonomyLevel, spec.minimumAutonomy)) continue;
-    const args = object(item?.arguments);
+    const args = resolveToolArguments(item, spec);
     if (JSON.stringify(args).length > 120000) continue;
 
     const fingerprint = toolRequestFingerprint(toolId, args);
     if (seenFingerprints.has(fingerprint) || prior.fingerprints.has(fingerprint)) continue;
-    const requestKey = normalizeRequestKey(item?.request_key) || deterministicRequestKey(toolId, fingerprint);
+    const requestKey = normalizeRequestKey(item?.request_key ?? item?.requestKey) || deterministicRequestKey(toolId, fingerprint);
     if (!requestKey || seenKeys.has(requestKey) || prior.keys.has(requestKey)) continue;
 
     out.push({
@@ -44,7 +44,7 @@ export function normalizeToolRequests(raw, policy, autonomyLevel, priorContext =
       arguments: args,
       required_autonomy: spec.minimumAutonomy,
       risk_class: spec.riskClass,
-      reason: clean(item?.reason, 1200),
+      reason: clean(item?.reason ?? item?.why, 1200),
     });
     seenKeys.add(requestKey);
     seenFingerprints.add(fingerprint);
@@ -156,6 +156,40 @@ export function toolRequestFingerprint(toolId, args = {}) {
     hash = Math.imul(hash, 16777619);
   }
   return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+function normalizeRequestList(raw) {
+  if (Array.isArray(raw)) return raw.filter((x) => x && typeof x === 'object' && !Array.isArray(x));
+  if (raw && typeof raw === 'object') return [raw];
+  if (typeof raw === 'string') {
+    const text = raw.trim();
+    if (!text || (!text.startsWith('{') && !text.startsWith('['))) return [];
+    try { return normalizeRequestList(JSON.parse(text)); } catch { return []; }
+  }
+  return [];
+}
+
+function resolveCanonicalToolId(item, tools) {
+  for (const value of [item?.tool_id, item?.toolId, item?.tool, item?.id]) {
+    const id = String(value || '').trim();
+    if (id && tools.has(id)) return id;
+  }
+  const capability = String(item?.capability || item?.capability_id || '').trim();
+  if (!capability) return '';
+  const candidates = [...tools.values()].filter((spec) => spec?.autoExecute === true && String(spec?.capability || '') === capability);
+  return candidates.length === 1 ? String(candidates[0].id || '') : '';
+}
+
+function resolveToolArguments(item, spec = {}) {
+  for (const value of [item?.arguments, item?.args, item?.input, item?.params]) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  }
+  const contract = object(spec?.argumentContract);
+  const recovered = {};
+  for (const key of Object.keys(contract)) {
+    if (Object.prototype.hasOwnProperty.call(item || {}, key)) recovered[key] = item[key];
+  }
+  return recovered;
 }
 
 function deterministicRequestKey(toolId, fingerprint) {
