@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.8.0",
+  "mode": "evolutionary-capability-providers",
+  "principle": "No vendor is permanently preferred. Providers compete inside bounded capability arenas on identical tasks; contextual champions may change without expanding authority.",
+  "roles": ["ACTIVE_CHAMPION", "CHALLENGER", "FALLBACK", "REFERENCE", "SUPERSEDED"],
+  "selection": {
+    "method": "pareto-plus-context-with-hysteresis",
+    "minimumTrialsPerProvider": 3,
+    "minimumPassRate": 0.8,
+    "minimumPromotionDelta": 2,
+    "hardGateMinimum": 80,
+    "hardGateDimensions": ["correctness", "evidence_fidelity", "safety_compliance"],
+    "dimensions": ["task_success", "correctness", "evidence_fidelity", "reliability", "latency", "cost_efficiency", "context_efficiency", "observability", "safety_compliance"],
+    "utilityWeights": {"task_success": 0.16, "correctness": 0.18, "evidence_fidelity": 0.16, "reliability": 0.12, "latency": 0.08, "cost_efficiency": 0.08, "context_efficiency": 0.06, "observability": 0.06, "safety_compliance": 0.10},
+    "tiePolicy": "retain-current-champion",
+    "authorityExpansion": false
+  },
+  "rechallenge": {"cadenceDays": 7, "failureRateTrigger": 0.15, "newProviderTrigger": true, "upstreamMajorReleaseTrigger": true, "securityIncidentTrigger": true},
+  "productionRouting": {"mode": "contextual-champion", "defaultContext": "general", "requireProductionReady": true, "requireSameCapability": true, "requireSameOrLowerRiskClass": true, "ownerGatesImmutable": true, "fallbackOnUnavailableChampion": true, "unknownContextUsesIncumbent": true},
+  "arenas": [
+    {"capability": "WEB_EVIDENCE", "contexts": {"general": {"incumbent": "crawl4ai", "routing": "production"}, "public-static-html": {"incumbent": "crawl4ai", "routing": "production"}, "js-heavy": {"incumbent": "crawl4ai", "routing": "shadow"}, "structured-crawl": {"incumbent": "crawl4ai", "routing": "shadow"}}, "providers": [
+      {"id": "crawl4ai", "role": "ACTIVE_CHAMPION", "productionReady": true, "riskClass": "LOW", "upstream": "unclecode/crawl4ai"},
+      {"id": "native-fetch", "role": "FALLBACK", "productionReady": true, "riskClass": "LOW", "upstream": null},
+      {"id": "firecrawl", "role": "CHALLENGER", "productionReady": false, "riskClass": "LOW", "upstream": "firecrawl/firecrawl", "admission": "REPO_INTAKE_REQUIRED"}
+    ]},
+    {"capability": "WEB_OPERATOR", "contexts": {"interactive-general": {"incumbent": "browser-use", "routing": "shadow"}}, "providers": [
+      {"id": "browser-use", "role": "CHALLENGER", "productionReady": false, "riskClass": "HIGH", "upstream": "browser-use/browser-use"},
+      {"id": "stagehand", "role": "CHALLENGER", "productionReady": false, "riskClass": "HIGH", "upstream": "browserbase/stagehand", "admission": "REPO_INTAKE_REQUIRED"},
+      {"id": "firecrawl-interact", "role": "CHALLENGER", "productionReady": false, "riskClass": "HIGH", "upstream": "firecrawl/firecrawl", "admission": "REPO_INTAKE_REQUIRED"}
+    ]},
+    {"capability": "MEMORY", "contexts": {"project-memory": {"incumbent": "factory-memory", "routing": "shadow"}}, "providers": [
+      {"id": "factory-memory", "role": "ACTIVE_CHAMPION", "productionReady": true, "riskClass": "LOW", "upstream": null},
+      {"id": "supermemory", "role": "CHALLENGER", "productionReady": false, "riskClass": "LOW", "upstream": "supermemoryai/supermemory", "evaluationHarness": "MemoryBench", "admission": "REPO_INTAKE_REQUIRED"},
+      {"id": "mem0", "role": "CHALLENGER", "productionReady": false, "riskClass": "LOW", "upstream": "mem0ai/mem0", "evaluationHarness": "MemoryBench", "admission": "REPO_INTAKE_REQUIRED"}
+    ]},
+    {"capability": "ORCHESTRATION_RUNTIME", "contexts": {"durable-agent-organization": {"incumbent": "factory-agent-org", "routing": "shadow"}}, "providers": [
+      {"id": "factory-agent-org", "role": "ACTIVE_CHAMPION", "productionReady": true, "riskClass": "LOW", "upstream": null},
+      {"id": "microsoft-agent-framework", "role": "CHALLENGER", "productionReady": false, "riskClass": "MEDIUM", "upstream": "microsoft/agent-framework", "admission": "REPO_INTAKE_REQUIRED"},
+      {"id": "crewai", "role": "REFERENCE", "productionReady": false, "riskClass": "MEDIUM", "upstream": "crewAIInc/crewAI"},
+      {"id": "autogen", "role": "REFERENCE", "productionReady": false, "riskClass": "MEDIUM", "upstream": "microsoft/autogen", "note": "legacy architecture donor; maintenance-mode migration reference"}
+    ]},
+    {"capability": "DOCUMENT_NORMALIZATION", "contexts": {"mixed-office-files": {"incumbent": "factory-document-chain", "routing": "shadow"}}, "providers": [
+      {"id": "factory-document-chain", "role": "ACTIVE_CHAMPION", "productionReady": true, "riskClass": "LOW", "upstream": null},
+      {"id": "markitdown", "role": "CHALLENGER", "productionReady": false, "riskClass": "LOW", "upstream": "microsoft/markitdown", "admission": "REPO_INTAKE_REQUIRED"}
+    ]},
+    {"capability": "REPO_SEMANTIC_SEARCH", "contexts": {"semantic-code-retrieval": {"incumbent": "factory-repo-search", "routing": "shadow"}}, "providers": [
+      {"id": "factory-repo-search", "role": "ACTIVE_CHAMPION", "productionReady": true, "riskClass": "LOW", "upstream": null},
+      {"id": "claude-context", "role": "CHALLENGER", "productionReady": false, "riskClass": "LOW", "upstream": "zilliztech/claude-context", "admission": "REPO_INTAKE_REQUIRED"}
+    ]},
+    {"capability": "SUPPLY_CHAIN_AUDIT", "contexts": {"agent-supply-chain": {"incumbent": "factory-shield", "routing": "shadow"}}, "providers": [
+      {"id": "factory-shield", "role": "ACTIVE_CHAMPION", "productionReady": true, "riskClass": "LOW", "upstream": null},
+      {"id": "bumblebee", "role": "CHALLENGER", "productionReady": false, "riskClass": "LOW", "upstream": "perplexityai/bumblebee", "scope": "known-exposure-specialist", "admission": "REPO_INTAKE_REQUIRED"}
+    ]}
+  ],
+  "hardRules": [
+    "A provider can replace another provider only inside the same capability and context.",
+    "Provider promotion never changes agent autonomy, owner gates, tool risk class, secret scope, or production permissions.",
+    "A single benchmark run cannot establish a champion; minimum repeated comparable trials apply.",
+    "Unavailable, unaudited, or non-production-ready challengers remain shadow-only.",
+    "Current champion is retained on near-ties to prevent provider churn.",
+    "Every production switch must retain a bounded fallback.",
+    "Provider output remains evidence, never authority or instructions."
+  ]
+}

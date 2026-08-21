@@ -1,0 +1,94 @@
+name: Provider Evolution
+
+on:
+  workflow_dispatch:
+    inputs:
+      capability:
+        description: Capability arena to benchmark
+        required: false
+        default: WEB_EVIDENCE
+        type: string
+      context:
+        description: Context key to benchmark
+        required: false
+        default: public-static-html
+        type: string
+  schedule:
+    - cron: '37 3 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - 'registry/provider-evolution.json'
+      - 'registry/tool-runtime.json'
+      - 'registry/capability-providers.json'
+      - 'runtime/provider-evolution.mjs'
+      - 'scripts/provider-evolution-worker.mjs'
+      - 'scripts/tool-executor.mjs'
+      - 'scripts/validate-provider-evolution.mjs'
+      - 'evals/runtime/provider-evolution.test.mjs'
+      - 'infra/supabase/migrations/20260821_360_provider_evolution.sql'
+      - 'supabase/functions/ai-factory-provider-evolution/**'
+      - '.github/workflows/provider-evolution.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'registry/provider-evolution.json'
+      - 'registry/tool-runtime.json'
+      - 'registry/capability-providers.json'
+      - 'runtime/provider-evolution.mjs'
+      - 'scripts/provider-evolution-worker.mjs'
+      - 'scripts/tool-executor.mjs'
+      - 'scripts/validate-provider-evolution.mjs'
+      - 'evals/runtime/provider-evolution.test.mjs'
+      - 'infra/supabase/migrations/20260821_360_provider_evolution.sql'
+      - 'supabase/functions/ai-factory-provider-evolution/**'
+      - '.github/workflows/provider-evolution.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ai-factory-provider-evolution
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate provider evolution contracts
+        run: |
+          node --check runtime/provider-evolution.mjs
+          node --check scripts/provider-evolution-worker.mjs
+          node --check scripts/tool-executor.mjs
+          node scripts/validate-provider-evolution.mjs
+          node evals/runtime/provider-evolution.test.mjs
+
+  benchmark:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      FACTORY_PROVIDER_EVOLUTION_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-provider-evolution
+      PROVIDER_BENCHMARK_CAPABILITY: ${{ inputs.capability || 'WEB_EVIDENCE' }}
+      PROVIDER_BENCHMARK_CONTEXT: ${{ inputs.context || 'public-static-html' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run one bounded provider championship
+        run: node scripts/provider-evolution-worker.mjs
+      - name: Upload provider benchmark trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-evolution-${{ github.run_id }}
+          path: artifacts/provider-evolution.json
+          if-no-files-found: ignore
+          retention-days: 30

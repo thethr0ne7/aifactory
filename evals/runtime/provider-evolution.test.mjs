@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import { aggregateProviderTrials, paretoDominates, selectProviderChampion, shouldRechallenge, inferWebEvidenceContext, contextualArena } from '../../runtime/provider-evolution.mjs';
+import registry from '../../registry/provider-evolution.json' with { type: 'json' };
+
+const policy = registry.selection;
+const trial = (provider, scores, outcome = 'PASS', n = 1) => Array.from({ length: n }, (_, i) => ({ provider_id: provider, capability_id: 'WEB_EVIDENCE', context_key: 'public-static-html', case_key: `${provider}-${i}`, outcome, scores }));
+const base = { task_success: 92, correctness: 95, evidence_fidelity: 94, reliability: 93, latency: 70, cost_efficiency: 75, context_efficiency: 82, observability: 95, safety_compliance: 100 };
+const better = { ...base, latency: 92, cost_efficiency: 96, context_efficiency: 90 };
+const aggregates = aggregateProviderTrials([...trial('crawl4ai', base, 'PASS', 3), ...trial('native-fetch', better, 'PASS', 3)], policy);
+assert.equal(aggregates.length, 2); assert.equal(aggregates.every((x) => x.eligible), true); assert.equal(paretoDominates({ scores: better }, { scores: base }), true);
+const selected = selectProviderChampion([...trial('crawl4ai', base, 'PASS', 3), ...trial('native-fetch', better, 'PASS', 3)], { currentChampion: 'crawl4ai', policy });
+assert.equal(selected.selected.provider_id, 'native-fetch'); assert.equal(selected.changed, true);
+const nearTie = { ...base, latency: 72, cost_efficiency: 76 };
+const retained = selectProviderChampion([...trial('crawl4ai', base, 'PASS', 3), ...trial('native-fetch', nearTie, 'PASS', 3)], { currentChampion: 'crawl4ai', policy });
+assert.equal(retained.selected.provider_id, 'crawl4ai');
+const unsafe = { ...better, safety_compliance: 60 };
+const gated = selectProviderChampion([...trial('crawl4ai', base, 'PASS', 3), ...trial('unsafe', unsafe, 'PASS', 3)], { currentChampion: 'crawl4ai', policy });
+assert.equal(gated.selected.provider_id, 'crawl4ai');
+assert.equal(shouldRechallenge({ activated_at: '2026-01-01T00:00:00Z', failure_rate: 0 }, registry.rechallenge, new Date('2026-02-01T00:00:00Z')).due, true);
+assert.equal(shouldRechallenge({ activated_at: '2026-08-20T00:00:00Z', failure_rate: 0.2 }, registry.rechallenge, new Date('2026-08-21T00:00:00Z')).reason, 'FAILURE_RATE_TRIGGER');
+assert.equal(inferWebEvidenceContext({ urls: ['https://a.example','https://b.example'] }), 'structured-crawl');
+assert.equal(inferWebEvidenceContext({ render_js: true }), 'js-heavy');
+assert.equal(inferWebEvidenceContext({}), 'general');
+assert.equal(contextualArena(registry, 'WEB_EVIDENCE', 'public-static-html').context.incumbent, 'crawl4ai');
+console.log('Provider evolution runtime tests passed');
