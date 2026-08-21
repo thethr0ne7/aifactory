@@ -15,9 +15,19 @@ if (policy.resumeSemantics?.toolContinuationConsumesRetryBudget !== false) error
 for (const token of ["cron: '*/5 * * * *'", "FACTORY_TOOL_BATCH_SIZE: '6'", 'Execute bounded allowlisted tool batch']) {
   if (!workflow.includes(token)) errors.push(`workflow missing ${token}`);
 }
-for (const token of ['const maxBatch', 'while (processed < maxBatch', "request.tool_id === 'factory.repo.candidate_write'", 'candidateWriteSeen', 'controlled-tool-runtime-v3-providers']) {
-  if (!executor.includes(token)) errors.push(`executor missing bounded batch invariant ${token}`);
+for (const token of [
+  'const maxBatch',
+  'while (processed < maxBatch',
+  "request.tool_id === 'factory.repo.candidate_write'",
+  'candidateWriteSeen',
+  'controlled-tool-runtime-v4-provider-champions',
+  'providerRoute',
+  "routedProvider === 'native-fetch'",
+  "return crawl4aiTool(args, context, routedProvider || 'crawl4ai')"
+]) {
+  if (!executor.includes(token)) errors.push(`executor missing bounded batch/provider invariant ${token}`);
 }
+if (executor.includes('controlled-tool-runtime-v3-providers')) errors.push('executor metadata must not regress to v3 provider-static routing');
 for (const token of ['FACTORY_EPHEMERAL_CRAWL4AI', 'CRAWL4AI_BASE_URL', 'STIRLING_PDF_BASE_URL']) {
   if (!workflow.includes(token)) errors.push(`provider-enabled workflow missing ${token}`);
 }
@@ -28,4 +38,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.log('AI Factory tool executor batch validation OK: max 6 claims/run, 5-minute cadence, candidate-write stop boundary, retry-neutral continuation and bounded provider configuration');
+console.log('AI Factory tool executor batch validation OK: max 6 claims/run, 5-minute cadence, candidate-write stop boundary, retry-neutral continuation and contextual provider routing');
