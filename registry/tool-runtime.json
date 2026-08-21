@@ -1,8 +1,8 @@
 {
-  "schemaVersion": "1.1.0",
-  "factoryVersion": "2.4.0",
+  "schemaVersion": "1.2.0",
+  "factoryVersion": "2.7.0",
   "mode": "controlled-tool-runtime",
-  "principle": "Workers may request capabilities; only a separate allowlisted executor performs side effects. The reasoning worker never receives unrestricted shell, filesystem, repository, database, network, or production authority.",
+  "principle": "Workers may request capabilities; only a separate allowlisted executor performs side effects. Provider transports and credentials remain outside agent context.",
   "maxToolRequestsPerWorkerTurn": 3,
   "maxToolResultCharactersPerRun": 30000,
   "executor": {
@@ -52,7 +52,7 @@
       "riskClass": "LOW",
       "minimumAutonomy": "A3",
       "autoExecute": true,
-      "description": "Write exactly one low-risk file to a new candidate branch, run all factory validators, and push the branch. Opening a Draft PR is attempted when repository policy permits it. Never writes main and never merges.",
+      "description": "Write exactly one low-risk file to a new candidate branch, validate it, and push the branch. Never writes main and never merges.",
       "allowedPathPrefixes": ["skills/", "docs/", "evals/"],
       "protectedPaths": [
         ".github/",
@@ -73,6 +73,76 @@
         "reason":"why this change is required",
         "expected_blob_sha":"required when replacing an existing tracked file"
       }
+    },
+    {
+      "id": "factory.web.crawl",
+      "capability": "WEB_EVIDENCE",
+      "provider": "crawl4ai",
+      "class": "READ_NETWORK",
+      "riskClass": "LOW",
+      "minimumAutonomy": "A3",
+      "autoExecute": true,
+      "description": "Fetch up to eight public HTTP(S) pages through the bounded Crawl4AI adapter and return compact LLM-ready evidence. Local, private and link-local destinations are denied before provider invocation.",
+      "argumentContract": {
+        "url":"one public http/https URL; alternatively use urls",
+        "urls":"1..8 public http/https URLs",
+        "cache_mode":"enabled|bypass|read_only|write_only",
+        "word_count_threshold":"1..1000",
+        "include_external_links":"boolean"
+      },
+      "deniedArguments": ["hooks", "execute_js", "scripts", "cookies", "proxy", "browser_config", "crawler_config", "webhook_url"]
+    },
+    {
+      "id": "factory.document.ocr",
+      "capability": "DOCUMENT_ENGINE",
+      "provider": "stirling-pdf",
+      "class": "LOCAL_DOCUMENT_TRANSFORM",
+      "riskClass": "LOW",
+      "minimumAutonomy": "A3",
+      "autoExecute": true,
+      "description": "Run OCR on one tracked repository PDF using a configured/self-hosted Stirling PDF provider. The hosted executor never lets an agent supply an arbitrary filesystem path or remote document URL.",
+      "argumentContract": {
+        "path":"tracked repository-relative .pdf file, <=20MB",
+        "languages":"1..4 Tesseract language codes; default eng",
+        "ocr_type":"skip-text|force-ocr|Normal",
+        "deskew":"boolean",
+        "clean":"boolean"
+      }
+    },
+    {
+      "id": "factory.document.compare",
+      "capability": "DOCUMENT_ENGINE",
+      "provider": "stirling-pdf",
+      "class": "LOCAL_DOCUMENT_COMPARE",
+      "riskClass": "LOW",
+      "minimumAutonomy": "A3",
+      "autoExecute": false,
+      "description": "Reserved deterministic PDF comparison contract. It remains non-auto until the exact upstream comparison API response contract is pinned and regression-tested.",
+      "argumentContract": {"left_path":"tracked .pdf","right_path":"tracked .pdf"}
+    },
+    {
+      "id": "factory.browser.operate",
+      "capability": "WEB_OPERATOR",
+      "provider": "browser-use",
+      "class": "OWNER_GATED_EXTERNAL",
+      "riskClass": "HIGH",
+      "minimumAutonomy": "A3",
+      "autoExecute": false,
+      "ownerApprovalRequired": true,
+      "description": "Interactive browser operation. Agents may propose it, but navigation that can submit, publish, purchase, message, mutate accounts or cause external effects requires explicit owner approval before execution.",
+      "argumentContract": {"task":"bounded browser task","allowed_domains":"optional domain allowlist"}
+    },
+    {
+      "id": "factory.dev.workspace",
+      "capability": "DEVELOPMENT_WORKSPACE",
+      "provider": "openhands",
+      "class": "OWNER_GATED_EXECUTION",
+      "riskClass": "HIGH",
+      "minimumAutonomy": "A3",
+      "autoExecute": false,
+      "ownerApprovalRequired": true,
+      "description": "Isolated development workspace inspired by OpenHands. No production credentials, no host mounts, no direct main write and no direct deployment.",
+      "argumentContract": {"objective":"coding objective","repository":"allowlisted repository","base_ref":"reviewed base ref"}
     }
   ],
   "hardDenials": [
@@ -86,7 +156,11 @@
     "autonomy-level mutation",
     "workflow-permission mutation",
     "tool-executor self-modification",
-    "unbounded filesystem or network access"
+    "unbounded filesystem or network access",
+    "private-network web crawling",
+    "agent-supplied crawler hooks or JavaScript execution",
+    "browser side effects without owner approval",
+    "development workspace production credentials"
   ],
   "resumeSemantics": {
     "workerStatus": "WAITING_TOOLS",
@@ -99,6 +173,8 @@
     "currentEvidenceOutranksMemory": true,
     "everyToolResultRequiresRequestId": true,
     "everySideEffectRequiresDurableLedger": true,
-    "pullRequestBlockedMustBeReported": true
+    "pullRequestBlockedMustBeReported": true,
+    "providerIdentityMustBePersisted": true,
+    "providerSecretsMustNeverBePersisted": true
   }
 }
