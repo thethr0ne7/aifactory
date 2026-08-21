@@ -10,6 +10,7 @@ const read = (file) => {
 };
 
 const policy = read('registry/repository-intake.json');
+const factoryShield = read('registry/factory-shield.json');
 const ecc = read('registry/upstreams/affaan-m-ecc.json');
 
 const requiredStages = ['DISCOVER','QUALIFY','LICENSE_CHECK','SECURITY_SCAN','CAPABILITY_EXTRACTION','CLASSIFY','COMPATIBILITY_TEST','SANDBOX','EVALUATION','PROMOTE'];
@@ -34,6 +35,19 @@ for (const [key, expected] of Object.entries({
 if (policy.factoryShield?.scannerTrustRule?.length < 20) errors.push('scanner bootstrap-trust rule missing');
 if (!Array.isArray(policy.hardRules) || !policy.hardRules.some((x) => /Do not execute a donor during first-pass intake/i.test(x))) errors.push('static-first hard rule missing');
 
+const shieldSurfaceIds = new Set((factoryShield.surfaces || []).map((x) => x.id));
+for (const id of ['prompt-injection','mcp-configuration','tool-permissions','secrets','hooks','shell-commands','external-skills','agent-files','dependencies','generated-automation','filesystem-scope','network-and-telemetry','browser-session-access','production-side-effects']) {
+  if (!shieldSurfaceIds.has(id)) errors.push(`Factory Shield missing surface ${id}`);
+}
+if (factoryShield.passes?.STATIC_INTAKE?.executesDonor !== false) errors.push('Factory Shield static pass must not execute donor');
+if (factoryShield.passes?.STATIC_INTAKE?.mayEnableDonorHooks !== false) errors.push('Factory Shield static pass must not enable donor hooks');
+if (factoryShield.passes?.STATIC_INTAKE?.mayStartDonorMcp !== false) errors.push('Factory Shield static pass must not start donor MCP');
+if (factoryShield.scannerPolicy?.thirdPartyScannerDefault !== 'UNTRUSTED_EXECUTABLE_UNTIL_AUDITED') errors.push('third-party scanner trust boundary missing');
+if (factoryShield.scannerPolicy?.autoFixBeforeReview !== false) errors.push('Factory Shield auto-fix must remain disabled before review');
+for (const key of ['mayExpandAutonomy','mayGrantToolAuthority','mayGrantSecretScope','mayMutateRootOfTrust','mayAutoApproveOwnFindings']) {
+  if (factoryShield.authority?.[key] !== false) errors.push(`Factory Shield authority must keep ${key}=false`);
+}
+
 if (ecc.intakeId !== 10) errors.push('ECC must remain intake #10');
 if (ecc.source?.priority !== 'S+') errors.push('ECC priority must be S+');
 if (ecc.source?.category !== 'CORE_DONOR') errors.push('ECC must be classified CORE_DONOR');
@@ -50,6 +64,7 @@ const shield = (ecc.components || []).find((x) => x.component === 'AgentShield')
 if (shield?.decision !== 'TAKE_REFERENCE_EVALUATE') errors.push('AgentShield must not bootstrap executable trust');
 
 for (const file of [
+  'registry/factory-shield.json',
   'skills/repo-intake/SKILL.md',
   'skills/compound-skill-loop/SKILL.md',
   'skills/context-governor/SKILL.md',
@@ -67,4 +82,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`AI Factory repository intake validation OK: ECC #${ecc.intakeId} ${ecc.source.priority} ${ecc.source.decision}; static-first security and controlled promotion enforced`);
+console.log(`AI Factory repository intake validation OK: ECC #${ecc.intakeId} ${ecc.source.priority} ${ecc.source.decision}; Factory Shield static-first security and controlled promotion enforced`);
