@@ -20,6 +20,29 @@ assert.equal(requests.length, 1);
 assert.equal(requests[0].tool_id, 'factory.repo.read_file');
 assert.equal(requests[0].risk_class, 'LOW');
 
+const deterministic = normalizeToolRequests([
+  { tool_id:'factory.web.crawl', arguments:{url:'https://example.com/'}, reason:'need current web evidence' },
+], policy, 'A3');
+assert.equal(deterministic.length, 1);
+assert.equal(deterministic[0].tool_id, 'factory.web.crawl');
+assert.match(deterministic[0].request_key, /^auto:web\.crawl:[a-z0-9]+$/);
+
+const invalidProvidedKeyFallsBack = normalizeToolRequests([
+  { tool_id:'factory.web.crawl', request_key:'INVALID KEY WITH SPACES', arguments:{url:'https://example.com/'}, reason:'same evidence' },
+], policy, 'A3');
+assert.equal(invalidProvidedKeyFallsBack.length, 1);
+assert.equal(invalidProvidedKeyFallsBack[0].request_key, deterministic[0].request_key);
+
+const semanticDuplicateBlocked = normalizeToolRequests([
+  { tool_id:'factory.web.crawl', arguments:{url:'https://example.com/'} },
+], policy, 'A3', {
+  known_request_keys: [],
+  known_request_fingerprints: [deterministic[0].request_fingerprint],
+  requests: [],
+  request_index: [],
+});
+assert.equal(semanticDuplicateBlocked.length, 0);
+
 const deniedByAutonomy = normalizeToolRequests([
   { tool_id:'factory.repo.read_file', request_key:'read.low', arguments:{path:'README.md'} },
 ], policy, 'A2');
