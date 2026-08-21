@@ -105,6 +105,8 @@ const TOOL_SPECS: Record<string,{required_autonomy:string;risk_class:string}> = 
   "factory.repo.list_files": { required_autonomy: "A3", risk_class: "LOW" },
   "factory.repo.run_validation": { required_autonomy: "A3", risk_class: "LOW" },
   "factory.repo.candidate_write": { required_autonomy: "A3", risk_class: "LOW" },
+  "factory.web.crawl": { required_autonomy: "A3", risk_class: "LOW" },
+  "factory.document.ocr": { required_autonomy: "A3", risk_class: "LOW" },
 };
 
 Deno.serve(async (request: Request) => {
