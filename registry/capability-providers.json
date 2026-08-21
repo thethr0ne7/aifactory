@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.0.1",
   "factoryVersion": "2.7.0",
   "mode": "provider-abstracted-capabilities",
   "principle": "Agents request canonical capabilities. Provider-specific transports stay behind bounded adapters; credentials never enter agent context.",
@@ -55,17 +55,19 @@
       "id": "crawl4ai",
       "upstream": "unclecode/crawl4ai",
       "license": "Apache-2.0",
-      "transport": "http-json",
+      "transport": "http-json-or-ephemeral-docker",
       "baseUrlEnv": "CRAWL4AI_BASE_URL",
       "tokenEnv": "CRAWL4AI_API_TOKEN",
       "healthPath": "/health",
-      "status": "ADAPTER_READY_PROVIDER_ENDPOINT_REQUIRED",
+      "status": "EXECUTOR_READY_EPHEMERAL_OR_CONFIGURED",
       "security": {
         "allowPrivateAddressTargets": false,
         "allowHooks": false,
         "allowExecuteJs": false,
         "maxUrlsPerRequest": 8,
-        "maxResultCharacters": 24000
+        "maxResultCharacters": 24000,
+        "ephemeralBinding": "127.0.0.1:11235",
+        "ephemeralContainerRemovedAfterBatch": true
       }
     },
     {
@@ -77,7 +79,7 @@
       "tokenEnv": "BROWSER_USE_API_KEY",
       "defaultCloudBaseUrl": "https://api.browser-use.com",
       "runPath": "/api/v4/runs",
-      "status": "OWNER_GATED_ADAPTER_READY",
+      "status": "OWNER_GATED_CONTRACT_READY_EXECUTOR_PENDING",
       "security": {
         "autoExecute": false,
         "ownerApprovalRequired": true,
@@ -92,21 +94,25 @@
       "transport": "http-multipart",
       "baseUrlEnv": "STIRLING_PDF_BASE_URL",
       "tokenEnv": "STIRLING_PDF_API_KEY",
-      "status": "ADAPTER_READY_PROVIDER_ENDPOINT_REQUIRED",
+      "status": "EXECUTOR_READY_PROVIDER_ENDPOINT_REQUIRED",
       "security": {
         "repositoryFilesOnlyInHostedExecutor": true,
         "maxInputBytes": 20000000,
         "maxOutputBytes": 30000000,
-        "allowedOperations": ["ocr", "compare"]
+        "allowedOperations": ["ocr"],
+        "compareRegisteredButDisabled": true
       }
     },
     {
       "id": "openhands",
       "upstream": "OpenHands/OpenHands",
-      "transport": "workspace-api",
+      "license": "MIT",
+      "transport": "agent-server-openai-compatible",
       "baseUrlEnv": "OPENHANDS_BASE_URL",
       "tokenEnv": "OPENHANDS_API_KEY",
-      "status": "OWNER_GATED_CONTRACT_READY",
+      "modelEnv": "OPENHANDS_MODEL",
+      "gatewayPath": "/v1/chat/completions",
+      "status": "OWNER_GATED_CONTRACT_READY_EXECUTOR_PENDING",
       "security": {
         "autoExecute": false,
         "ownerApprovalRequired": true,
@@ -128,7 +134,12 @@
     {
       "id": "supabase-realtime",
       "transport": "postgres-publication",
-      "status": "SCHEMA_INTEGRATION_READY",
+      "status": "LIVE_PUBLICATION_ENABLED",
+      "liveState": {
+        "tables": ["public.af_agent_activity", "public.af_agent_tasks"],
+        "sourceOfTruth": "postgres",
+        "telegramDeliveryStillAuthoritative": true
+      },
       "security": {
         "sourceOfTruth": "postgres",
         "eventsAreNotificationsNotCommands": true,
