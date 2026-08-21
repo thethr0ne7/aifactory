@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "factoryVersion": "2.7.0",
+  "mode": "static-first-agent-infrastructure-security",
+  "purpose": "Screen external agent infrastructure before trust or activation, then require bounded runtime evaluation for executable adoption.",
+  "surfaces": [
+    {"id":"prompt-injection","defaultSeverity":"HIGH","examples":["untrusted content treated as instructions","external files overriding policy"]},
+    {"id":"mcp-configuration","defaultSeverity":"HIGH","examples":["shell/filesystem/browser MCP","remote transport","unpinned executable"]},
+    {"id":"tool-permissions","defaultSeverity":"HIGH","examples":["write-all","authority expansion","production mutation"]},
+    {"id":"secrets","defaultSeverity":"CRITICAL","examples":["hardcoded tokens","credential disclosure","broad secret inheritance"]},
+    {"id":"hooks","defaultSeverity":"HIGH","examples":["PreToolUse/PostToolUse execution","lifecycle scripts","auto-enabled commands"]},
+    {"id":"shell-commands","defaultSeverity":"HIGH","examples":["pipe-to-shell","dynamic eval","destructive filesystem commands"]},
+    {"id":"external-skills","defaultSeverity":"MEDIUM","examples":["bulk install","unbounded context","instruction conflicts"]},
+    {"id":"agent-files","defaultSeverity":"MEDIUM","examples":["AGENTS.md","system-prompt-like files","agent role prompts"]},
+    {"id":"dependencies","defaultSeverity":"MEDIUM","examples":["install scripts","floating versions","dynamic downloads"]},
+    {"id":"generated-automation","defaultSeverity":"HIGH","examples":["workflow generation","external messaging","production deploy"]},
+    {"id":"filesystem-scope","defaultSeverity":"HIGH","examples":["host mounts","path traversal","destructive writes"]},
+    {"id":"network-and-telemetry","defaultSeverity":"MEDIUM","examples":["listeners","remote uploads","automatic diagnostics"]},
+    {"id":"browser-session-access","defaultSeverity":"HIGH","examples":["cookies","authenticated session control","form submission"]},
+    {"id":"production-side-effects","defaultSeverity":"CRITICAL","examples":["money","publication","direct main write","permission change"]}
+  ],
+  "passes": {
+    "STATIC_INTAKE": {
+      "executesDonor": false,
+      "mayEnableDonorHooks": false,
+      "mayStartDonorMcp": false,
+      "mayRunDonorAutoFix": false,
+      "outputStates": ["PATTERN_ONLY", "CANDIDATE_FOR_SANDBOX", "QUARANTINED", "REJECTED"]
+    },
+    "BOUNDED_RUNTIME": {
+      "requiresStaticPass": true,
+      "requiresPinnedSource": true,
+      "productionCredentials": false,
+      "directMainWrite": false,
+      "minimumPrivilege": true,
+      "captureObservedEffects": true,
+      "rerunAfterRemediation": true,
+      "outputStates": ["APPROVED", "CONTROLLED", "QUARANTINED", "REJECTED"]
+    }
+  },
+  "findingContract": [
+    "source_commit",
+    "file_or_surface",
+    "severity",
+    "evidence_class",
+    "runtime_confidence",
+    "observed_basis",
+    "factory_impact",
+    "remediation_or_containment",
+    "owner_gate_required"
+  ],
+  "scannerPolicy": {
+    "localStaticScanner": "scripts/repository-intake-scan.mjs",
+    "thirdPartyScannerDefault": "UNTRUSTED_EXECUTABLE_UNTIL_AUDITED",
+    "agentShield": "TAKE_REFERENCE_EVALUATE",
+    "autoFixBeforeReview": false,
+    "rule": "No scanner may bootstrap its own trust decision."
+  },
+  "authority": {
+    "mayExpandAutonomy": false,
+    "mayGrantToolAuthority": false,
+    "mayGrantSecretScope": false,
+    "mayMutateRootOfTrust": false,
+    "mayAutoApproveOwnFindings": false
+  }
+}
