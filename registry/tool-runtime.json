@@ -1,8 +1,8 @@
 {
-  "schemaVersion": "1.2.0",
-  "factoryVersion": "2.7.0",
+  "schemaVersion": "1.3.0",
+  "factoryVersion": "2.8.0",
   "mode": "controlled-tool-runtime",
-  "principle": "Workers may request capabilities; only a separate allowlisted executor performs side effects. Provider transports and credentials remain outside agent context.",
+  "principle": "Workers request canonical capabilities; a separate allowlisted executor performs bounded actions and may route within the same capability to a proven contextual provider champion without changing authority.",
   "maxToolRequestsPerWorkerTurn": 3,
   "maxToolResultCharactersPerRun": 30000,
   "executor": {
@@ -77,18 +77,19 @@
     {
       "id": "factory.web.crawl",
       "capability": "WEB_EVIDENCE",
-      "provider": "crawl4ai",
+      "provider": "contextual-champion",
       "class": "READ_NETWORK",
       "riskClass": "LOW",
       "minimumAutonomy": "A3",
       "autoExecute": true,
-      "description": "Fetch up to eight public HTTP(S) pages through the bounded Crawl4AI adapter and return compact LLM-ready evidence. Local, private and link-local destinations are denied before provider invocation.",
+      "description": "Fetch up to eight public HTTP(S) pages through the current bounded WEB_EVIDENCE contextual champion. Routing may change only among production-ready LOW-risk providers proven in the same capability/context; local, private and link-local destinations remain denied before provider invocation.",
       "argumentContract": {
         "url":"one public http/https URL; alternatively use urls",
         "urls":"1..8 public http/https URLs",
         "cache_mode":"enabled|bypass|read_only|write_only",
         "word_count_threshold":"1..1000",
-        "include_external_links":"boolean"
+        "include_external_links":"boolean",
+        "provider_context":"optional general|public-static-html|js-heavy|structured-crawl"
       },
       "deniedArguments": ["hooks", "execute_js", "scripts", "cookies", "proxy", "browser_config", "crawler_config", "webhook_url"]
     },
@@ -123,13 +124,13 @@
     {
       "id": "factory.browser.operate",
       "capability": "WEB_OPERATOR",
-      "provider": "browser-use",
+      "provider": "contextual-challenger-set",
       "class": "OWNER_GATED_EXTERNAL",
       "riskClass": "HIGH",
       "minimumAutonomy": "A3",
       "autoExecute": false,
       "ownerApprovalRequired": true,
-      "description": "Interactive browser operation. Agents may propose it, but navigation that can submit, publish, purchase, message, mutate accounts or cause external effects requires explicit owner approval before execution.",
+      "description": "Interactive browser operation. Agents may propose it, but navigation that can submit, publish, purchase, message, mutate accounts or cause external effects requires explicit owner approval before execution. Provider competition cannot remove this gate.",
       "argumentContract": {"task":"bounded browser task","allowed_domains":"optional domain allowlist"}
     },
     {
@@ -160,7 +161,8 @@
     "private-network web crawling",
     "agent-supplied crawler hooks or JavaScript execution",
     "browser side effects without owner approval",
-    "development workspace production credentials"
+    "development workspace production credentials",
+    "provider promotion that expands authority or risk class"
   ],
   "resumeSemantics": {
     "workerStatus": "WAITING_TOOLS",
@@ -175,6 +177,8 @@
     "everySideEffectRequiresDurableLedger": true,
     "pullRequestBlockedMustBeReported": true,
     "providerIdentityMustBePersisted": true,
-    "providerSecretsMustNeverBePersisted": true
+    "providerContextMustBePersistedWhenAvailable": true,
+    "providerSecretsMustNeverBePersisted": true,
+    "providerChampionDoesNotChangeAuthority": true
   }
 }
