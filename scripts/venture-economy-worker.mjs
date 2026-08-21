@@ -13,6 +13,15 @@ import {
   isFiniteJsonMetric,
   shouldExecuteVentureRun,
 } from '../runtime/venture-economy.mjs';
+import {
+  compactPurificationScenario,
+  compactScenarioForStage,
+  compactUpstreamResults,
+  extractVentureResult,
+  isRetryableProviderFailure,
+  retryDelayMs,
+  sleep,
+} from '../runtime/venture-agent-resilience.mjs';
 
 const endpoint = process.env.N8N_MCP_URL || 'https://thethr0ne7.app.n8n.cloud/mcp-server/http';
 const token = process.env.N8N_MCP_TOKEN;
@@ -22,6 +31,7 @@ const model = 'groq/openai/gpt-oss-120b';
 const preferredCredentialName = 'AI Factory n8n';
 const workerId = process.env.FACTORY_VENTURE_WORKER_ID || `venture-${process.env.GITHUB_RUN_ID || crypto.randomUUID()}`;
 const eventName = process.env.GITHUB_EVENT_NAME || '';
+const maxProviderAttempts = Math.max(2, Math.min(5, Number(process.env.VENTURE_PROVIDER_ATTEMPTS) || 4));
 const policy = JSON.parse(await fs.readFile('registry/venture-economy.json', 'utf8'));
 if (!token) throw new Error('N8N_MCP_TOKEN required');
 
@@ -82,42 +92,50 @@ function strings(value, out = []) {
   return out;
 }
 
-await mcpRequest({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'ai-factory-venture-economy', version: '2.6.0' } } });
+await mcpRequest({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'ai-factory-venture-economy', version: '2.6.1' } } });
 await mcpRequest({ jsonrpc: '2.0', method: 'notifications/initialized' });
 let rpcId = 2;
 async function tool(name, args = {}) { return structured(await mcpRequest({ jsonrpc: '2.0', id: rpcId++, method: 'tools/call', params: { name, arguments: args } })); }
 
-function extractResult(text) {
-  const raw = String(text || '');
-  const marker = 'VENTURE_RESULT=';
-  const markerAt = raw.indexOf(marker);
-  if (markerAt < 0) throw new Error('VENTURE_RESULT marker missing');
-  const start = raw.indexOf('{', markerAt + marker.length);
-  if (start < 0) throw new Error('VENTURE_RESULT JSON missing');
-  let depth = 0, quoted = false, escaped = false;
-  for (let i = start; i < raw.length; i += 1) {
-    const ch = raw[i];
-    if (escaped) { escaped = false; continue; }
-    if (ch === '\\' && quoted) { escaped = true; continue; }
-    if (ch === '"') { quoted = !quoted; continue; }
-    if (quoted) continue;
-    if (ch === '{') depth += 1;
-    if (ch === '}') {
-      depth -= 1;
-      if (depth === 0) return JSON.parse(raw.slice(start, i + 1));
-    }
-  }
-  throw new Error('VENTURE_RESULT JSON unterminated');
-}
-function providerFailure(text) { return /execution_failed|AI_APICallError|rate limit reached|too many requests|insufficient quota|provider.*timeout|service unavailable|429/i.test(String(text || '')); }
 async function callAgent(candidate, prompt) {
   if (!candidate?.n8n_agent_id) throw new Error(`Candidate ${candidate?.candidate_id} has no n8n agent id`);
-  const started = performance.now();
-  const payload = await tool('call_agent', { agentId: candidate.n8n_agent_id, request: { type: 'message', message: prompt } });
-  const latency = Math.round(performance.now() - started);
-  const text = strings(payload).join('\n').trim();
-  if (!text || providerFailure(text)) throw new Error(`Provider failure candidate=${candidate.candidate_id}: ${text.slice(0, 900)}`);
-  return { result: extractResult(text), text: text.slice(0, 10000), latency_ms: latency, output_chars: text.length };
+  const overallStarted = performance.now();
+  let lastFailure = 'unknown provider failure';
+  let requestPrompt = prompt;
+  for (let attempt = 1; attempt <= maxProviderAttempts; attempt += 1) {
+    try {
+      const payload = await tool('call_agent', { agentId: candidate.n8n_agent_id, request: { type: 'message', message: requestPrompt } });
+      const text = strings(payload).join('\n').trim();
+      if (!text || isRetryableProviderFailure(text)) {
+        lastFailure = text || 'empty provider response';
+        if (attempt < maxProviderAttempts) {
+          const delay = retryDelayMs(lastFailure, attempt);
+          console.warn(JSON.stringify({ event: 'venture_provider_retry', candidate_id: candidate.candidate_id, attempt, delay_ms: delay, error: lastFailure.slice(0, 700) }));
+          await sleep(delay);
+          continue;
+        }
+        break;
+      }
+      try {
+        const result = extractVentureResult(text);
+        return { result, text: text.slice(0, 10000), latency_ms: Math.round(performance.now() - overallStarted), output_chars: text.length, attempts: attempt };
+      } catch (error) {
+        lastFailure = safeError(error);
+        if (attempt < maxProviderAttempts) {
+          requestPrompt = `${prompt}\nOUTPUT_REPAIR: Return only one valid JSON object matching the requested VENTURE_RESULT schema. No prose or markdown fences are required.`;
+          await sleep(900);
+          continue;
+        }
+      }
+    } catch (error) {
+      lastFailure = safeError(error);
+      if (!isRetryableProviderFailure(lastFailure) || attempt >= maxProviderAttempts) throw error;
+      const delay = retryDelayMs(lastFailure, attempt);
+      console.warn(JSON.stringify({ event: 'venture_provider_retry', candidate_id: candidate.candidate_id, attempt, delay_ms: delay, error: lastFailure.slice(0, 700) }));
+      await sleep(delay);
+    }
+  }
+  throw new Error(`Provider failure candidate=${candidate.candidate_id}: ${lastFailure.slice(0, 900)}`);
 }
 
 const metricGuide = {
@@ -133,18 +151,19 @@ const stageNiche = {
   RESOURCE: 'resource discovery', MATERIAL: 'material transformation', GLOBAL_NEED: 'demand intelligence', PRODUCT: 'product architecture', MANUFACTURING: 'manufacturing', GO_TO_MARKET: 'GTM', USER_FEEDBACK: 'feedback intelligence',
 };
 function promptForStage(run, stage, previous) {
-  const scenario = run.run_mode === 'LIVE_RUNTIME_SYNTHETIC_SCENARIO' ? run.context?.control_scenario : null;
+  const scenario = run.run_mode === 'LIVE_RUNTIME_SYNTHETIC_SCENARIO' ? compactScenarioForStage(run.context?.control_scenario || {}, stage) : null;
+  const upstream = compactUpstreamResults(previous, 3);
   return [
     'AI FACTORY VENTURE ECONOMY / AF-VENTURE/1.',
-    `RUN_ID=${run.id}`, `STAGE=${stage}`, `OBJECTIVE=${run.objective}`, `HYPOTHESIS=${run.hypothesis || 'none'}`,
-    scenario ? `CONTROL_SCENARIO=${JSON.stringify(scenario)}` : 'CONTROL_SCENARIO=none; use only traceable evidence already available to you.',
-    previous ? `UPSTREAM_PASSING_RESULTS=${JSON.stringify(previous).slice(0, 10000)}` : 'UPSTREAM_PASSING_RESULTS=none',
+    `RUN_ID=${run.id}`, `STAGE=${stage}`, `OBJECTIVE=${String(run.objective || '').slice(0, 900)}`, `HYPOTHESIS=${String(run.hypothesis || 'none').slice(0, 700)}`,
+    scenario ? `CONTROL_SCENARIO_STAGE=${JSON.stringify(scenario)}` : 'CONTROL_SCENARIO_STAGE=none; use only traceable evidence already available to you.',
+    Object.keys(upstream).length ? `UPSTREAM_PASSING_RESULTS=${JSON.stringify(upstream).slice(0, 3200)}` : 'UPSTREAM_PASSING_RESULTS=none',
     `REQUIRED_METRICS=${metricGuide[stage].join(',')}`,
     'This exact task is being sent to competing agents. Do not assume you are the winner.',
     'No spending, procurement, external publication, production writes, secret access, authority expansion, or Root-of-Trust changes.',
-    'Synthetic control: evidence_class=DERIVED, source_refs=["CONTROL_SCENARIO_VX1"], and the claim must remain explicitly synthetic. LIVE mode without traceable evidence must use UNKNOWN and will be blocked.',
-    'Return exactly VENTURE_RESULT={"claim":"...","evidence_class":"DERIVED|MEASURED|OBSERVED|CONFIRMED|UNKNOWN","source_refs":["..."],"confidence":0-100,"metrics":{},"unknowns":[],"constraints":[],"selected_option":"optional"}.',
-    'Use numeric JSON metrics only. Never use null, empty strings, numeric strings, NaN, or Infinity for required metrics. Never invent citations or tool evidence.',
+    'Synthetic control: use evidence_class=DERIVED and source_refs=["CONTROL_SCENARIO_VX1"]; claim must say synthetic/control. LIVE without traceable evidence must use UNKNOWN.',
+    'Return VENTURE_RESULT={"claim":"...","evidence_class":"DERIVED|MEASURED|OBSERVED|CONFIRMED|UNKNOWN","source_refs":["..."],"confidence":0-100,"metrics":{},"unknowns":[],"constraints":[],"selected_option":"optional"}.',
+    'Required metrics must be finite JSON numbers, never null, strings, NaN or Infinity. Never invent citations or tool evidence.',
   ].join('\n');
 }
 function evaluate(call, stage, run) {
@@ -182,14 +201,14 @@ async function candidates(ids) {
 async function persistTrial({ run, stage, candidate, call, niche, taskRef, stageResult }) {
   const fit = evaluate(call, stage, run);
   if (!fit.passed) return { candidate_id: candidate.candidate_id, outcome: 'FAIL', fit, call };
-  const evidence = await broker('add_evidence', { record: { run_id: run.id, stage, producer_candidate_id: candidate.candidate_id, evidence_class: fit.evidenceClass, claim: String(call.result.claim || ''), source_refs: fit.refs, payload: { response: call.result, latency_ms: call.latency_ms, output_chars: call.output_chars }, provenance: { worker: workerId, task_ref: taskRef } } });
+  const evidence = await broker('add_evidence', { record: { run_id: run.id, stage, producer_candidate_id: candidate.candidate_id, evidence_class: fit.evidenceClass, claim: String(call.result.claim || ''), source_refs: fit.refs, payload: { response: call.result, latency_ms: call.latency_ms, output_chars: call.output_chars, provider_attempts: call.attempts }, provenance: { worker: workerId, task_ref: taskRef } } });
   const row = { candidate_id: candidate.candidate_id, claim: String(call.result.claim || ''), evidence_class: fit.evidenceClass, evidence_refs: [evidence.evidence_id], confidence: fit.confidence, metrics: fit.metrics, fitness_score: utility(fit.scores) };
   if (stageResult) {
     const gate = validateStageCandidate(row, { stage });
     if (!gate.ok) throw new Error(`Stage gate mismatch ${stage}/${candidate.candidate_id}/${gate.code}`);
     await broker('add_stage_result', { record: { run_id: run.id, stage, candidate_id: row.candidate_id, claim: row.claim, evidence_class: row.evidence_class, evidence_refs: row.evidence_refs, metrics: row.metrics, status: 'PASS' } });
   }
-  await broker('add_fitness_trials', { records: [{ candidate_id: candidate.candidate_id, niche, context_key: `venture:${run.id}`, task_ref: taskRef, outcome: 'PASS', scores: fit.scores, evidence_refs: row.evidence_refs, latency_ms: call.latency_ms, cost_units: call.output_chars, provenance: { worker: workerId, stage } }] });
+  await broker('add_fitness_trials', { records: [{ candidate_id: candidate.candidate_id, niche, context_key: `venture:${run.id}`, task_ref: taskRef, outcome: 'PASS', scores: fit.scores, evidence_refs: row.evidence_refs, latency_ms: call.latency_ms, cost_units: call.output_chars, provenance: { worker: workerId, stage, provider_attempts: call.attempts } }] });
   return { ...row, outcome: 'PASS', fit, call };
 }
 
@@ -210,8 +229,12 @@ async function runStage(run, stage, map, previous) {
   for (const finalist of finalists) {
     for (let roundNo = 2; roundNo <= 3; roundNo += 1) {
       const candidate = map.get(finalist.candidate_id);
-      const row = await persistTrial({ run, stage, candidate, call: await callAgent(candidate, prompt), niche: stageNiche[stage], taskRef: `venture:${run.id}:${stage}:${candidate.candidate_id}:${roundNo}`, stageResult: false });
-      allTrials.push(row);
+      try {
+        const row = await persistTrial({ run, stage, candidate, call: await callAgent(candidate, prompt), niche: stageNiche[stage], taskRef: `venture:${run.id}:${stage}:${candidate.candidate_id}:${roundNo}`, stageResult: false });
+        allTrials.push(row);
+      } catch (error) {
+        console.warn(JSON.stringify({ event: 'venture_finalist_trial_failed', stage, candidate_id: candidate.candidate_id, round: roundNo, error: safeError(error) }));
+      }
     }
   }
   const kernelTrials = allTrials.map((row) => ({ candidate_id: row.candidate_id, niche: stageNiche[stage], context_key: `venture:${run.id}`, outcome: row.outcome, scores: row.fit.scores, evidence_refs: row.evidence_refs || [] }));
@@ -261,7 +284,7 @@ async function spawnN8nSpecialist(child) {
   const credential = await resolveCredential();
   const instructions = [
     `You are ${child.name}, a venture-local bounded A2 specialist.`, `Mission=${child.genome.mission}`, `Specialization=${child.genome.specialization}`,
-    `InheritedTraits=${JSON.stringify(child.genome.inherited_traits).slice(0, 7000)}`, `MutationHypotheses=${JSON.stringify(child.genome.mutation_hypotheses)}`,
+    `InheritedTraits=${JSON.stringify(child.genome.inherited_traits).slice(0, 3500)}`, `MutationHypotheses=${JSON.stringify(child.genome.mutation_hypotheses)}`,
     'No tools. Never invent evidence, expand authority, obtain secrets, spend money, procure goods, publish externally, or modify Root of Trust. Follow literal VENTURE_RESULT output contracts.',
   ].join('\n');
   const created = await tool('create_agent', { projectId, name: child.name, config: { model, credential: credential.id, instructions, tools: [], memory: { enabled: true, storage: 'n8n' }, config: { reasoning: 'medium', toolCallConcurrency: 1 } } });
@@ -279,12 +302,13 @@ function find(value, key) {
 }
 
 function purificationPrompt(run, baseline) {
+  const scenario = compactPurificationScenario(run.context?.control_scenario || {});
   return [
     'AI FACTORY SPECIALIZATION FITNESS / INDUSTRIAL PURIFICATION.', `RUN_ID=${run.id}`,
     `TASK=Reduce purification_cost_share from ${baseline} while preserving purity_pct>=92 and yield_pct>=78 in synthetic VX1.`,
-    `CONTROL_SCENARIO=${JSON.stringify(run.context?.control_scenario || null)}`,
+    `CONTROL_SCENARIO=${JSON.stringify(scenario)}`,
     'The exact same task is sent to incumbent and offspring. No side effects or authority changes.',
-    'Return exactly VENTURE_RESULT={"claim":"... synthetic control ...","evidence_class":"DERIVED","source_refs":["CONTROL_SCENARIO_VX1"],"confidence":0-100,"metrics":{"purification_cost_share":0-1,"unit_cost":number,"purity_pct":number,"yield_pct":number,"capex":number,"opex":number,"time_to_market_months":number,"technical_success_probability":0-1,"regulatory_risk":0-100},"unknowns":[]}.',
+    'Return VENTURE_RESULT={"claim":"... synthetic control ...","evidence_class":"DERIVED","source_refs":["CONTROL_SCENARIO_VX1"],"confidence":0-100,"metrics":{"purification_cost_share":0-1,"unit_cost":number,"purity_pct":number,"yield_pct":number,"capex":number,"opex":number,"time_to_market_months":number,"technical_success_probability":0-1,"regulatory_risk":0-100},"unknowns":[]}.',
   ].join('\n');
 }
 function purificationEvaluation(call, run, baseline) {
@@ -299,8 +323,8 @@ function purificationEvaluation(call, run, baseline) {
 async function purificationTrial(run, candidate, prompt, roundNo, baseline) {
   const call = await callAgent(candidate, prompt);
   const fit = purificationEvaluation(call, run, baseline);
-  const evidence = await broker('add_evidence', { record: { run_id: run.id, stage: 'MANUFACTURING', producer_candidate_id: candidate.candidate_id, evidence_class: fit.evidenceClass || 'DERIVED', claim: String(call.result.claim || ''), source_refs: fit.refs, payload: { specialization_trial: true, response: call.result, improvement: fit.improvement, latency_ms: call.latency_ms }, provenance: { worker: workerId, round: roundNo } } });
-  await broker('add_fitness_trials', { records: [{ candidate_id: candidate.candidate_id, niche: 'industrial purification optimization', context_key: `venture:${run.id}`, task_ref: `venture:${run.id}:purification:${candidate.candidate_id}:${roundNo}`, outcome: fit.passed ? 'PASS' : 'FAIL', scores: fit.scores, evidence_refs: [evidence.evidence_id], latency_ms: call.latency_ms, cost_units: call.output_chars, provenance: { worker: workerId, specialization_trial: true } }] });
+  const evidence = await broker('add_evidence', { record: { run_id: run.id, stage: 'MANUFACTURING', producer_candidate_id: candidate.candidate_id, evidence_class: fit.evidenceClass || 'DERIVED', claim: String(call.result.claim || ''), source_refs: fit.refs, payload: { specialization_trial: true, response: call.result, improvement: fit.improvement, latency_ms: call.latency_ms, provider_attempts: call.attempts }, provenance: { worker: workerId, round: roundNo } } });
+  await broker('add_fitness_trials', { records: [{ candidate_id: candidate.candidate_id, niche: 'industrial purification optimization', context_key: `venture:${run.id}`, task_ref: `venture:${run.id}:purification:${candidate.candidate_id}:${roundNo}`, outcome: fit.passed ? 'PASS' : 'FAIL', scores: fit.scores, evidence_refs: [evidence.evidence_id], latency_ms: call.latency_ms, cost_units: call.output_chars, provenance: { worker: workerId, specialization_trial: true, provider_attempts: call.attempts } }] });
   return { candidate_id: candidate.candidate_id, outcome: fit.passed ? 'PASS' : 'FAIL', scores: fit.scores, evidence_refs: [evidence.evidence_id], metrics: call.result.metrics || {}, fit, call };
 }
 
@@ -357,7 +381,10 @@ async function execute(run) {
   const pTrials = [];
   for (const id of compareIds) {
     const rounds = id === child.candidate_id ? 5 : 3;
-    for (let roundNo = 1; roundNo <= rounds; roundNo += 1) pTrials.push(await purificationTrial(run, map.get(id), pPrompt, roundNo, baseline));
+    for (let roundNo = 1; roundNo <= rounds; roundNo += 1) {
+      try { pTrials.push(await purificationTrial(run, map.get(id), pPrompt, roundNo, baseline)); }
+      catch (error) { console.warn(JSON.stringify({ event: 'venture_purification_trial_failed', candidate_id: id, round: roundNo, error: safeError(error) })); }
+    }
   }
   const pSelection = selectChampion(pTrials.map((row) => ({ candidate_id: row.candidate_id, niche: 'industrial purification optimization', context_key: `venture:${run.id}`, outcome: row.outcome, scores: row.scores })), policy.fitness);
   if (!pSelection.champion) throw new Error('No purification champion');
@@ -389,20 +416,31 @@ async function execute(run) {
   return broker('snapshot', { run_id: run.id });
 }
 
+async function claimRunnable() {
+  const claimed = await broker('claim', { worker: workerId });
+  return claimed.run || null;
+}
+
 let run = null;
 try {
-  if (eventName === 'push') run = (await broker('start_control')).run;
-  else if (eventName === 'workflow_dispatch' && process.env.VENTURE_OBJECTIVE) run = (await broker('start_run', { objective: process.env.VENTURE_OBJECTIVE, hypothesis: process.env.VENTURE_HYPOTHESIS || '', run_mode: process.env.VENTURE_RUN_MODE || 'LIVE' })).run;
-  const claimed = await broker('claim', { worker: workerId });
-  if (claimed.run) run = claimed.run;
+  if (eventName === 'workflow_dispatch' && process.env.VENTURE_OBJECTIVE) {
+    await broker('start_run', { objective: process.env.VENTURE_OBJECTIVE, hypothesis: process.env.VENTURE_HYPOTHESIS || '', run_mode: process.env.VENTURE_RUN_MODE || 'LIVE' });
+    run = await claimRunnable();
+  } else {
+    run = await claimRunnable();
+    if (!run && eventName === 'push') {
+      await broker('start_control');
+      run = await claimRunnable();
+    }
+  }
   if (!run) { console.log(JSON.stringify({ event: 'venture_worker_idle' })); process.exit(0); }
   if (!shouldExecuteVentureRun(run)) { console.log(JSON.stringify({ event: 'venture_terminal_run_skipped', run_id: run.id, status: run.status })); process.exit(0); }
   const snapshot = await execute(run);
   await fs.mkdir('artifacts', { recursive: true });
-  await fs.writeFile('artifacts/venture-economy-run.json', JSON.stringify({ generated_at: new Date().toISOString(), run_id: run.id, status: snapshot.run?.status, current_stage: snapshot.run?.current_stage, selected_chain: snapshot.run?.selected_chain, stage_result_count: snapshot.stages?.length || 0, evidence_count: snapshot.evidence?.length || 0, chain_count: snapshot.chains?.length || 0, cell: snapshot.cell, champions: snapshot.champions, bottlenecks: snapshot.bottlenecks, gaps: snapshot.gaps, breeding: snapshot.breeding, capability_promotions: snapshot.capability_promotions, capability_proofs: snapshot.capability_proofs, feedback: snapshot.feedback }, null, 2));
+  await fs.writeFile('artifacts/venture-economy-run.json', JSON.stringify({ generated_at: new Date().toISOString(), worker_sha: process.env.GITHUB_SHA || null, run_id: run.id, status: snapshot.run?.status, current_stage: snapshot.run?.current_stage, selected_chain: snapshot.run?.selected_chain, stage_result_count: snapshot.stages?.length || 0, evidence_count: snapshot.evidence?.length || 0, chain_count: snapshot.chains?.length || 0, cell: snapshot.cell, champions: snapshot.champions, bottlenecks: snapshot.bottlenecks, gaps: snapshot.gaps, breeding: snapshot.breeding, capability_promotions: snapshot.capability_promotions, capability_proofs: snapshot.capability_proofs, feedback: snapshot.feedback }, null, 2));
 } catch (error) {
   console.error(JSON.stringify({ event: 'venture_worker_failed', run_id: run?.id || null, error: safeError(error) }));
-  if (run?.id) try { await broker('fail_run', { run_id: run.id, record: { status: 'WORKING', error: { summary: safeError(error), worker: workerId } } }); } catch (releaseError) { console.error(JSON.stringify({ event: 'venture_worker_release_failed', error: safeError(releaseError) })); }
+  if (run?.id) try { await broker('fail_run', { run_id: run.id, record: { status: 'WORKING', error: { summary: safeError(error), worker: workerId, worker_sha: process.env.GITHUB_SHA || null } } }); } catch (releaseError) { console.error(JSON.stringify({ event: 'venture_worker_release_failed', error: safeError(releaseError) })); }
   throw error;
 }
 
