@@ -25,8 +25,7 @@ export function normalizeToolRequests(raw, policy, autonomyLevel, priorContext =
   for (const item of source) {
     if (out.length >= max) break;
     const toolId = String(item?.tool_id || '').trim();
-    const requestKey = normalizeRequestKey(item?.request_key);
-    if (!toolId || !requestKey || seenKeys.has(requestKey) || prior.keys.has(requestKey)) continue;
+    if (!toolId) continue;
     const spec = tools.get(toolId);
     if (!spec || spec.autoExecute !== true) continue;
     if (!autonomyAtLeast(autonomyLevel, spec.minimumAutonomy)) continue;
@@ -35,6 +34,8 @@ export function normalizeToolRequests(raw, policy, autonomyLevel, priorContext =
 
     const fingerprint = toolRequestFingerprint(toolId, args);
     if (seenFingerprints.has(fingerprint) || prior.fingerprints.has(fingerprint)) continue;
+    const requestKey = normalizeRequestKey(item?.request_key) || deterministicRequestKey(toolId, fingerprint);
+    if (!requestKey || seenKeys.has(requestKey) || prior.keys.has(requestKey)) continue;
 
     out.push({
       tool_id: toolId,
@@ -155,6 +156,18 @@ export function toolRequestFingerprint(toolId, args = {}) {
     hash = Math.imul(hash, 16777619);
   }
   return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+function deterministicRequestKey(toolId, fingerprint) {
+  const toolPart = String(toolId || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^factory\./, '')
+    .replace(/[^a-z0-9._:-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'tool';
+  const fp = String(fingerprint || '').split(':').pop()?.replace(/[^a-z0-9]/g, '').slice(0, 24) || 'unknown';
+  return normalizeRequestKey(`auto:${toolPart}:${fp}`);
 }
 
 function priorToolIndex(context = {}) {
