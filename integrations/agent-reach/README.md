@@ -19,7 +19,42 @@ The upstream package is currently pinned to:
 
 See `registry/upstreams/agent-reach.json` for the audit record.
 
-## Windows bootstrap
+## Default runtime: GitHub Actions
+
+The Factory default is a hosted Linux runtime, not a Windows workstation.
+
+Workflow:
+
+`.github/workflows/agent-reach-hosted-runtime.yml`
+
+The hosted probe:
+
+1. runs on `ubuntu-latest`;
+2. has `contents: read` only;
+3. installs the audited Agent Reach commit;
+4. verifies version `1.5.0`;
+5. runs `agent-reach install --env=server --safe`;
+6. executes `node scripts/agent-reach-doctor.mjs`;
+7. validates the sanitized doctor evidence;
+8. uploads the sanitized doctor report as a short-lived GitHub Actions artifact.
+
+No credentials are required for the base hosted probe. Credential/session-backed channels remain opt-in and are not enabled by this workflow.
+
+This workflow proves that the audited CLI can be installed and health-checked on an ephemeral hosted runner. It does not grant production write authority and it does not make external platform content trusted evidence.
+
+## Runtime health check
+
+On any host where `agent-reach` is already on `PATH`:
+
+```bash
+node scripts/agent-reach-doctor.mjs
+```
+
+The wrapper redacts fields whose names look like tokens, cookies, secrets, passwords, proxies or authorization data before emitting the doctor payload.
+
+## Optional Windows bootstrap
+
+Windows is an optional developer runtime only. It is useful when a channel genuinely needs a desktop browser/session or when local debugging is desired.
 
 From the repository root:
 
@@ -36,7 +71,7 @@ Default behavior:
 
 It does **not** approve system/global dependency installation.
 
-After review, explicitly allow system changes:
+After explicit review, system changes can be allowed with:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\agent-reach-bootstrap.ps1 -AllowSystemChanges
@@ -51,23 +86,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\agent-reach-bootstrap.ps1 `
 ```
 
 Do not use `all` unless the additional channels are actually needed.
-
-## Runtime health check
-
-If `agent-reach` is already on `PATH`:
-
-```powershell
-node .\scripts\agent-reach-doctor.mjs
-```
-
-If it lives in the dedicated venv:
-
-```powershell
-$env:AGENT_REACH_BIN = "$env:USERPROFILE\.agent-reach-venv\Scripts\agent-reach.exe"
-node .\scripts\agent-reach-doctor.mjs
-```
-
-The wrapper redacts fields whose names look like tokens, cookies, secrets, passwords, proxies or authorization data before emitting the doctor payload.
 
 ## Default permissions
 
@@ -103,9 +121,9 @@ For material claims record the platform, backend, query/URL, retrieval time and 
 Never commit:
 
 - `~/.agent-reach/`;
-- the dedicated venv;
+- dedicated virtual environments;
 - exported cookies;
 - browser sessions;
 - API keys or tokens.
 
-Credential/session-backed channels remain local and opt-in.
+Credential/session-backed channels remain explicit and opt-in.
