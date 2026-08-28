@@ -1,1 +1,164 @@
-{"schemaVersion":"1.3.0","factoryVersion":"2.4.0","runtimes":[{"id":"n8n-agent-nursery","kind":"workflow-orchestrator","provider":"n8n-cloud","instanceUrl":"https://thethr0ne7.app.n8n.cloud","apiBasePath":"/api/v1","mcpServerUrl":"https://thethr0ne7.app.n8n.cloud/mcp-server/http","status":"MCP_AUTHENTICATED_MODEL_LIVE","liveState":{"mcpAuthenticated":true,"supervisorAgentId":"tjPdLV47rjFQFHOV","supervisorValidation":"valid","model":"groq/openai/gpt-oss-120b","providerCredentialType":"groq","previewSmoke":"passed","lastVerifiedEvidence":"GitHub Actions Smoke n8n nursery agent / NURSERY_SUPERVISOR_SMOKE_OK"},"transports":{"mcp":{"priority":"primary","type":"streamable-http","serverUrl":"https://thethr0ne7.app.n8n.cloud/mcp-server/http","authentication":{"recommended":"oauth","nonInteractiveFallback":"bearer-token","requiredSecretNames":["N8N_MCP_TOKEN"]},"documentedCapabilities":["search workflows","read workflow details","execute and test exposed workflows","create and edit workflows when granted by n8n","create, mutate, validate and preview Agent drafts when granted by n8n","publish or unpublish workflows when granted by n8n"]},"restApi":{"priority":"bootstrap-fallback","basePath":"/api/v1","authentication":"X-N8N-API-KEY","requiredSecretNames":["N8N_API_KEY"]}},"authority":{"maxAutonomy":"A3","rootOfTrustMutation":false,"selfPromotion":false,"productionWriteAuthority":false,"secretScopeExpansion":false},"deployment":{"workflowSource":"integrations/n8n/workflows/ai-factory-agent-nursery.json","deploymentScript":"scripts/deploy-n8n-agent-nursery.mjs","githubWorkflow":".github/workflows/n8n-agent-nursery-deploy.yml","activateAutomatically":false,"requiredSecretNames":["N8N_API_KEY"]},"notes":["The instance and MCP URLs are deployment configuration, not secrets.","Authenticated non-interactive MCP has been live-tested through GitHub Actions with N8N_MCP_TOKEN.","The Nursery Supervisor draft is valid and its Groq-backed Preview smoke passed; this proves model/credential connectivity but does not grant production write authority.","OAuth remains preferred for interactive MCP clients. The bearer access token remains isolated in a secret store for non-interactive clients.","REST API deployment remains a bootstrap fallback and is not required for the live Agent MCP lifecycle.","Agent publication and production authority remain gated; passing Preview does not equal promotion."]},{"id":"agent-reach-internet","kind":"external-research-toolchain","provider":"Panniantong/Agent-Reach","sourceRepository":"https://github.com/Panniantong/Agent-Reach","license":"MIT","auditedVersion":"1.5.0","auditedCommit":"06c202b03400a7d31886bf4399213706da1a0324","status":"ADAPTER_REGISTERED_HOST_NOT_VERIFIED","transports":{"cli":{"command":"agent-reach","healthCheck":"node scripts/agent-reach-doctor.mjs","windowsBootstrap":"scripts/agent-reach-bootstrap.ps1","defaultInstallMode":"check-only","systemChangesRequireExplicitApproval":true}},"scope":{"allowedOperations":["public web search and read","read-only platform search","read-only public GitHub discovery","YouTube/Bilibili transcript discovery","RSS/Atom read","read-only community signal collection"],"deniedByFactoryDefault":["posting","commenting","liking","following","direct messaging","account mutation","automatic login","silent browser-cookie extraction","system-level dependency installation without explicit user approval"]},"channels":{"zeroOrLowConfig":["web","youtube","rss","github-public","exa-search","v2ex","bilibili-basic"],"credentialOrSessionBacked":["twitter","reddit","xiaohongshu","facebook","instagram","xueqiu","linkedin","xiaoyuzhou"]},"authority":{"maxAutonomy":"A1","rootOfTrustMutation":false,"selfPromotion":false,"productionWriteAuthority":false,"secretScopeExpansion":false,"externalWriteAuthority":false},"evidenceBoundary":{"trust":"untrusted-external-evidence","mustPassThrough":["research-truth","scope-provenance-gate","verified-provenance-gate"],"mustRecord":["platform","backend","query-or-url","retrieved-at","source-url-when-available"],"primarySourcePreference":true},"notes":["Agent Reach is not a second Factory router. Factory selective routing decides when to activate it.","The upstream skill's global MUST USE routing rule is intentionally not imported.","The upstream installer is safe/check-only by default; --system is permitted only after explicit user approval.","Cookie- or browser-session-backed channels remain opt-in and should use dedicated/secondary accounts where practical.","Adapter registration does not prove Agent Reach is installed or working on any particular host; run the doctor script for runtime evidence."]}]}
+{
+  "schemaVersion": "1.3.0",
+  "factoryVersion": "2.4.0",
+  "runtimes": [
+    {
+      "id": "n8n-agent-nursery",
+      "kind": "workflow-orchestrator",
+      "provider": "n8n-cloud",
+      "instanceUrl": "https://thethr0ne7.app.n8n.cloud",
+      "apiBasePath": "/api/v1",
+      "mcpServerUrl": "https://thethr0ne7.app.n8n.cloud/mcp-server/http",
+      "status": "MCP_AUTHENTICATED_MODEL_LIVE",
+      "liveState": {
+        "mcpAuthenticated": true,
+        "supervisorAgentId": "tjPdLV47rjFQFHOV",
+        "supervisorValidation": "valid",
+        "model": "groq/openai/gpt-oss-120b",
+        "providerCredentialType": "groq",
+        "previewSmoke": "passed",
+        "lastVerifiedEvidence": "GitHub Actions Smoke n8n nursery agent / NURSERY_SUPERVISOR_SMOKE_OK"
+      },
+      "transports": {
+        "mcp": {
+          "priority": "primary",
+          "type": "streamable-http",
+          "serverUrl": "https://thethr0ne7.app.n8n.cloud/mcp-server/http",
+          "authentication": {
+            "recommended": "oauth",
+            "nonInteractiveFallback": "bearer-token",
+            "requiredSecretNames": ["N8N_MCP_TOKEN"]
+          },
+          "documentedCapabilities": [
+            "search workflows",
+            "read workflow details",
+            "execute and test exposed workflows",
+            "create and edit workflows when granted by n8n",
+            "create, mutate, validate and preview Agent drafts when granted by n8n",
+            "publish or unpublish workflows when granted by n8n"
+          ]
+        },
+        "restApi": {
+          "priority": "bootstrap-fallback",
+          "basePath": "/api/v1",
+          "authentication": "X-N8N-API-KEY",
+          "requiredSecretNames": ["N8N_API_KEY"]
+        }
+      },
+      "authority": {
+        "maxAutonomy": "A3",
+        "rootOfTrustMutation": false,
+        "selfPromotion": false,
+        "productionWriteAuthority": false,
+        "secretScopeExpansion": false
+      },
+      "deployment": {
+        "workflowSource": "integrations/n8n/workflows/ai-factory-agent-nursery.json",
+        "deploymentScript": "scripts/deploy-n8n-agent-nursery.mjs",
+        "githubWorkflow": ".github/workflows/n8n-agent-nursery-deploy.yml",
+        "activateAutomatically": false,
+        "requiredSecretNames": ["N8N_API_KEY"]
+      },
+      "notes": [
+        "The instance and MCP URLs are deployment configuration, not secrets.",
+        "Authenticated non-interactive MCP has been live-tested through GitHub Actions with N8N_MCP_TOKEN.",
+        "The Nursery Supervisor draft is valid and its Groq-backed Preview smoke passed; this proves model/credential connectivity but does not grant production write authority.",
+        "OAuth remains preferred for interactive MCP clients. The bearer access token remains isolated in a secret store for non-interactive clients.",
+        "REST API deployment remains a bootstrap fallback and is not required for the live Agent MCP lifecycle.",
+        "Agent publication and production authority remain gated; passing Preview does not equal promotion."
+      ]
+    },
+    {
+      "id": "agent-reach-internet",
+      "kind": "external-research-toolchain",
+      "provider": "Panniantong/Agent-Reach",
+      "sourceRepository": "https://github.com/Panniantong/Agent-Reach",
+      "license": "MIT",
+      "auditedVersion": "1.5.0",
+      "auditedCommit": "06c202b03400a7d31886bf4399213706da1a0324",
+      "status": "ADAPTER_REGISTERED_HOST_NOT_VERIFIED",
+      "transports": {
+        "cli": {
+          "command": "agent-reach",
+          "healthCheck": "node scripts/agent-reach-doctor.mjs",
+          "windowsBootstrap": "scripts/agent-reach-bootstrap.ps1",
+          "defaultInstallMode": "check-only",
+          "systemChangesRequireExplicitApproval": true
+        }
+      },
+      "scope": {
+        "allowedOperations": [
+          "public web search and read",
+          "read-only platform search",
+          "read-only public GitHub discovery",
+          "YouTube/Bilibili transcript discovery",
+          "RSS/Atom read",
+          "read-only community signal collection"
+        ],
+        "deniedByFactoryDefault": [
+          "posting",
+          "commenting",
+          "liking",
+          "following",
+          "direct messaging",
+          "account mutation",
+          "automatic login",
+          "silent browser-cookie extraction",
+          "system-level dependency installation without explicit user approval"
+        ]
+      },
+      "channels": {
+        "zeroOrLowConfig": [
+          "web",
+          "youtube",
+          "rss",
+          "github-public",
+          "exa-search",
+          "v2ex",
+          "bilibili-basic"
+        ],
+        "credentialOrSessionBacked": [
+          "twitter",
+          "reddit",
+          "xiaohongshu",
+          "facebook",
+          "instagram",
+          "xueqiu",
+          "linkedin",
+          "xiaoyuzhou"
+        ]
+      },
+      "authority": {
+        "maxAutonomy": "A1",
+        "rootOfTrustMutation": false,
+        "selfPromotion": false,
+        "productionWriteAuthority": false,
+        "secretScopeExpansion": false,
+        "externalWriteAuthority": false
+      },
+      "evidenceBoundary": {
+        "trust": "untrusted-external-evidence",
+        "mustPassThrough": [
+          "research-truth",
+          "scope-provenance-gate",
+          "verified-provenance-gate"
+        ],
+        "mustRecord": [
+          "platform",
+          "backend",
+          "query-or-url",
+          "retrieved-at",
+          "source-url-when-available"
+        ],
+        "primarySourcePreference": true
+      },
+      "notes": [
+        "Agent Reach is not a second Factory router. Factory selective routing decides when to activate it.",
+        "The upstream skill's global MUST USE routing rule is intentionally not imported.",
+        "The upstream installer is safe/check-only by default; --system is permitted only after explicit user approval.",
+        "Cookie- or browser-session-backed channels remain opt-in and should use dedicated/secondary accounts where practical.",
+        "Adapter registration does not prove Agent Reach is installed or working on any particular host; run the doctor script for runtime evidence."
+      ]
+    }
+  ]
+}
