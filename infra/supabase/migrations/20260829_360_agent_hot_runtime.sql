@@ -33,6 +33,29 @@ begin
 end;
 $$;
 
+create or replace function public.af_claim_agent_activity_for_session(p_session_id uuid,p_worker text,p_limit integer default 20)
+returns setof public.af_agent_activity
+language plpgsql
+security definer
+set search_path=public
+as $$
+begin
+  if nullif(btrim(p_worker),'') is null then raise exception 'worker_required'; end if;
+  return query
+  with picked as (
+    select id from public.af_agent_activity
+    where session_id=p_session_id and telegram_status='PENDING'
+    order by created_at
+    for update skip locked
+    limit greatest(1,least(p_limit,50))
+  )
+  update public.af_agent_activity a
+     set telegram_status='SENDING',locked_by=p_worker,locked_at=now(),delivery_attempts=a.delivery_attempts+1
+    from picked where a.id=picked.id
+  returning a.*;
+end;
+$$;
+
 create or replace function public.af_set_runtime_secret(p_name text,p_secret text)
 returns boolean
 language plpgsql
@@ -99,12 +122,14 @@ after insert or update of status,available_at on public.af_agent_tasks
 for each row execute function public.af_kick_hot_agent_runtime();
 
 revoke all on function public.af_claim_agent_task_by_id(uuid,text) from public,anon,authenticated;
+revoke all on function public.af_claim_agent_activity_for_session(uuid,text,integer) from public,anon,authenticated;
 revoke all on function public.af_set_runtime_secret(text,text) from public,anon,authenticated;
 revoke all on function public.af_get_runtime_secret(text) from public,anon,authenticated;
 revoke all on function public.af_kick_hot_agent_runtime() from public,anon,authenticated;
-grant execute on function public.af_claim_agent_task_by_id(uuid,text),public.af_set_runtime_secret(text,text),public.af_get_runtime_secret(text) to service_role;
+grant execute on function public.af_claim_agent_task_by_id(uuid,text),public.af_claim_agent_activity_for_session(uuid,text,integer),public.af_set_runtime_secret(text,text),public.af_get_runtime_secret(text) to service_role;
 
 comment on function public.af_claim_agent_task_by_id(uuid,text) is 'Claims one specific Telegram-visible task immediately for the Supabase hot runtime.';
+comment on function public.af_claim_agent_activity_for_session(uuid,text,integer) is 'Claims only Telegram activity belonging to one hot-runtime session.';
 comment on function public.af_set_runtime_secret(text,text) is 'Stores allowlisted runtime credentials in Supabase Vault; service-role only.';
 comment on function public.af_get_runtime_secret(text) is 'Reads allowlisted runtime credentials from Supabase Vault; service-role only.';
 comment on function public.af_kick_hot_agent_runtime() is 'Best-effort async kick from durable task queue to low-latency Supabase Edge runtime.';
