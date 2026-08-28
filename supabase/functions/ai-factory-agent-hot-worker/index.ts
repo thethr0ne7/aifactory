@@ -116,10 +116,20 @@ async function createDelegation(ctx:any,parent:any,d:any){
 async function activity(sessionId:string,taskId:string|null,eventType:string,agentRef:string|null,target:string|null,title:string,message:string,metadata:any={}){const {error}=await db.from("af_agent_activity").insert({session_id:sessionId,task_id:taskId,event_type:eventType,agent_ref:agentRef,target_agent_ref:target,title,message:clean(message,6000),metadata:{...metadata,source:"supabase-edge-hot"}});if(error)throw error;}
 
 async function deliverActivity(sessionId:string){
-  const worker=`edge-delivery:${crypto.randomUUID()}`;const {data:rows,error}=await db.rpc("af_claim_agent_activity",{p_worker:worker,p_limit:20});if(error)throw error;
-  const sessionRows=(rows??[]).filter((x:any)=>x.session_id===sessionId);
-  for(const row of sessionRows){try{const {data:session,error:sError}=await db.from("af_agent_sessions").select("telegram_chat_id,telegram_thread_id,state").eq("id",row.session_id).single();if(sError)throw sError;const sent=await sendTelegram(Number(session.telegram_chat_id),Number(session.telegram_thread_id),formatActivity(row));await db.rpc("af_complete_agent_activity",{p_activity_id:row.id,p_worker:worker,p_telegram_message_id:sent});}catch(error){await db.rpc("af_fail_agent_activity",{p_activity_id:row.id,p_worker:worker,p_error:{message:safeError(error)}});}}
-  for(const row of (rows??[]).filter((x:any)=>x.session_id!==sessionId))await db.rpc("af_fail_agent_activity",{p_activity_id:row.id,p_worker:worker,p_error:{message:"claimed_by_wrong_session_hot_delivery"}});
+  const worker=`edge-delivery:${crypto.randomUUID()}`;
+  const {data:rows,error}=await db.rpc("af_claim_agent_activity_for_session",{p_session_id:sessionId,p_worker:worker,p_limit:20});
+  if(error)throw error;
+  for(const row of rows??[]){
+    try{
+      const {data:session,error:sError}=await db.from("af_agent_sessions").select("telegram_chat_id,telegram_thread_id,state").eq("id",row.session_id).single();
+      if(sError)throw sError;
+      const sent=await sendTelegram(Number(session.telegram_chat_id),Number(session.telegram_thread_id),formatActivity(row));
+      const {error:dError}=await db.rpc("af_complete_agent_activity",{p_activity_id:row.id,p_worker:worker,p_telegram_message_id:sent});
+      if(dError)throw dError;
+    }catch(error){
+      await db.rpc("af_fail_agent_activity",{p_activity_id:row.id,p_worker:worker,p_error:{message:safeError(error)}});
+    }
+  }
 }
 function formatActivity(row:any){const emoji:any={TASK_STARTED:"▶️",DELEGATED:"🔁",OWNER_GATE:"🟠",BLOCKER:"🚧",TASK_DONE:"✅",TASK_FAILED:"⚠️",AGENT_MESSAGE:"💬"};return `${emoji[row.event_type]||"💬"} ${row.agent_ref||"AI Factory"}${row.target_agent_ref?` → ${row.target_agent_ref}`:""}\n${row.title?`${row.title}\n`:""}${clean(row.message,5000)}${row.task_id?`\n\nTask: ${row.task_id}`:""}`;}
 async function sendTelegram(chatId:number,threadId:number,text:string){const payload:any={chat_id:chatId,text,disable_web_page_preview:true};if(threadId>1)payload.message_thread_id=threadId;const r=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});const p=await r.json().catch(()=>({}));if(!r.ok||p?.ok!==true)throw new Error(`telegram_${r.status}`);return Number(p?.result?.message_id)||null;}
