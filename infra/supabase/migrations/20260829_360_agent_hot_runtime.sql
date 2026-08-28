@@ -1,5 +1,7 @@
 -- AI Factory: low-latency Telegram agent runtime.
--- GitHub Actions remains recovery/CI; owner Telegram directives can be claimed immediately by Supabase.
+-- GitHub Actions remains recovery/CI; owner Telegram directives are kicked immediately by Postgres -> Supabase Edge.
+
+create extension if not exists pg_net with schema extensions;
 
 create or replace function public.af_claim_agent_task_by_id(p_task_id uuid,p_worker text)
 returns setof public.af_agent_tasks
@@ -59,18 +61,50 @@ set search_path=public,vault
 as $$
 declare value text;
 begin
-  if p_name not in ('n8n_mcp_token') then raise exception 'runtime_secret_name_not_allowed'; end if;
+  if p_name not in ('n8n_mcp_token','gi_scheduler_token') then raise exception 'runtime_secret_name_not_allowed'; end if;
   select decrypted_secret into value from vault.decrypted_secrets where name=p_name limit 1;
   if value is null then raise exception 'runtime_secret_not_configured'; end if;
   return value;
 end;
 $$;
 
+create or replace function public.af_kick_hot_agent_runtime()
+returns trigger
+language plpgsql
+security definer
+set search_path=public,vault,extensions
+as $$
+declare scheduler_token text;
+begin
+  if new.status <> 'QUEUED' or new.available_at > now() then return new; end if;
+  if tg_op='UPDATE' and old.status='QUEUED' and old.available_at=new.available_at then return new; end if;
+  select decrypted_secret into scheduler_token from vault.decrypted_secrets where name='gi_scheduler_token' limit 1;
+  if scheduler_token is null then return new; end if;
+  perform net.http_post(
+    url := 'https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-agent-hot-worker',
+    headers := jsonb_build_object('content-type','application/json','x-factory-hot-runtime-token',scheduler_token),
+    body := jsonb_build_object('task_id',new.id),
+    timeout_milliseconds := 5000
+  );
+  return new;
+exception when others then
+  -- The durable queue remains authoritative; GitHub recovery can still pick the task up.
+  return new;
+end;
+$$;
+
+drop trigger if exists af_agent_task_hot_runtime_kick on public.af_agent_tasks;
+create trigger af_agent_task_hot_runtime_kick
+after insert or update of status,available_at on public.af_agent_tasks
+for each row execute function public.af_kick_hot_agent_runtime();
+
 revoke all on function public.af_claim_agent_task_by_id(uuid,text) from public,anon,authenticated;
 revoke all on function public.af_set_runtime_secret(text,text) from public,anon,authenticated;
 revoke all on function public.af_get_runtime_secret(text) from public,anon,authenticated;
+revoke all on function public.af_kick_hot_agent_runtime() from public,anon,authenticated;
 grant execute on function public.af_claim_agent_task_by_id(uuid,text),public.af_set_runtime_secret(text,text),public.af_get_runtime_secret(text) to service_role;
 
 comment on function public.af_claim_agent_task_by_id(uuid,text) is 'Claims one specific Telegram-visible task immediately for the Supabase hot runtime.';
 comment on function public.af_set_runtime_secret(text,text) is 'Stores allowlisted runtime credentials in Supabase Vault; service-role only.';
 comment on function public.af_get_runtime_secret(text) is 'Reads allowlisted runtime credentials from Supabase Vault; service-role only.';
+comment on function public.af_kick_hot_agent_runtime() is 'Best-effort async kick from durable task queue to low-latency Supabase Edge runtime.';
