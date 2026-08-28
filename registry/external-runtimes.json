@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.3.0",
+  "schemaVersion": "1.4.0",
   "factoryVersion": "2.4.0",
   "runtimes": [
     {
@@ -76,15 +76,34 @@
       "license": "MIT",
       "auditedVersion": "1.5.0",
       "auditedCommit": "06c202b03400a7d31886bf4399213706da1a0324",
-      "status": "ADAPTER_REGISTERED_HOST_NOT_VERIFIED",
+      "status": "HOSTED_RUNTIME_VERIFIED",
+      "liveState": {
+        "runtime": "github-actions",
+        "runner": "ubuntu-latest",
+        "pinnedVersionMatched": true,
+        "serverSafeInstallCheck": "passed",
+        "doctor": "passed",
+        "sanitizedEvidenceArtifact": "agent-reach-hosted-runtime-evidence",
+        "verifiedRunId": 33216633367,
+        "lastVerifiedEvidence": "GitHub Actions Agent Reach hosted runtime / AGENT_REACH_HOSTED_RUNTIME_OK"
+      },
       "transports": {
         "cli": {
           "command": "agent-reach",
           "healthCheck": "node scripts/agent-reach-doctor.mjs",
+          "hostedWorkflow": ".github/workflows/agent-reach-hosted-runtime.yml",
           "windowsBootstrap": "scripts/agent-reach-bootstrap.ps1",
+          "defaultRuntime": "github-actions",
           "defaultInstallMode": "check-only",
           "systemChangesRequireExplicitApproval": true
         }
+      },
+      "deployment": {
+        "githubWorkflow": ".github/workflows/agent-reach-hosted-runtime.yml",
+        "runner": "ubuntu-latest",
+        "ephemeral": true,
+        "requiredSecretNames": [],
+        "credentialBackedChannelsEnabledByDefault": false
       },
       "scope": {
         "allowedOperations": [
@@ -155,9 +174,10 @@
       "notes": [
         "Agent Reach is not a second Factory router. Factory selective routing decides when to activate it.",
         "The upstream skill's global MUST USE routing rule is intentionally not imported.",
-        "The upstream installer is safe/check-only by default; --system is permitted only after explicit user approval.",
+        "The default Factory runtime is ephemeral GitHub Actions Linux; Windows is optional for desktop/session-backed channels and local debugging.",
+        "The hosted probe installs the audited commit, verifies the pinned version, runs server-safe install checks and the redacting doctor wrapper without repository write permissions or credentials.",
         "Cookie- or browser-session-backed channels remain opt-in and should use dedicated/secondary accounts where practical.",
-        "Adapter registration does not prove Agent Reach is installed or working on any particular host; run the doctor script for runtime evidence."
+        "Hosted runtime verification proves installability and health-check execution; it does not promote external platform content to trusted evidence."
       ]
     }
   ]
