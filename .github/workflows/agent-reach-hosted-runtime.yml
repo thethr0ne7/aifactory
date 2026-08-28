@@ -1,0 +1,107 @@
+name: Agent Reach hosted runtime
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/agent-reach-hosted-runtime.yml'
+      - 'scripts/agent-reach-doctor.mjs'
+      - 'registry/external-runtimes.json'
+      - 'registry/upstreams/agent-reach.json'
+      - 'integrations/agent-reach/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/agent-reach-hosted-runtime.yml'
+      - 'scripts/agent-reach-doctor.mjs'
+      - 'registry/external-runtimes.json'
+      - 'registry/upstreams/agent-reach.json'
+      - 'integrations/agent-reach/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-reach-hosted-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AGENT_REACH_COMMIT: 06c202b03400a7d31886bf4399213706da1a0324
+  AGENT_REACH_VERSION: '1.5.0'
+
+jobs:
+  hosted-runtime-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Factory
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install audited Agent Reach commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install "https://github.com/Panniantong/Agent-Reach/archive/${AGENT_REACH_COMMIT}.zip"
+
+      - name: Verify pinned version
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(agent-reach version)"
+          echo "$actual"
+          echo "$actual" | grep -F "Agent Reach v${AGENT_REACH_VERSION}"
+
+      - name: Run server-safe install check
+        shell: bash
+        run: |
+          set -euo pipefail
+          agent-reach install --env=server --safe
+
+      - name: Run Factory doctor wrapper
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p runtime-evidence/agent-reach
+          node scripts/agent-reach-doctor.mjs > runtime-evidence/agent-reach/doctor.json
+          cat runtime-evidence/agent-reach/doctor.json
+
+      - name: Validate doctor evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const path = 'runtime-evidence/agent-reach/doctor.json';
+          const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (report.ok !== true) throw new Error('Agent Reach doctor did not report ok=true');
+          if (report.adapter !== 'agent-reach-internet') throw new Error('Unexpected adapter id');
+          if (report.trust !== 'untrusted-external-evidence') throw new Error('Unexpected trust boundary');
+          if (!report.doctor || typeof report.doctor !== 'object') throw new Error('Doctor payload missing');
+          const count = report.summary && typeof report.summary === 'object'
+            ? Object.keys(report.summary).length
+            : 0;
+          if (count < 1) throw new Error('Doctor returned no channel checks');
+          console.log(`AGENT_REACH_HOSTED_RUNTIME_OK channels=${count}`);
+          NODE
+
+      - name: Upload sanitized runtime evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agent-reach-hosted-runtime-evidence
+          path: runtime-evidence/agent-reach/doctor.json
+          if-no-files-found: error
+          retention-days: 14
