@@ -12,6 +12,7 @@ on:
       - 'scripts/validate-agent-organization.mjs'
       - 'infra/supabase/migrations/20260820_343_visible_agent_organization.sql'
       - 'infra/supabase/migrations/20260829_360_agent_hot_runtime.sql'
+      - 'infra/supabase/migrations/20260829_361_agent_provider_failover.sql'
       - 'supabase/functions/ai-factory-agent-org/**'
       - 'supabase/functions/ai-factory-agent-hot-worker/**'
       - 'supabase/functions/ai-factory-runtime-bootstrap/**'
@@ -25,6 +26,7 @@ on:
       - 'scripts/validate-agent-organization.mjs'
       - 'infra/supabase/migrations/20260820_343_visible_agent_organization.sql'
       - 'infra/supabase/migrations/20260829_360_agent_hot_runtime.sql'
+      - 'infra/supabase/migrations/20260829_361_agent_provider_failover.sql'
       - 'supabase/functions/ai-factory-agent-org/**'
       - 'supabase/functions/ai-factory-agent-hot-worker/**'
       - 'supabase/functions/ai-factory-runtime-bootstrap/**'
@@ -58,6 +60,7 @@ jobs:
     env:
       N8N_MCP_URL: https://thethr0ne7.app.n8n.cloud/mcp-server/http
       N8N_MCP_TOKEN: ${{ secrets.N8N_MCP_TOKEN }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       N8N_PROJECT_ID: FP3HOvN6NpEDN0PB
       FACTORY_AGENT_ORG_BROKER_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-agent-org
       FACTORY_TELEGRAM_HQ_URL: https://hgivyjjethjwswjrvroy.supabase.co/functions/v1/ai-factory-telegram-hq
@@ -67,22 +70,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Sync n8n credential into Supabase Vault for hot runtime
+      - name: Sync runtime credentials into Supabase Vault
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${N8N_MCP_TOKEN:-}" ]; then
-            echo "N8N_MCP_TOKEN is not configured" >&2
+          if [ -z "${N8N_MCP_TOKEN:-}" ] && [ -z "${GROQ_API_KEY:-}" ]; then
+            echo "No hot-runtime credential is configured" >&2
             exit 1
           fi
           oidc_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=aifactory-hot-runtime-bootstrap"
           oidc="$(curl --fail-with-body -sS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$oidc_url" | jq -r '.value')"
           test -n "$oidc" && test "$oidc" != "null"
-          payload="$(jq -cn --arg token "$N8N_MCP_TOKEN" '{n8n_mcp_token:$token}')"
-          curl --fail-with-body -sS -X POST "$FACTORY_RUNTIME_BOOTSTRAP_URL" \
+          payload="$(jq -cn --arg n8n "${N8N_MCP_TOKEN:-}" --arg groq "${GROQ_API_KEY:-}" '{n8n_mcp_token:$n8n,groq_api_key:$groq}')"
+          response="$(curl --fail-with-body -sS -X POST "$FACTORY_RUNTIME_BOOTSTRAP_URL" \
             -H "Authorization: Bearer $oidc" \
             -H "Content-Type: application/json" \
-            --data-binary "$payload" >/dev/null
-          echo "HOT_RUNTIME_SECRET_SYNC_OK"
+            --data-binary "$payload")"
+          echo "$response" | jq -e '.ok == true' >/dev/null
+          if echo "$response" | jq -e '.stored | index("groq_api_key") != null' >/dev/null; then
+            echo "HOT_RUNTIME_DIRECT_PROVIDER_READY"
+          else
+            echo "HOT_RUNTIME_DIRECT_PROVIDER_NOT_CONFIGURED"
+          fi
       - name: Run bounded visible-agent fallback/recovery turn
+        continue-on-error: true
         run: node scripts/agent-organization-worker.mjs
