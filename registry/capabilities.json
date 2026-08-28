@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.4.2",
+  "schemaVersion": "1.5.0",
   "factoryVersion": "2.4.0",
   "policy": {
     "architecture": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
@@ -75,6 +75,7 @@
 
     {"id":"research-truth","family":"research","status":"core","localSkill":"skills/research-truth/SKILL.md"},
     {"id":"research-toolbelt","family":"research","status":"core-selective","localSkill":"skills/research-toolbelt/SKILL.md"},
+    {"id":"agent-reach-internet","family":"research","status":"controlled-adapter","localSkill":"skills/agent-reach-internet/SKILL.md","source":"https://github.com/Panniantong/Agent-Reach","upstreamAudit":"registry/upstreams/agent-reach.json","runtime":"scripts/agent-reach-doctor.mjs"},
     {"id":"claim-checker","family":"research","status":"core-selective","localSkill":"skills/claim-checker/SKILL.md"},
     {"id":"source-recovery","family":"research","status":"core-selective","localSkill":"skills/source-recovery/SKILL.md"},
     {"id":"grant-analysis","family":"research","status":"core-selective","localSkill":"skills/grant-analysis/SKILL.md"},
