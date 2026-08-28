@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { createRemoteJWKSet,jwtVerify,type JWTPayload } from "npm:jose@6";
 
 type Claims=JWTPayload&{repository?:string;repository_id?:string;ref?:string;event_name?:string;workflow_ref?:string;job_workflow_ref?:string};
-type Body={n8n_mcp_token?:string};
+type Body={n8n_mcp_token?:string;groq_api_key?:string};
 const SUPABASE_URL=mustEnv("SUPABASE_URL");
 const db=createClient(SUPABASE_URL,adminKey(),{auth:{persistSession:false,autoRefreshToken:false}});
 const ISSUER="https://token.actions.githubusercontent.com";
@@ -18,10 +18,16 @@ Deno.serve(async(req:Request)=>{
   if(req.method!=="POST")return json({error:"method_not_allowed"},405);
   try{
     await authenticate(req);
-    const body=await safeJson<Body>(req);const token=String(body.n8n_mcp_token||"");
-    if(token.length<20)return json({error:"runtime_token_required"},400);
-    const {data,error}=await db.rpc("af_set_runtime_secret",{p_name:"n8n_mcp_token",p_secret:token});if(error)throw error;
-    return json({ok:data===true,stored:"n8n_mcp_token",storage:"supabase-vault"});
+    const body=await safeJson<Body>(req);
+    const entries:[string,string][]=[];
+    const n8n=String(body.n8n_mcp_token||"");
+    const groq=String(body.groq_api_key||"");
+    if(n8n.length>=20)entries.push(["n8n_mcp_token",n8n]);
+    if(groq.length>=20)entries.push(["groq_api_key",groq]);
+    if(entries.length===0)return json({error:"runtime_token_required"},400);
+    const stored:string[]=[];
+    for(const [name,secret] of entries){const {data,error}=await db.rpc("af_set_runtime_secret",{p_name:name,p_secret:secret});if(error)throw error;if(data===true)stored.push(name);}
+    return json({ok:stored.length===entries.length,stored,storage:"supabase-vault"});
   }catch(error){const msg=safeError(error);return json({error:msg.startsWith("oidc_")?"unauthorized":"bootstrap_failed",detail:msg},msg.startsWith("oidc_")?401:500);}
 });
 async function authenticate(req:Request){const token=(req.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];if(!token)throw new Error("oidc_missing");const {payload}=await jwtVerify(token,JWKS,{issuer:ISSUER,audience:AUDIENCE,algorithms:["RS256"],clockTolerance:10});const c=payload as Claims;if(c.repository!==EXPECTED_REPOSITORY||c.repository_id!==EXPECTED_REPOSITORY_ID)throw new Error("oidc_repository");if(c.ref!==EXPECTED_REF)throw new Error("oidc_ref");if(String(c.job_workflow_ref??c.workflow_ref??"")!==EXPECTED_WORKFLOW)throw new Error("oidc_workflow");if(!new Set(["push","schedule","workflow_dispatch"]).has(String(c.event_name||"")))throw new Error("oidc_event");}
