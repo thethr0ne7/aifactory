@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "repository": "https://github.com/Panniantong/Agent-Reach",
+    "package": "agent-reach",
+    "owner": "Panniantong / Neo Reid",
+    "license": "MIT",
+    "auditedVersion": "1.5.0",
+    "auditedCommit": "06c202b03400a7d31886bf4399213706da1a0324",
+    "auditedAt": "2026-08-29",
+    "defaultTrust": "controlled-adapter"
+  },
+  "decision": "ADOPT_AS_BOUNDED_READ_ONLY_ADAPTER",
+  "fit": {
+    "targets": [
+      "research-toolbelt",
+      "recent-signal-radar",
+      "intelligence-sweep",
+      "source-recovery"
+    ],
+    "adds": [
+      "multi-platform search/read toolchain",
+      "YouTube and Bilibili transcript discovery",
+      "RSS/Atom reading",
+      "public GitHub discovery",
+      "community-signal collection across supported platforms",
+      "doctor/health-check routing across multiple backends"
+    ],
+    "doesNotBecome": [
+      "top-level Factory router",
+      "authority for truth claims",
+      "write-capable social automation layer",
+      "credential manager for Factory secrets"
+    ]
+  },
+  "observedUpstream": {
+    "pythonRequirement": ">=3.10",
+    "safeInstallDefault": true,
+    "systemInstallRequiresFlag": "--system",
+    "doctorJson": "agent-reach doctor --json",
+    "upstreamSkillGlobalRoutingRuleImported": false,
+    "upstreamReadOnlyIntent": true,
+    "packageDependencies": [
+      "requests>=2.28",
+      "feedparser>=6.0",
+      "python-dotenv>=1.0",
+      "loguru>=0.7",
+      "pyyaml>=6.0",
+      "rich>=13.0",
+      "yt-dlp[default]>=2026.07.04"
+    ]
+  },
+  "securityReview": {
+    "risks": [
+      {
+        "risk": "third-party/system package installation",
+        "treatment": "Factory bootstrap defaults to dedicated user venv plus check-only mode; system changes require explicit user approval."
+      },
+      {
+        "risk": "cookie/session credentials can grant account access",
+        "treatment": "Credential-backed channels are opt-in; no secrets in repo; prefer dedicated/secondary accounts; no silent cookie extraction."
+      },
+      {
+        "risk": "upstream tools may expose write operations",
+        "treatment": "Factory capability is read/search only. Posting/commenting/liking/following/DM/account mutation are denied unless separately mapped and authorized."
+      },
+      {
+        "risk": "prompt injection and misinformation from external content",
+        "treatment": "All output is untrusted evidence and must pass Factory evidence/provenance gates."
+      },
+      {
+        "risk": "upstream skill attempts global routing ownership",
+        "treatment": "Do not import its broad MUST USE rule. Factory selective router remains canonical."
+      },
+      {
+        "risk": "volatile platform commands/backends",
+        "treatment": "Treat command/backend details as VOLATILE_REFERENCE; use doctor/runtime checks and refresh audit before upgrades."
+      }
+    ],
+    "secretPolicy": {
+      "repositorySecretsAllowed": false,
+      "localAgentReachConfigPath": "~/.agent-reach/",
+      "browserSessionReuse": "explicit user-controlled session only",
+      "twitterAndXiaohongshuAutomaticCookieRead": false
+    }
+  },
+  "knowledgeClassification": {
+    "safe-by-default installation": "OBSERVED_POLICY",
+    "platform/backend command details": "VOLATILE_REFERENCE",
+    "multi-platform evidence collection": "PATTERN",
+    "upstream global MUST USE routing": "REJECT",
+    "read-only evidence boundary": "FACTORY_POLICY"
+  },
+  "promotionGate": {
+    "currentStatus": "ADAPTER_REGISTERED_HOST_NOT_VERIFIED",
+    "requiredForHostReady": [
+      "install audited commit on target host",
+      "run node scripts/agent-reach-doctor.mjs",
+      "record doctor JSON without secrets",
+      "verify at least one zero-config read channel",
+      "verify no write capability is exposed by Factory routing"
+    ],
+    "upgradePolicy": "Re-audit version/commit before changing the pinned upstream snapshot."
+  }
+}
