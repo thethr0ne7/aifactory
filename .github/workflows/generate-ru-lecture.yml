@@ -1,0 +1,33 @@
+name: Generate Russian neural lecture
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'lecture_audio/**'
+      - '.github/scripts/create_ru_lecture.py'
+      - '.github/workflows/generate-ru-lecture.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-lecture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install speech engine
+        run: python -m pip install --disable-pip-version-check "edge-tts>=7.0,<9.0"
+      - name: Render Russian MP3 with neural voice
+        run: python .github/scripts/create_ru_lecture.py
+      - name: Upload complete MP3
+        uses: actions/upload-artifact@v4
+        with:
+          name: metodist-360-neural-russian-mp3
+          path: generated/metodist_360_neural_ru.mp3
+          if-no-files-found: error
+          retention-days: 30
