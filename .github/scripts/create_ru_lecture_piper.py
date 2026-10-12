@@ -45,7 +45,7 @@ def main():
             raise RuntimeError(f"Audio empty for paragraph {idx + 1}")
         paths.append(fname)
     list_path.write_text("".join(f"file 'segments/{p.name}'\n" for p in paths),encoding="utf8")
-    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+    subprocess.run([__import__("imageio_ffmpeg").get_ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-y",
       "-f", "concat", "-safe", "0", "-i", str(list_path),
       "-ar", "22050", "-ac", "1", "-c:a", "libmp3lame", "-b:a", "128k",
       "-metadata", "title=Методист 360° — Урок 1",
