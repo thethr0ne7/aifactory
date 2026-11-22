@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-11-22",
+  "policy": "Catalog only: no remote code, installers, model weights, cloud uploads or external CLI is authorized solely by appearance here. Re-check upstream licenses and versions before executing.",
+  "tools": [
+    {
+      "id": "ffmpeg",
+      "family": "editing",
+      "source": "https://ffmpeg.org/",
+      "status": "local-required"
+    },
+    {
+      "id": "openfilm",
+      "family": "editing",
+      "source": "https://github.com/openfilm/openfilm",
+      "status": "candidate-MIT"
+    },
+    {
+      "id": "remotion",
+      "family": "editing",
+      "source": "https://github.com/remotion-dev/remotion",
+      "status": "candidate-license-review"
+    },
+    {
+      "id": "hyperframes",
+      "family": "editing",
+      "source": "https://github.com/heygen-com/hyperframes",
+      "status": "candidate-Apache-2.0"
+    },
+    {
+      "id": "auto-editor",
+      "family": "editing",
+      "source": "https://github.com/WyattBlue/auto-editor",
+      "status": "candidate"
+    },
+    {
+      "id": "moviepy",
+      "family": "editing",
+      "source": "https://github.com/Zulko/moviepy",
+      "status": "candidate"
+    },
+    {
+      "id": "motion",
+      "family": "animation",
+      "source": "https://motion.dev/",
+      "status": "candidate"
+    },
+    {
+      "id": "gsap",
+      "family": "animation",
+      "source": "https://gsap.com/",
+      "status": "candidate"
+    },
+    {
+      "id": "motion-canvas",
+      "family": "animation",
+      "source": "https://github.com/motion-canvas/motion-canvas",
+      "status": "candidate"
+    },
+    {
+      "id": "pixijs",
+      "family": "animation",
+      "source": "https://github.com/pixijs/pixijs",
+      "status": "candidate"
+    },
+    {
+      "id": "tsparticles",
+      "family": "animation",
+      "source": "https://github.com/tsparticles/tsparticles",
+      "status": "candidate"
+    },
+    {
+      "id": "img2threejs",
+      "family": "3d",
+      "source": "https://github.com/img2threejs/img2threejs",
+      "status": "candidate-Apache-2.0"
+    },
+    {
+      "id": "blender",
+      "family": "3d",
+      "source": "https://www.blender.org/",
+      "status": "candidate-heavy"
+    },
+    {
+      "id": "threejs",
+      "family": "3d",
+      "source": "https://github.com/mrdoob/three.js",
+      "status": "candidate"
+    },
+    {
+      "id": "react-three-fiber",
+      "family": "3d",
+      "source": "https://github.com/pmndrs/react-three-fiber",
+      "status": "candidate"
+    },
+    {
+      "id": "rapier",
+      "family": "3d",
+      "source": "https://github.com/dimforge/rapier",
+      "status": "candidate"
+    },
+    {
+      "id": "chatterbox",
+      "family": "audio",
+      "source": "https://github.com/resemble-ai/chatterbox",
+      "status": "candidate-MIT-voice-consent"
+    },
+    {
+      "id": "gpt-sovits",
+      "family": "audio",
+      "source": "https://github.com/RVC-Boss/GPT-SoVITS",
+      "status": "candidate-model-audit"
+    },
+    {
+      "id": "faster-whisper",
+      "family": "audio",
+      "source": "https://github.com/SYSTRAN/faster-whisper",
+      "status": "candidate"
+    },
+    {
+      "id": "ace-step-1.5",
+      "family": "audio",
+      "source": "https://github.com/ace-step/ACE-Step-1.5",
+      "status": "candidate-heavy-model"
+    },
+    {
+      "id": "audio-separator",
+      "family": "audio",
+      "source": "https://github.com/nomadkaraoke/python-audio-separator",
+      "status": "candidate-heavy-model"
+    }
+  ]
+}
