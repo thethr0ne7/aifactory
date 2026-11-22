@@ -1,6 +1,6 @@
 {
   "factory": "AI Factory",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "architecturePolicy": "AI Factory 2.x core plus bounded amplifiers; no platform rewrite",
   "defaultMode": "selective-routing",
   "contextPolicy": "budgeted",
@@ -9,15 +9,102 @@
   "multiAgentDefault": "off",
   "thirdPartyDefault": "pattern-only-until-audited",
   "executionLoops": {
-    "core": ["INPUT", "PLAN", "PRODUCE", "CHECK", "FIX", "SAVE", "SHIP"],
-    "researchGrade": ["INPUT", "QUALIFY", "SPEC_LOCK", "STRATEGY_SEARCH", "CANDIDATE_GENERATION", "EVIDENCE_CHECK", "CONTRADICTION_SCAN", "RISK_MAP", "DRAFT", "REVIEW", "SHIP", "TRACEBACK"],
-    "autonomous": ["QUEUE", "QUALIFY", "ROUTE", "PRELOAD_CRITICAL_MEMORY", "WORK", "LOAD_MEMORY", "VALIDATE", "REPAIR", "LEARN", "COMPLETE"],
-    "controlledSelfImprovement": ["INCIDENT", "REGRESSION_EVAL", "PATCH_CANDIDATE", "BASELINE_VS_CANDIDATE", "A4_LOW_RISK_PROMOTION", "OBSERVE", "ROLLBACK_OR_RETAIN"],
-    "controlledTools": ["REQUEST_TOOL", "NORMALIZE", "TRACE", "DEDUPLICATE", "WAITING_TOOLS", "CLAIM_TOOL", "EXECUTE_ALLOWLISTED", "RECORD_RESULT", "REQUEUE", "CONTINUE"],
-    "maintenance": ["LOAD_CRITICAL_MEMORY", "CONSIDER_FULL_SKILL_CATALOG", "REPRODUCE", "ROOT_CAUSE", "REPAIR", "REGRESSION_EVAL", "RECORD_INCIDENT", "LEARN", "SELF_CHECK"],
-    "agentNursery": ["DRAFT", "SPAWN", "TRAIN", "EVALUATE", "BASELINE_COMPARE", "REGRESSION_GATE", "REPAIR_OR_CANDIDATE", "HUMAN_PROMOTION_REVIEW"],
-    "agentNetwork": ["BLUEPRINT", "SPAWN", "TRAIN", "EVALUATE", "BOUNDED_REPAIR", "CANDIDATE", "DRAFT_NETWORK_ADMISSION", "HUMAN_PROMOTION_REVIEW"],
-    "intelligenceSweep": ["SOURCE_SWEEP", "SOURCE_HEALTH", "NORMALIZE", "TEMPORAL_DELTA", "SIGNIFICANCE_ROUTE", "EVIDENCE_CHECK", "ALERT_OR_STOP"]
+    "core": [
+      "INPUT",
+      "PLAN",
+      "PRODUCE",
+      "CHECK",
+      "FIX",
+      "SAVE",
+      "SHIP"
+    ],
+    "researchGrade": [
+      "INPUT",
+      "QUALIFY",
+      "SPEC_LOCK",
+      "STRATEGY_SEARCH",
+      "CANDIDATE_GENERATION",
+      "EVIDENCE_CHECK",
+      "CONTRADICTION_SCAN",
+      "RISK_MAP",
+      "DRAFT",
+      "REVIEW",
+      "SHIP",
+      "TRACEBACK"
+    ],
+    "autonomous": [
+      "QUEUE",
+      "QUALIFY",
+      "ROUTE",
+      "PRELOAD_CRITICAL_MEMORY",
+      "WORK",
+      "LOAD_MEMORY",
+      "VALIDATE",
+      "REPAIR",
+      "LEARN",
+      "COMPLETE"
+    ],
+    "controlledSelfImprovement": [
+      "INCIDENT",
+      "REGRESSION_EVAL",
+      "PATCH_CANDIDATE",
+      "BASELINE_VS_CANDIDATE",
+      "A4_LOW_RISK_PROMOTION",
+      "OBSERVE",
+      "ROLLBACK_OR_RETAIN"
+    ],
+    "controlledTools": [
+      "REQUEST_TOOL",
+      "NORMALIZE",
+      "TRACE",
+      "DEDUPLICATE",
+      "WAITING_TOOLS",
+      "CLAIM_TOOL",
+      "EXECUTE_ALLOWLISTED",
+      "RECORD_RESULT",
+      "REQUEUE",
+      "CONTINUE"
+    ],
+    "maintenance": [
+      "LOAD_CRITICAL_MEMORY",
+      "CONSIDER_FULL_SKILL_CATALOG",
+      "REPRODUCE",
+      "ROOT_CAUSE",
+      "REPAIR",
+      "REGRESSION_EVAL",
+      "RECORD_INCIDENT",
+      "LEARN",
+      "SELF_CHECK"
+    ],
+    "agentNursery": [
+      "DRAFT",
+      "SPAWN",
+      "TRAIN",
+      "EVALUATE",
+      "BASELINE_COMPARE",
+      "REGRESSION_GATE",
+      "REPAIR_OR_CANDIDATE",
+      "HUMAN_PROMOTION_REVIEW"
+    ],
+    "agentNetwork": [
+      "BLUEPRINT",
+      "SPAWN",
+      "TRAIN",
+      "EVALUATE",
+      "BOUNDED_REPAIR",
+      "CANDIDATE",
+      "DRAFT_NETWORK_ADMISSION",
+      "HUMAN_PROMOTION_REVIEW"
+    ],
+    "intelligenceSweep": [
+      "SOURCE_SWEEP",
+      "SOURCE_HEALTH",
+      "NORMALIZE",
+      "TEMPORAL_DELTA",
+      "SIGNIFICANCE_ROUTE",
+      "EVIDENCE_CHECK",
+      "ALERT_OR_STOP"
+    ]
   },
   "coreContours": [
     "repo-intake-runability",
@@ -55,7 +142,13 @@
     "runtime-telemetry-dashboard",
     "live-n8n-nursery-binding"
   ],
-  "secondRingAmplifiers": ["ui-taste-gate", "compound-skill-loop", "recent-signal-radar", "context-governor", "https-autopilot"],
+  "secondRingAmplifiers": [
+    "ui-taste-gate",
+    "compound-skill-loop",
+    "recent-signal-radar",
+    "context-governor",
+    "https-autopilot"
+  ],
   "capabilityFamilies": [
     "executive-and-context",
     "research-and-truth",
@@ -153,5 +246,10 @@
   "telegramInteractivePriorityPersistence": "infra/supabase/migrations/20260818_286_telegram_interactive_priority.sql",
   "terminalAgentReconciliationPersistence": "infra/supabase/migrations/20260818_287_terminal_agent_reconciliation.sql",
   "telegramThreadContextPersistence": "infra/supabase/migrations/20260818_288_telegram_thread_context.sql",
-  "agentPopulationLifecyclePersistence": "infra/supabase/migrations/20260820_289_agent_population_lifecycle.sql"
+  "agentPopulationLifecyclePersistence": "infra/supabase/migrations/20260820_289_agent_population_lifecycle.sql",
+  "videoStudioSkill": "skills/video-studio/SKILL.md",
+  "videoStudioDocs": "docs/VIDEO-STUDIO.md",
+  "videoStudioUpstreams": "registry/upstreams/video-studio-tools.json",
+  "videoStudioRuntime": "tools/video-studio.mjs",
+  "videoStudioEval": "evals/video-studio.test.mjs"
 }
