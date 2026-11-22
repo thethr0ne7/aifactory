@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "name": "Minicharts",
+    "author": "April Zhu",
+    "officialPage": "https://april-zhu.com/minicharts",
+    "officialDownload": "https://april-zhu.com/minicharts/minicharts.skill",
+    "officialArchive": "https://april-zhu.com/minicharts/minicharts.tar.gz",
+    "licenseAsPublished": "MIT",
+    "documentedChartTypes": 54,
+    "documentationObservedAt": "2026-11-22",
+    "sourceCodeAudited": false,
+    "packageSha256": null,
+    "versionOrCommit": null
+  },
+  "decision": "REGISTER_BOUNDED_REPORTING_ADAPTER; ORIGINAL_UPSTREAM_NOT_INSTALLED",
+  "trust": "controlled-adapter-pending-package-audit",
+  "intendedUse": [
+    "data-backed reports",
+    "financial and grant reporting",
+    "executive dashboards and briefings",
+    "data visualizations embedded in presentations"
+  ],
+  "outOfScope": [
+    "installing or executing unreviewed third-party code",
+    "unconditional routing of every presentation",
+    "replacing spreadsheet editing",
+    "creating invented or misleading quantitative evidence"
+  ],
+  "compatibility": {
+    "existing": [
+      "spreadsheet-adapter",
+      "data-validation",
+      "research-truth",
+      "canvas-design",
+      "brand-theme",
+      "visual-fidelity"
+    ],
+    "canonicalRouter": "registry/capabilities.json",
+    "load": "selective-only"
+  },
+  "review": {
+    "documentationVerified": true,
+    "licenseClaimVerifiedOnWebsite": true,
+    "packageBytesInspected": false,
+    "dependenciesInspected": false,
+    "installerExecuted": false,
+    "hostExecutionVerified": false,
+    "interactiveExportVerified": false,
+    "defaultNetworkAccess": false,
+    "defaultShellExecution": false,
+    "defaultCredentialsAccess": false
+  },
+  "knowledgeClassification": {
+    "chartSelection": "HEURISTIC",
+    "sourceDataIntegrity": "POLICY",
+    "upstreamDownloadInstructions": "VOLATILE_REFERENCE",
+    "graphicMetaphorPattern": "PATTERN",
+    "noMisleadingQuantitativeCharts": "INVARIANT"
+  },
+  "promotionGate": {
+    "status": "REGISTERED_NOT_RUNTIME_READY",
+    "required": [
+      "Download pinned official source in a controlled environment",
+      "Inspect files, executable content, scripts, dependencies, licensing and data handling",
+      "Capture exact package hash/version and record provenance",
+      "Run numerical accuracy, routing, export and security evaluations",
+      "Verify host installation and permissions explicitly",
+      "Approve any runtime enablement via existing Factory gate"
+    ]
+  },
+  "documentation": "docs/MINICHARTS-REPORTING.md",
+  "localAdapter": "skills/minicharts-reporting/SKILL.md",
+  "routingEvaluation": "evals/minicharts-reporting.json"
+}
