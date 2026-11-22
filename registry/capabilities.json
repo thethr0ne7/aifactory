@@ -104,7 +104,8 @@
     {"id":"seo-audit-patterns","family":"growth","status":"pattern-only","localSkill":"skills/seo-audit-patterns/SKILL.md","source":"https://github.com/AgriciDaniel/claude-seo"},
 
     {"id":"knowledge-os","family":"knowledge-and-data","status":"optional-core","localSkill":"skills/knowledge-os/SKILL.md","source":"https://github.com/kepano/obsidian-skills"},
-    {"id":"spreadsheet-adapter","family":"knowledge-and-data","status":"controlled","localSkill":"skills/spreadsheet-adapter/SKILL.md","source":"https://github.com/haris-musa/excel-mcp-server"}
+    {"id":"spreadsheet-adapter","family":"knowledge-and-data","status":"controlled","localSkill":"skills/spreadsheet-adapter/SKILL.md","source":"https://github.com/haris-musa/excel-mcp-server"},
+    {"id":"minicharts-reporting","family":"knowledge-and-data","status":"controlled","localSkill":"skills/minicharts-reporting/SKILL.md","source":"https://april-zhu.com/minicharts","upstreamAudit":"registry/upstreams/minicharts.json","documentation":"docs/MINICHARTS-REPORTING.md","evaluation":"evals/minicharts-reporting.json","upstreamRuntime":"not-installed-unverified","routePolicy":"selective-numeric-reporting-presentations"}
   ],
   "upstreamPatternCatalogue": "registry/upstream-patterns.json",
   "upstreamAuditRegistry": "registry/upstreams/addyosmani-agent-skills.json",
